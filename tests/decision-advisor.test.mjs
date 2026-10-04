@@ -1,0 +1,17 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {DecisionAdvisor} from '../runtime/decision-advisor.mjs';
+const input={authorizedState:'User requests help preparing a check-in.',options:{plan:'Plan next step',checkin:'Record a check-in'}};
+const answer={model:'selfjev-4b',answers:{intent:{type:'choice',choice:'checkin',probabilities:{plan:0.1,checkin:0.9},confidence:0.8}}};
+const fake=d=>async()=>new Response(JSON.stringify(d),{status:200});
+const advisor=d=>new DecisionAdvisor({baseUrl:'http://127.0.0.1:8000',fetchImpl:fake(d)});
+test('no provider does not masquerade as intelligence',async()=>assert.equal((await new DecisionAdvisor().suggest(input)).reason,'not_configured'));
+test('exact choice is advisory only',async()=>{const o=await advisor(answer).suggest(input);assert.equal(o.choice,'checkin');assert.equal(o.authority,false);assert.equal(o.calibratedForThisProduct,false)});
+test('protocol sends one bounded choice request',async()=>{let request;const a=new DecisionAdvisor({baseUrl:'http://127.0.0.1:8000',fetchImpl:async(url,opt)=>{request={url,opt};return new Response(JSON.stringify(answer))}});await a.suggest(input);assert.equal(request.url,'http://127.0.0.1:8000/v1/systemone');assert.equal(JSON.parse(request.opt.body).questions.intent.type,'choice');assert.equal(request.opt.redirect,'error')});
+test('unknown choice rejected',async()=>assert.equal((await advisor({...answer,answers:{intent:{...answer.answers.intent,choice:'grant_admin'}}}).suggest(input)).reason,'invalid_response'));
+test('invalid probabilities rejected',async()=>{for(const probabilities of [{plan:-1,checkin:2},{plan:0.4,checkin:0.9},{plan:0.1,checkin:0.9,grant_admin:0}])assert.equal((await advisor({...answer,answers:{intent:{...answer.answers.intent,probabilities}}}).suggest(input)).reason,'invalid_response')});
+test('ambiguous decision abstains',async()=>assert.equal((await advisor({...answer,answers:{intent:{...answer.answers.intent,probabilities:{plan:0.49,checkin:0.51}}}}).suggest(input)).reason,'uncertain'));
+test('provider exception never leaks credentials',async()=>{const a=new DecisionAdvisor({baseUrl:'http://127.0.0.1:8000',apiKey:'fixture-secret',fetchImpl:async()=>{throw new Error('fixture-secret')}});assert.deepEqual(await a.suggest(input),{status:'abstain',reason:'provider_or_protocol_error',authority:false})});
+test('provider status abstains',async()=>{const a=new DecisionAdvisor({baseUrl:'http://127.0.0.1:8000',fetchImpl:async()=>new Response('error',{status:429})});assert.equal((await a.suggest(input)).reason,'provider_unavailable')});
+test('overlarge input never reaches provider',async()=>assert.equal((await advisor(answer).suggest({...input,authorizedState:'a'.repeat(16001)})).reason,'invalid_input'));
+test('invalid bounds rejected',()=>assert.throws(()=>new DecisionAdvisor({minimum:2})));
+test('credentials in endpoint rejected',()=>assert.throws(()=>new DecisionAdvisor({baseUrl:'http://user:secret@localhost:8000'})));
+test('response size bounded',async()=>{const a=new DecisionAdvisor({baseUrl:'http://127.0.0.1:8000',fetchImpl:async()=>new Response('a'.repeat(65537))});assert.equal((await a.suggest(input)).reason,'response_too_large')});

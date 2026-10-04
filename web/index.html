@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vow — The commitment journal that can't lie</title>
+  <meta name="description" content="Tamper-evident commitment journal on Walrus Memory. Five presets (habits, medication, nutrition, health, study). Every check-in is hash-chained and sealed on Sui mainnet. Open source." />
+  <meta name="theme-color" content="#0E9C86" />
+  <link rel="icon" type="image/svg+xml" href="/vow-favicon.svg" />
+
+  <!-- OG / Twitter -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Vow — The commitment journal that can't lie" />
+  <meta property="og:description" content="Hash-chained check-ins on Walrus Memory. 5 presets. Your keys, your data. Open source." />
+  <meta property="og:url" content="https://vow-site-impixles.vercel.app" />
+  <meta property="og:site_name" content="Vow" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Vow — The commitment journal that can't lie" />
+  <meta name="twitter:description" content="Tamper-evident commitments on Walrus. Five presets. Zero trust required." />
+
+  <!-- JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Vow",
+    "applicationCategory": "HealthApplication",
+    "operatingSystem": "Web, Telegram, CLI",
+    "description": "Tamper-evident commitment journal with 5 presets on Walrus Memory. Hash-chained check-ins sealed on Sui mainnet.",
+    "url": "https://vow-site-impixles.vercel.app",
+    "author": { "@type": "Person", "name": "bagstreet" },
+    "license": "https://opensource.org/licenses/MIT",
+    "isAccessibleForFree": true
+  }
+  </script>
+
+  <!-- Fonts: Instrument Sans (NOT Inter — anti-AI-slop rule), JetBrains Mono optional -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=optional" rel="stylesheet" />
+</head>
+<body>
+  <!-- Noscript warning -->
+  <noscript>
+    <div style="position:fixed;inset:0;z-index:9999;background:#020303;color:#f3f5f6;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;padding:40px;text-align:center">
+      <div>
+        <div style="width:60px;height:60px;border-radius:50%;border:3px solid #0E9C86;margin:0 auto 20px;display:flex;align-items:center;justify-content:center">
+          <div style="width:20px;height:20px;border-radius:50%;background:#0E9C86"></div>
+        </div>
+        <h1 style="font-size:24px;margin:0 0 12px">JavaScript required</h1>
+        <p style="font-size:14px;color:#a1a9ae;max-width:360px;line-height:1.6">Vow needs JavaScript to run. Please enable it in your browser settings to use the app.</p>
+      </div>
+    </div>
+  </noscript>
+
+  <!-- Preloader / Skeleton -->
+  <div id="preloader" style="position:fixed;inset:0;z-index:9998;background:#020303;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.4s">
+    <!-- Animated logo -->
+    <svg width="80" height="80" style="animation:pulse 1.5s ease-in-out infinite">
+      <circle cx="40" cy="40" r="30" fill="none" stroke="#0E9C86" stroke-width="4" opacity="0.3"/>
+      <circle cx="40" cy="40" r="12" fill="#0E9C86" opacity="0.5"/>
+    </svg>
+    <!-- Skeleton blocks + LCP fallback text (#32) -->
+    <div style="margin-top:32px;width:280px;text-align:center">
+      <div style="font-size:1.5rem;font-weight:700;color:#f3f5f6;font-family:'Instrument Sans',system-ui,sans-serif;margin-bottom:8px">The commitment journal that <span style="color:#0E9C86">can't lie</span></div>
+      <div style="height:16px;background:rgba(231,239,244,0.03);border-radius:6px;margin-bottom:8px;width:220px;margin-left:auto;margin-right:auto;animation:shimmer 1.5s infinite 0.2s"></div>
+      <div style="height:16px;background:rgba(231,239,244,0.03);border-radius:6px;width:180px;margin-left:auto;margin-right:auto;animation:shimmer 1.5s infinite 0.4s"></div>
+    </div>
+  </div>
+  <style>
+    @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.08);opacity:0.7} }
+    @keyframes shimmer { 0%{opacity:0.3} 50%{opacity:0.6} 100%{opacity:0.3} }
+  </style>
+  <script>
+    window.addEventListener('DOMContentLoaded', function() {
+      // Hide preloader once React mounts
+      var check = setInterval(function() {
+        var root = document.getElementById('root');
+        if (root && root.children.length > 0) {
+          var pre = document.getElementById('preloader');
+          if (pre) { pre.style.opacity = '0'; setTimeout(function() { pre.remove(); }, 400); }
+          clearInterval(check);
+        }
+      }, 100);
+    });
+  </script>
+
+  <div id="root"></div>
+
+  <!-- Console easter egg for devs -->
+  <script>
+    console.log('%c\u{1f512} vow','font-size:32px;font-weight:bold;color:#0E9C86;text-shadow:0 0 10px #0E9C8644');
+    console.log('%cThe commitment journal that can\'t lie.\nHash-chained. Tamper-proof. Yours.\n\n\u{1f4e6} Stack: React + Vite + Tailwind + Walrus Memory\n\u{1f517} Chain: SHA-256 canonical digest, append-only\n\u{1f9e0} LLM: Groq (Llama 3.3) + Cerebras fallback\n\u{1f511} Keys: Owner + Delegate, revocable\n\n\u{1f440} Curious? We\'re open source:\n   https://github.com/aleksgleams-pixel/vow\n\n\u{1f41b} Found a bug? Open an issue:\n   https://github.com/aleksgleams-pixel/vow/issues/new\n\n\u{26d3}\ufe0f Every check-in is a receipt. Try to tamper with one.\n   Spoiler: you can\'t.','font-size:12px;color:#b7bdc1;line-height:1.6');
+  </script>
+
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>

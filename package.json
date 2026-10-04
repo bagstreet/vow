@@ -1,0 +1,33 @@
+{
+  "name": "vow-honest-habit",
+  "version": "1.0.0",
+  "description": "Vow \u2014 make a vow, keep the receipt. An honest, tamper-evident commitment ledger: each check-in is a durable receipt on an append-only hash chain, so the streak can't be faked or lost, and correcting the past means appending a supersede, never editing it. On Walrus (MemWal).",
+  "type": "module",
+  "bin": {
+    "vow": "bin/vow.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test",
+    "demo": "node demo/demo.mjs",
+    "mcp": "node mcp/server.mjs"
+  },
+  "keywords": [
+    "walrus",
+    "memwal",
+    "agent-memory",
+    "accountability",
+    "tamper-evident",
+    "hash-chain",
+    "mcp"
+  ],
+  "author": "bagstreet",
+  "license": "MIT",
+  "optionalDependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.0",
+    "@mysten-incubation/memwal": "0.1.8"
+  }
+}

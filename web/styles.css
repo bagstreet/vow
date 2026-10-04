@@ -1,0 +1,36 @@
+:root {
+  --ink: #1c2a26;
+  --paper: #efe8dc;
+  --card: #f7f1e6;
+  --line: #8d7b68;
+  --accent: #0b6e60;
+  --focus: #084c8d;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.55 "Iowan Old Style", Palatino, Georgia, serif; }
+.skip { position: absolute; left: -999px; }
+.skip:focus { left: 8px; top: 8px; background: #fff; z-index: 2; padding: 8px; }
+header { padding: 16px 20px 0; }
+.mark { margin: 0; font-size: 1.6rem; }
+.banner { color: var(--accent); font: 13px/1.4 ui-monospace, monospace; }
+main { display: grid; gap: 18px; padding: 16px; }
+@media (min-width: 840px) { main { grid-template-columns: 1fr 1fr; } }
+.card {
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 6px 6px 0 #e4d8c4, inset 0 0 0 1px #fff;
+}
+h1, h2 { margin: 0 0 8px; }
+label { display: block; margin-top: 12px; }
+input, select, button { width: 100%; margin-top: 4px; font: inherit; color: var(--ink); background: #fffdf8; border: 2px solid var(--line); border-radius: 12px; padding: 10px; }
+button { background: var(--accent); color: #fff; cursor: pointer; }
+button:focus, input:focus, select:focus { outline: 3px solid var(--focus); outline-offset: 2px; }
+.hint { color: #3d4a46; }
+#thread, #chain { min-height: 6rem; }
+@media (prefers-contrast: more) {
+  :root { --paper: #fff; --card: #fff; --ink: #000; --line: #000; --accent: #000; }
+  .card { box-shadow: none; border-width: 3px; border-radius: 4px; }
+  button { background: #000; }
+}

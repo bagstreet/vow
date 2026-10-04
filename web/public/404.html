@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>404 — Vow</title>
+<link rel="icon" type="image/svg+xml" href="/vow-favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#020303;color:#f3f5f6;font-family:"Instrument Sans",system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+nav{padding:16px 24px;display:flex;align-items:center;gap:8px}
+nav svg{flex-shrink:0}
+nav span{font-weight:700;font-size:14px}
+.content{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center}
+.ring{width:80px;height:80px;margin-bottom:24px;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.05);opacity:0.7}}
+h1{font-size:clamp(2rem,5vw,3.5rem);font-weight:700;margin-bottom:12px}
+h1 span{color:#0E9C86}
+p{color:#a1a9ae;font-size:14px;max-width:360px;line-height:1.6;margin-bottom:24px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border-radius:12px;background:#0E9C86;color:#000;font-weight:600;font-size:14px;text-decoration:none;transition:all 0.2s}
+.btn:hover{filter:brightness(1.1)}
+.code{font-family:monospace;font-size:12px;color:#a1a9ae;margin-top:40px;opacity:0.4}
+footer{padding:16px 24px;text-align:center;font-size:12px;color:#a1a9ae;border-top:1px solid rgba(231,239,244,0.09)}
+</style>
+</head>
+<body>
+<nav>
+<svg width="50" height="24" viewBox="0 0 465 220"><path d="M108.52 148.22L134.56 84.62C136.72 79.22 138.64 76.70 141.28 75.50L146.20 73.10V68.90H117.04V73.10L121.48 74.90C124.48 76.10 125.44 77.06 125.44 79.10C125.44 80.42 124.96 82.10 124 84.50L108.52 125.90L91 83.66C90.16 81.74 89.80 80.54 89.80 79.34C89.80 77.42 91 76.46 93.76 75.02L97.60 73.10V68.90H58.24V73.10L62.08 75.26C65.08 76.94 65.80 77.54 68.44 83.66L98.68 152.30M188.44 152.30C212.56 152.30 230.56 134.30 230.56 109.94C230.56 83.42 214.96 67.82 188.44 67.82C164.68 67.82 146.32 86.18 146.32 109.94C146.32 136.70 161.80 152.30 188.44 152.30M188.44 143.54C176.32 143.54 167.80 129.38 167.80 110.06C167.80 90.74 176.32 76.58 188.44 76.58C200.56 76.58 209.08 90.74 209.08 110.06C209.08 129.38 200.56 143.54 188.44 143.54M274.96 148.58L293.32 97.46L314.68 152.30L322.48 148.58L345.28 84.62C346.84 80.06 349.24 76.70 351.76 75.50L356.80 73.10V68.90H328.36V73.10L332.80 74.90C335.80 76.10 336.76 77.06 336.76 79.10C336.76 80.42 336.16 82.10 335.32 84.50L322.96 120.98L303.64 68.90L294.52 71.18L276.16 121.34L263.68 83.66C263.08 81.74 262.72 80.42 262.72 79.22C262.72 77.30 263.80 76.34 266.44 75.02L270.28 73.10V68.90H231.88V73.10L235.72 75.26C238.96 76.94 240.28 78.62 242.08 83.66L266.32 152.30" fill="#f3f5f6"/><circle cx="388.24" cy="144.5" r="18.6" fill="none" stroke="#0E9C86" stroke-width="6"/><circle cx="388.24" cy="144.5" r="7.8" fill="#0E9C86"/></svg>
+</nav>
+<div class="content">
+<svg class="ring" width="80" height="80"><circle cx="40" cy="40" r="30" fill="none" stroke="#0E9C86" stroke-width="4"/><circle cx="40" cy="40" r="12" fill="#0E9C86"/></svg>
+<h1>Page <span>not found</span></h1>
+<p>This commitment doesn't exist yet. But yours can. Head back and seal your first check-in.</p>
+<a href="/" class="btn">Back to Vow</a>
+<div class="code">404 · vow_0x000...000 · chain position: null</div>
+</div>
+<footer>vow &middot; MIT License &middot; 2026</footer>
+</body>
+</html>

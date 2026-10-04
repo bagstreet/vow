@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://vow-site-impixles.vercel.app/sitemap.xml
