@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Dumbbell, Pill, Apple, Heart, BookOpen, Shield, Link2, Key, FileCheck, RotateCcw, Settings, ChevronDown, Send, Mic, Bell, MessageCircle, Smartphone, Monitor, Copy, Check, ArrowUp, X, ChevronRight, Globe, Hash } from 'lucide-react'
+import { useAuth } from './lib/auth'
 /* TODO #14-16: Record 10+ mainnet blobs, add "Verify on Walruscan" button with real blob ID, before/after evidence */
 /* TODO #19: Add tool-calling visualization (how bot decides remember vs recall) when LLM backend is connected */
 
@@ -1103,12 +1105,18 @@ function CTA() {
 
 /* ═══ Sign In (one button, connects via messenger account) ═══ */
 function SignIn() {
-  const providers = [
-    { name: 'Telegram', color: '#229ED9', icon: MessageCircle },
-    { name: 'Discord', color: '#5865F2', icon: Hash },
-    { name: 'Slack', color: '#611f69', icon: Monitor },
-    { name: 'Web App', color: T.accent, icon: Globe },
+  const navigate = useNavigate()
+  const { login } = useAuth()
+  const providers: { name: string; key: 'telegram' | 'discord' | 'slack' | 'web'; color: string; icon: typeof Globe }[] = [
+    { name: 'Telegram', key: 'telegram', color: '#229ED9', icon: MessageCircle },
+    { name: 'Discord', key: 'discord', color: '#5865F2', icon: Hash },
+    { name: 'Slack', key: 'slack', color: '#611f69', icon: Monitor },
+    { name: 'Web App', key: 'web', color: T.accentHex, icon: Globe },
   ]
+  const handleLogin = (key: 'telegram' | 'discord' | 'slack' | 'web') => {
+    login(key)
+    navigate('/dashboard')
+  }
   return (
     <section id="signin" className="py-20 px-6">
       <div className="max-w-md mx-auto">
@@ -1121,7 +1129,8 @@ function SignIn() {
         <FadeIn delay={100}>
           <div className="space-y-3">
             {providers.map((p, i) => (
-              <button key={i} className="w-full flex items-center gap-3 px-5 py-3.5 rounded-xl cursor-pointer transition-all hover:scale-[1.02] hover:brightness-110"
+              <button key={i} onClick={() => handleLogin(p.key)}
+                className="w-full flex items-center gap-3 px-5 py-3.5 rounded-xl cursor-pointer transition-all hover:scale-[1.02] hover:brightness-110"
                 style={{background:T.surface, border:`1px solid ${T.border}`}}>
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:`${p.color}15`}}>
                   <p.icon size={20} style={{color:p.color}} />
