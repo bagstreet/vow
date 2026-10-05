@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { MessageCircle, Clock, Settings, Download, LogOut, Menu, X, ChevronLeft } from 'lucide-react'
+import { MessageCircle, Clock, Settings, Download, LogOut, Menu, X, ChevronLeft, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 
 const NAV = [
@@ -13,80 +13,103 @@ const NAV = [
 export default function DashboardLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   const handleLogout = () => { logout(); navigate('/') }
 
   if (!user) { navigate('/'); return null }
 
+  const sidebarW = collapsed ? 'w-16' : 'w-56'
+
   return (
     <div className="flex h-screen" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
-      {/* Desktop sidebar */}
-      <aside className="hidden md:flex flex-col w-56 flex-shrink-0 border-r" style={{ background: 'var(--shell)', borderColor: 'var(--border)' }}>
-        <div className="p-4 flex items-center gap-2">
-          <NavLink to="/" className="flex items-center gap-2 text-sm font-semibold opacity-60 hover:opacity-100 transition-opacity">
-            <ChevronLeft size={14} />
-            <span>vow</span>
-          </NavLink>
+      {/* Desktop sidebar - collapsible */}
+      <aside className={`hidden md:flex flex-col ${sidebarW} flex-shrink-0 border-r transition-all duration-200`}
+        style={{ background: 'var(--shell)', borderColor: 'var(--border)' }}>
+        <div className="p-3 flex items-center justify-between">
+          {!collapsed && (
+            <NavLink to="/" className="flex items-center gap-1.5 text-sm font-semibold opacity-60 hover:opacity-100 transition-opacity">
+              <ChevronLeft size={14} />
+              <span>vow</span>
+            </NavLink>
+          )}
+          <button onClick={() => setCollapsed(!collapsed)}
+            className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer hover:bg-white/5 ml-auto"
+            style={{ color: 'var(--text-muted)' }}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+            {collapsed ? <ChevronsRight size={14} /> : <ChevronsLeft size={14} />}
+          </button>
         </div>
 
         <nav className="flex-1 px-2 space-y-1">
           {NAV.map(n => (
-            <NavLink key={n.to} to={n.to} end={n.end}
+            <NavLink key={n.to} to={n.to} end={n.end} title={collapsed ? n.label : undefined}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors cursor-pointer ${
+                `flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-sm transition-colors cursor-pointer ${
                   isActive ? 'font-semibold' : 'opacity-60 hover:opacity-100'
                 }`
               }
               style={({ isActive }) => ({
                 background: isActive ? 'var(--surface)' : 'transparent',
-                color: isActive ? 'var(--accent, #0E9C86)' : 'var(--text)',
+                color: isActive ? '#0E9C86' : 'var(--text)',
               })}>
               <n.icon size={16} />
-              {n.label}
+              {!collapsed && n.label}
             </NavLink>
           ))}
         </nav>
 
         <div className="p-3 border-t" style={{ borderColor: 'var(--border)' }}>
-          <div className="flex items-center gap-2 px-2 py-1.5 mb-2">
-            <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ background: 'var(--accent, #0E9C86)', color: '#000' }}>
-              {user.name[0]}
+          {!collapsed && (
+            <div className="flex items-center gap-2 px-2 py-1.5 mb-2">
+              <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0" style={{ background: '#0E9C86', color: '#000' }}>
+                {user.name[0]}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-medium truncate">{user.name}</div>
+                <div className="text-[10px] opacity-50">{user.provider}</div>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-xs font-medium truncate">{user.name}</div>
-              <div className="text-[10px] opacity-50">{user.provider}</div>
-            </div>
-          </div>
-          <button onClick={handleLogout} className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-xs cursor-pointer transition-colors hover:bg-white/5" style={{ color: 'var(--text-muted)' }}>
-            <LogOut size={13} /> Sign out
+          )}
+          <button onClick={handleLogout}
+            className={`flex items-center ${collapsed ? 'justify-center' : 'gap-2'} w-full px-3 py-2 rounded-lg text-xs cursor-pointer transition-colors hover:bg-white/5`}
+            style={{ color: 'var(--text-muted)' }}
+            title={collapsed ? 'Sign out' : undefined}>
+            <LogOut size={13} />
+            {!collapsed && 'Sign out'}
           </button>
         </div>
       </aside>
 
-      {/* Mobile bottom tabs + hamburger header */}
+      {/* Main area */}
       <div className="flex flex-col flex-1 min-w-0">
         {/* Mobile header */}
         <header className="md:hidden flex items-center justify-between px-4 py-3 border-b" style={{ background: 'var(--shell)', borderColor: 'var(--border)' }}>
           <NavLink to="/" className="text-sm font-semibold flex items-center gap-1 opacity-60">
             <ChevronLeft size={14} /> vow
           </NavLink>
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="w-10 h-10 rounded-lg flex items-center justify-center cursor-pointer" style={{ color: 'var(--text-sec)' }}>
-            {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
+          <button onClick={() => setMobileOpen(true)} className="w-11 h-11 rounded-lg flex items-center justify-center cursor-pointer" style={{ color: 'var(--text-sec)' }}>
+            <Menu size={18} />
           </button>
         </header>
 
-        {/* Mobile sidebar overlay */}
-        {sidebarOpen && (
-          <div className="md:hidden fixed inset-0 z-50 flex">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
-            <div className="relative w-56 flex flex-col border-r" style={{ background: 'var(--shell)', borderColor: 'var(--border)' }}>
-              <div className="p-4">
-                <div className="text-sm font-semibold">vow</div>
+        {/* Mobile sidebar - slide in from left */}
+        {mobileOpen && (
+          <div className="md:hidden fixed inset-0 z-50 flex" onClick={() => setMobileOpen(false)}>
+            <div className="absolute inset-0 bg-black/60 transition-opacity" />
+            <div className="relative w-64 flex flex-col border-r animate-[slideInLeft_0.2s_ease-out]"
+              style={{ background: 'var(--shell)', borderColor: 'var(--border)' }}
+              onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between p-4">
+                <span className="text-sm font-semibold">vow</span>
+                <button onClick={() => setMobileOpen(false)} className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer" style={{ background: 'var(--surface)', color: 'var(--text-sec)' }}>
+                  <X size={18} />
+                </button>
               </div>
               <nav className="flex-1 px-2 space-y-1">
                 {NAV.map(n => (
-                  <NavLink key={n.to} to={n.to} end={n.end} onClick={() => setSidebarOpen(false)}
+                  <NavLink key={n.to} to={n.to} end={n.end} onClick={() => setMobileOpen(false)}
                     className={({ isActive }) =>
                       `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm cursor-pointer ${isActive ? 'font-semibold' : 'opacity-60'}`
                     }
@@ -99,7 +122,17 @@ export default function DashboardLayout() {
                   </NavLink>
                 ))}
               </nav>
+              {/* User info in mobile sidebar */}
               <div className="p-3 border-t" style={{ borderColor: 'var(--border)' }}>
+                <div className="flex items-center gap-2 px-2 py-1.5 mb-2">
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ background: '#0E9C86', color: '#000' }}>
+                    {user.name[0]}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-medium truncate">{user.name}</div>
+                    <div className="text-[10px] opacity-50">{user.provider}</div>
+                  </div>
+                </div>
                 <button onClick={handleLogout} className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-xs cursor-pointer hover:bg-white/5" style={{ color: 'var(--text-muted)' }}>
                   <LogOut size={13} /> Sign out
                 </button>
@@ -108,7 +141,7 @@ export default function DashboardLayout() {
           </div>
         )}
 
-        {/* Main content */}
+        {/* Content */}
         <main className="flex-1 overflow-auto">
           <Outlet />
         </main>
