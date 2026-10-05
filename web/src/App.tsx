@@ -76,7 +76,7 @@ function ChatWidget({ onDismiss }: { onDismiss: () => void }) {
             <MessageCircle size={12} color="#000" />
           </div>
           <span className="text-xs font-semibold flex-1" style={{color:T.text}}>Vow Bot</span>
-          <button onClick={close} className="p-1 rounded cursor-pointer hover:bg-white/10"><X size={14} style={{color:T.textMuted}}/></button>
+          <button onClick={close} className="p-2 rounded cursor-pointer hover:bg-white/10"><X size={16} style={{color:T.textMuted}}/></button>
         </div>
         <div className="p-4">
           <div className="px-3 py-2 rounded-xl rounded-bl-sm mb-3 text-sm" style={{background:T.recessed, border:`1px solid ${T.border}`, color:T.textSec}}>
@@ -124,6 +124,90 @@ const T = {
   text: 'var(--text, #f3f5f6)', textSec: 'var(--text-sec, #b7bdc1)', textMuted: 'var(--text-muted, #a1a9ae)',
   border: 'var(--border, rgba(231,239,244,0.09))', borderVis: 'var(--border-vis, rgba(231,239,244,0.18))',
 } as const
+
+/* ── #3: Particles background (lightweight canvas, no deps) ── */
+function ParticlesBg() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    if (mq.matches) return
+    let raf: number
+    const dpr = window.devicePixelRatio || 1
+    const resize = () => { canvas.width = canvas.offsetWidth * dpr; canvas.height = canvas.offsetHeight * dpr; ctx.scale(dpr, dpr) }
+    resize()
+    window.addEventListener('resize', resize)
+    const N = 35
+    const dots = Array.from({ length: N }, () => ({
+      x: Math.random() * canvas.offsetWidth,
+      y: Math.random() * canvas.offsetHeight,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: (Math.random() - 0.5) * 0.3,
+      r: 1 + Math.random() * 1.5,
+    }))
+    const draw = () => {
+      const w = canvas.offsetWidth, h = canvas.offsetHeight
+      ctx.clearRect(0, 0, w, h)
+      for (const d of dots) {
+        d.x += d.vx; d.y += d.vy
+        if (d.x < 0 || d.x > w) d.vx *= -1
+        if (d.y < 0 || d.y > h) d.vy *= -1
+        ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2)
+        ctx.fillStyle = 'rgba(14,156,134,0.15)'; ctx.fill()
+      }
+      // Draw links
+      for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) {
+        const dx = dots[i].x - dots[j].x, dy = dots[i].y - dots[j].y
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        if (dist < 150) {
+          ctx.beginPath(); ctx.moveTo(dots[i].x, dots[i].y); ctx.lineTo(dots[j].x, dots[j].y)
+          ctx.strokeStyle = `rgba(14,156,134,${0.06 * (1 - dist / 150)})`; ctx.lineWidth = 1; ctx.stroke()
+        }
+      }
+      raf = requestAnimationFrame(draw)
+    }
+    draw()
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize) }
+  }, [])
+  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-0" style={{ opacity: 0.8 }} />
+}
+
+/* ── #5: SVG Workflow Diagram ── */
+function WorkflowDiagram() {
+  return (
+    <div className="mx-auto max-w-3xl mb-8" role="img" aria-label="Vow workflow: User sends message, Bot processes it, Chain hashes and seals, Walrus stores blob, Receipt returned">
+      <svg viewBox="0 0 800 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+        {/* Connecting lines */}
+        <line x1="140" y1="50" x2="220" y2="50" stroke="#0E9C86" strokeWidth="2" strokeDasharray="6 3" opacity="0.4" />
+        <line x1="340" y1="50" x2="420" y2="50" stroke="#0E9C86" strokeWidth="2" strokeDasharray="6 3" opacity="0.4" />
+        <line x1="540" y1="50" x2="620" y2="50" stroke="#0E9C86" strokeWidth="2" strokeDasharray="6 3" opacity="0.4" />
+        {/* Arrow heads */}
+        <polygon points="220,45 220,55 230,50" fill="#0E9C86" opacity="0.5" />
+        <polygon points="420,45 420,55 430,50" fill="#0E9C86" opacity="0.5" />
+        <polygon points="620,45 620,55 630,50" fill="#0E9C86" opacity="0.5" />
+        {/* Node 1: User */}
+        <rect x="20" y="20" width="120" height="60" rx="12" fill="#101214" stroke="rgba(231,239,244,0.09)" strokeWidth="1.5" />
+        <text x="80" y="42" textAnchor="middle" fill="#f3f5f6" fontSize="11" fontWeight="600" fontFamily="Instrument Sans, system-ui">User</text>
+        <text x="80" y="58" textAnchor="middle" fill="#a1a9ae" fontSize="9" fontFamily="Instrument Sans, system-ui">check-in / voice</text>
+        {/* Node 2: Bot */}
+        <rect x="230" y="20" width="120" height="60" rx="12" fill="#101214" stroke="#0E9C86" strokeWidth="1.5" opacity="0.8" />
+        <text x="290" y="42" textAnchor="middle" fill="#0E9C86" fontSize="11" fontWeight="600" fontFamily="Instrument Sans, system-ui">Vow Bot</text>
+        <text x="290" y="58" textAnchor="middle" fill="#a1a9ae" fontSize="9" fontFamily="Instrument Sans, system-ui">parse + validate</text>
+        {/* Node 3: Chain */}
+        <rect x="430" y="20" width="120" height="60" rx="12" fill="#101214" stroke="rgba(231,239,244,0.09)" strokeWidth="1.5" />
+        <text x="490" y="42" textAnchor="middle" fill="#f3f5f6" fontSize="11" fontWeight="600" fontFamily="Instrument Sans, system-ui">Hash Chain</text>
+        <text x="490" y="58" textAnchor="middle" fill="#a1a9ae" fontSize="9" fontFamily="Instrument Sans, system-ui">SHA-256 append</text>
+        {/* Node 4: Walrus */}
+        <rect x="630" y="20" width="150" height="60" rx="12" fill="#101214" stroke="#0E9C86" strokeWidth="1.5" opacity="0.8" />
+        <text x="705" y="42" textAnchor="middle" fill="#0E9C86" fontSize="11" fontWeight="600" fontFamily="Instrument Sans, system-ui">Walrus Memory</text>
+        <text x="705" y="58" textAnchor="middle" fill="#a1a9ae" fontSize="9" fontFamily="Instrument Sans, system-ui">blob sealed + receipt</text>
+      </svg>
+    </div>
+  )
+}
 
 /* ── Presets (order matches "Five presets" section) ── */
 const PRESETS = [
@@ -210,7 +294,7 @@ function Nav() {
           <div className="flex items-center gap-3">
             <a href="https://github.com/aleksgleams-pixel/vow" target="_blank" rel="noopener" className="hidden sm:inline-block text-sm px-3 py-1.5 rounded-lg border cursor-pointer transition-colors hover:bg-white/5" style={{ color: T.textSec, borderColor: T.border }}>GitHub</a>
             <a href="#signin" className="hidden sm:inline-block text-sm px-4 py-1.5 rounded-lg cursor-pointer transition-all hover:brightness-110 font-semibold" style={{ background: T.accent, color: '#000' }}>Sign in</a>
-            <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer transition-colors hover:bg-white/5" style={{ color: T.textSec }}>
+            <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden w-11 h-11 rounded-lg flex items-center justify-center cursor-pointer transition-colors hover:bg-white/5" style={{ color: T.textSec }}>
               {menuOpen ? <X size={18} /> : <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>}
             </button>
           </div>
@@ -265,6 +349,8 @@ function TypingHeadline() {
 function Hero() {
   return (
     <section className="relative flex flex-col items-center justify-center px-6 pt-20 pb-0 overflow-hidden" style={{minHeight:'90vh',maxHeight:'100vh'}}>
+      {/* Particles background */}
+      <ParticlesBg />
       {/* Glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full opacity-[0.06]" style={{ background: `radial-gradient(circle,${T.accentHex},transparent 70%)`, filter: 'blur(80px)' }} />
@@ -433,7 +519,8 @@ function Solution() {
     <section className="py-14 sm:py-20 px-6">
       <div className="max-w-4xl mx-auto text-center">
         <h2 className="text-2xl sm:text-3xl font-bold mb-3" style={{ color: T.text }}>How Vow fixes this</h2>
-        <p className="mb-8 sm:mb-12" style={{ color: T.textMuted }}>Three steps. Zero trust required.</p>
+        <p className="mb-6 sm:mb-8" style={{ color: T.textMuted }}>Three steps. Zero trust required.</p>
+        <WorkflowDiagram />
         {/* Desktop: 3-col grid. Mobile: compact horizontal rows */}
         <div className="hidden sm:grid sm:grid-cols-3 gap-6">
           {steps.map(({ icon: Icon, title, desc }, i) => (
@@ -838,7 +925,7 @@ function Deploy() {
                     <div key={i} className="flex items-start gap-0 group">
                       <span style={{color:T.accent}}>$ </span>
                       <span className="flex-1" style={{color:'#e0e0e0'}}>{line.cmd}</span>
-                      <button onClick={() => copy(i, line.cmd!)} className="opacity-0 group-hover:opacity-100 p-0.5 rounded cursor-pointer transition-opacity hover:bg-white/10 flex-shrink-0 ml-2">
+                      <button onClick={() => copy(i, line.cmd!)} className="opacity-0 group-hover:opacity-100 p-2 rounded cursor-pointer transition-opacity hover:bg-white/10 flex-shrink-0 ml-2">
                         {copied === i ? <Check size={12} style={{color:T.accent}}/> : <Copy size={12} style={{color:T.textMuted}}/>}
                       </button>
                     </div>
@@ -1245,7 +1332,7 @@ function DotNav() {
     <div className="fixed right-4 top-1/2 -translate-y-1/2 z-40 hidden lg:flex flex-col gap-3">
       {sections.map(s => (
         <a key={s.id} href={`#${s.id}`} title={s.label}
-          className="w-2.5 h-2.5 rounded-full transition-all cursor-pointer"
+          className="w-4 h-4 rounded-full transition-all cursor-pointer p-0.5"
           style={{background: active === s.id ? T.accent : T.border, transform: active === s.id ? 'scale(1.4)' : 'scale(1)'}} />
       ))}
     </div>

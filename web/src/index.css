@@ -173,3 +173,14 @@ code, .font-mono {
   section { padding-top: 3rem !important; padding-bottom: 3rem !important; }
   section .text-2xl { font-size: 1.25rem !important; }
 }
+
+/* ── #9: iOS safe area insets ── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  /* Chat input bars and fixed bottom elements */
+  .fixed.bottom-6 {
+    bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  }
+}
