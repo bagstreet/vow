@@ -3,11 +3,11 @@ import { Bell, Shield, Key, User, Smartphone, Plus, Trash2, MessageCircle, Hash,
 import { useAuth } from '../lib/auth'
 
 const PRESETS = [
-  { id: 'habits', label: 'Health & Fitness', color: '#22c55e' },
+  { id: 'fitness', label: 'Health & Fitness', color: '#22c55e' },
   { id: 'medication', label: 'Medication Tracker', color: '#f59e0b' },
   { id: 'sobriety', label: 'Sobriety', color: '#ef4444' },
   { id: 'health', label: 'Health Companion', color: '#ec4899' },
-  { id: 'learning', label: 'Study & Exam', color: '#8b5cf6' },
+  { id: 'study', label: 'Study & Exam', color: '#8b5cf6' },
 ]
 
 const CHANNEL_ICONS: Record<string, typeof Globe> = {

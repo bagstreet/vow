@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { MessageCircle, Clock, Settings, Download, LogOut, Menu, X, ChevronLeft, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { MessageCircle, Clock, Settings, Download, Radio, LogOut, Menu, X, ChevronLeft, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 
 const NAV = [
   { to: '/dashboard', icon: MessageCircle, label: 'Chat', end: true },
+  { to: '/dashboard/channels', icon: Radio, label: 'Channels' },
   { to: '/dashboard/history', icon: Clock, label: 'History' },
   { to: '/dashboard/settings', icon: Settings, label: 'Settings' },
   { to: '/dashboard/export', icon: Download, label: 'Export' },

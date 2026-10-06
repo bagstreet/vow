@@ -1,3 +1,4 @@
+import ChannelsPage from './pages/ChannelsPage'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
@@ -18,6 +19,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/" element={<App />} />
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<ChatPage />} />
+            <Route path="channels" element={<ChannelsPage />} />
             <Route path="history" element={<HistoryPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="export" element={<ExportPage />} />

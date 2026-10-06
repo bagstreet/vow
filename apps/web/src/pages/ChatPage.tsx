@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Send, Mic, Shield } from 'lucide-react'
 import { useAuth } from '../lib/auth'
+import { ROLES, ROLE_IDS, COLORS, routeText, shouldShowRoleLabel, loadPref, savePref, type RoleId, type LabelMode } from '../lib/roles'
 
 interface Message {
   id: string
@@ -9,6 +10,7 @@ interface Message {
   timestamp: Date
   receipt?: string
   buttons?: string[]
+  roleTag?: string
 }
 
 // Simulated bot responses (will be replaced with real Groq API)
@@ -44,13 +46,21 @@ export default function ChatPage() {
     {
       id: '0',
       from: 'bot',
-      text: `Welcome${user?.name ? ', ' + user.name : ''}! I'm your Vow companion. Tell me what you're tracking today, or pick a preset from Settings.\n\nType /help to see available commands.`,
+      text: `Welcome${user?.name ? ', ' + user.name : ''}! I'm your Vow companion. Tell me what you're tracking today, or turn roles on and off above. Address one directly with @medication, @study and so on.\n\nType /help to see available commands.`,
       timestamp: new Date(),
-      buttons: ['Start tracking', 'View presets', '/help'],
+      buttons: ['Start tracking', 'What can you do?', '/help'],
     },
   ])
   const [input, setInput] = useState('')
   const [typing, setTyping] = useState(false)
+  const [enabled, setEnabled] = useState<RoleId[]>(() => loadPref<RoleId[]>('roles', ROLE_IDS))
+  const labelMode = loadPref<LabelMode>('labelMode', 'change')
+  const lastRole = useRef<RoleId | null>(null)
+  const toggle = (id: RoleId) => setEnabled(prev => {
+    const next = prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]
+    if (next.length === 0) return prev
+    savePref('roles', next); return next
+  })
   const endRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -65,7 +75,18 @@ export default function ChatPage() {
 
     // Simulate bot thinking (replace with real Groq API call)
     setTimeout(() => {
-      const reply = getReply(text)
+      const reply = { ...getReply(text) }
+      const r = routeText(text, enabled)
+      let tag: string | undefined
+      if (r.primary) {
+        const meta = ROLES[r.primary]
+        if (shouldShowRoleLabel(labelMode, r.primary, lastRole.current)) tag = meta.emoji + ' ' + meta.label
+        lastRole.current = r.primary
+      } else if (r.outOfScope) {
+        reply.text = 'That is outside what I can help with here. I can help with ' + enabled.map(x => ROLES[x].label).join(', ') + '.'
+        reply.buttons = undefined
+      }
+      if (r.crisis) reply.text = "I'm really sorry you're going through this. Please contact local emergency services or a crisis line right now. I can stay here with you."
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
         from: 'bot',
@@ -73,6 +94,7 @@ export default function ChatPage() {
         timestamp: new Date(),
         receipt: reply.receipt,
         buttons: reply.buttons,
+        roleTag: tag,
       }
       setMessages(prev => [...prev, botMsg])
       setTyping(false)
@@ -95,8 +117,18 @@ export default function ChatPage() {
           </div>
         </div>
         <div className="ml-auto text-[10px] px-2 py-0.5 rounded-full" style={{ background: '#0E9C8615', color: '#0E9C86' }}>
-          {user?.preset || 'No preset'}
+          Preview: mock replies, real router
         </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5 px-4 py-2 border-b text-[11px]" style={{ borderColor: 'var(--border)' }}>
+        <span style={{ color: 'var(--text-muted)' }}>Active roles:</span>
+        {ROLE_IDS.map(id => (
+          <button key={id} onClick={() => toggle(id)} className="px-2 py-0.5 rounded-full cursor-pointer"
+            style={{ border: '1px solid ' + COLORS[id] + '66', background: enabled.includes(id) ? COLORS[id] + '26' : 'transparent', color: enabled.includes(id) ? COLORS[id] : 'var(--text-muted)' }}>
+            {ROLES[id].emoji} {ROLES[id].label}
+          </button>
+        ))}
+        <span className="ml-auto" style={{ color: 'var(--text-muted)' }}>Address a role: @study ...</span>
       </div>
 
       {/* Messages */}
@@ -120,6 +152,7 @@ export default function ChatPage() {
                     Receipt: {m.receipt}
                   </div>
                 )}
+                {m.roleTag && <div className="text-[10px] italic px-1 mt-0.5" style={{ color: 'var(--text-muted)' }}>{m.roleTag}</div>}
                 <div className="text-[9px] mt-1 px-1" style={{ color: 'var(--text-muted)' }}>
                   {m.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
@@ -161,7 +194,7 @@ export default function ChatPage() {
         <input ref={inputRef} value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && send(input)}
-          placeholder="Type a message or /command..."
+          placeholder="Type a message, /command or @role ..."
           className="flex-1 px-4 py-2.5 rounded-xl text-sm outline-none"
           style={{ background: 'var(--recessed)', color: 'var(--text)', border: '1px solid var(--border)' }}
         />
