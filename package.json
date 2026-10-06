@@ -12,6 +12,8 @@
   "scripts": {
     "test": "node --test",
     "test:prompts": "node --test tests/prompts/lint.test.mjs",
+    "test:eval": "node scripts/eval-prompts.mjs",
+    "test:eval:live": "node scripts/eval-prompts.mjs --live",
     "demo": "node examples/demo/demo.mjs",
     "mcp": "node apps/mcp/server.mjs"
   },
