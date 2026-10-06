@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import { writeFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { VowLedgerMock } from "../src/memwal-mock.mjs";
-import { createMemWal, isReceipt } from "../src/memwal.mjs";
-import { CheckinWriter } from "../src/write-queue.mjs";
+import { VowLedgerMock } from "../ledger/memwal-mock.mjs";
+import { createMemWal, isReceipt } from "../ledger/memwal.mjs";
+import { CheckinWriter } from "../ledger/write-queue.mjs";
 
 // Infra coverage: the vow-ledger mock, the real-or-mock selector, and the 429-aware writer.
 // Edge/error paths the happy-path tests do not reach.

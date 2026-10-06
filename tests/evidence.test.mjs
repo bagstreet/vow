@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { VowLedgerMock } from "../src/memwal-mock.mjs";
-import { isReceipt } from "../src/memwal.mjs";
-import { Companion } from "../src/companion.mjs";
+import { VowLedgerMock } from "../ledger/memwal-mock.mjs";
+import { isReceipt } from "../ledger/memwal.mjs";
+import { Companion } from "../ledger/companion.mjs";
 
 const b64url = (buf) => buf.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 const blobIdFor = (t) => b64url(createHash("sha256").update(t).digest()).slice(0, 43);
