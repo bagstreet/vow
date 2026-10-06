@@ -19,7 +19,11 @@ export function route(text, ctx = {}) {
   if (ctx.occurrenceRole) return done({ primary: ctx.occurrenceRole, reason: 'occurrence' });
   if (INJECTION.test(t)) return done({ outOfScope: true, reason: 'injection' });
   // 1. explicit command or named role
-  const cmd = t.match(/^[\/@](?:role\s+)?(fitness|medication|sobriety|health|study)\b/i);
+  // '@' only addresses a role on web; in Telegram/Slack/Discord '@' is a user/bot mention, so use /role, "role: text" or "ask the X".
+  const atOk = !ctx.channel || ctx.channel === 'web';
+  const prefix = atOk ? '[\\/@]' : '[\\/]';
+  const cmd = t.match(new RegExp('^' + prefix + '(?:role\\s+)?(fitness|medication|sobriety|health|study)(?:@\\w+)?\\b', 'i'))
+    || t.match(/^(fitness|medication|sobriety|health|study)\s*:\s*\S/i);
   if (cmd && enabled.includes(cmd[1].toLowerCase())) return done({ primary: cmd[1].toLowerCase(), reason: 'explicit' });
   const named = t.match(/\bask (?:the )?(fitness|medication|sobriety|health|study|nutrition)\b/i);
   if (named) { const id = named[1].toLowerCase() === 'nutrition' ? 'fitness' : named[1].toLowerCase(); if (enabled.includes(id)) return done({ primary: id, reason: 'named' }); }

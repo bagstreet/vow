@@ -28,3 +28,13 @@ test('role label policy', () => {
   assert.equal(shouldShowRoleLabel('on_change', 'a', 'b'), true);
   assert.equal(shouldShowRoleLabel('on_change', 'a', undefined), true);
 });
+
+import { route as _route } from '../../packages/core/roles/router.mjs';
+import { test as _t } from 'node:test';
+import _a from 'node:assert/strict';
+_t('@ is a role prefix only on web; chat channels use /role or "role:"', () => {
+  _a.equal(_route('@medication did I take it?', { channel: 'web' }).reason, 'explicit');
+  _a.notEqual(_route('@medication did I take it?', { channel: 'telegram' }).reason, 'explicit');
+  _a.equal(_route('/study@VoW_rebot what is due', { channel: 'telegram' }).primary, 'study');
+  _a.equal(_route('study: what is due', { channel: 'slack' }).primary, 'study');
+});
