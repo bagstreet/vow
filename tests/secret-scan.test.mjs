@@ -8,7 +8,7 @@ import { join, relative } from "node:path";
 // are excluded — they legitimately contain example shapes; everything else must be clean.
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
-const DIRS = ["src", "ledger", "bin", "mcp", "demo", "docs", "tests"];
+const DIRS = ["src", "ledger", "bin", "mcp", "demo", "docs", "tests", "web"];
 const ROOT_FILES = ["README.md", "PROMPT.md", "Makefile", "package.json", ".gitignore"];
 const EXCLUDE = new Set(["ledger/ledger/screen.mjs", "tests/secret-scan.test.mjs"]);
 
