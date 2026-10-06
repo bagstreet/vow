@@ -11,7 +11,7 @@
 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Companion, exitCodeFor } from "../src/companion.mjs";
+import { Companion, exitCodeFor } from "../ledger/companion.mjs";
 
 if (!process.env.VOW_STORE && !process.env.MEMWAL_SEAL_SESSION) {
   process.env.VOW_STORE = join(tmpdir(), "vow-store.json");

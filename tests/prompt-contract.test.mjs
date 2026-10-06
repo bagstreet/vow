@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { linkCheckin, hashOf, payloadOf } from "../src/ledger/chain.mjs";
-import { auditLedger as structuralAudit, MATERIAL_RULES } from "../src/ledger/audit.mjs";
+import { linkCheckin, hashOf, payloadOf } from "../ledger/ledger/chain.mjs";
+import { auditLedger as structuralAudit, MATERIAL_RULES } from "../ledger/ledger/audit.mjs";
 
 // The prompt-contract mutation test. Each material rule has one adversarial fixture where,
 // WITH the rule, the audit reports the tamper (or unproven), and WITHOUT it, the audit

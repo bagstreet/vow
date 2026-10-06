@@ -2,7 +2,7 @@
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { startVowHttp } from "../src/http/server.mjs";
+import { startVowHttp } from "../ledger/http/server.mjs";
 
 if (!process.env.VOW_STORE) {
   process.env.VOW_STORE = join(mkdtempSync(join(tmpdir(), "vow-http-")), "store.json");

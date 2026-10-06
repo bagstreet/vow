@@ -7,9 +7,9 @@
 // a check-in that supersedes the old one, which the audit accepts. A claimed "done" with
 // no receipt is not counted.
 
-import { Companion, exitCodeFor } from "../src/companion.mjs";
-import { auditLedger } from "../src/ledger/audit.mjs";
-import { buildLlmClient } from "../src/llm/index.mjs";
+import { Companion, exitCodeFor } from "../ledger/companion.mjs";
+import { auditLedger } from "../ledger/ledger/audit.mjs";
+import { buildLlmClient } from "../ledger/llm/index.mjs";
 
 const hr = (t) => console.log(`\n${"─".repeat(66)}\n${t}\n${"─".repeat(66)}`);
 const S = (d) => (d.summary ? `${d.summary.done} done · ${d.summary.missed} missed · streak ${d.summary.streak} · ${d.summary.receipts} receipts` : "");

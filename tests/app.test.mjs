@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { VowLedgerMock } from "../src/memwal-mock.mjs";
-import { Companion, exitCodeFor } from "../src/companion.mjs";
-import { ledgerNamespace, slugify, STATUSES, STATES } from "../src/keys.mjs";
+import { VowLedgerMock } from "../ledger/memwal-mock.mjs";
+import { Companion, exitCodeFor } from "../ledger/companion.mjs";
+import { ledgerNamespace, slugify, STATUSES, STATES } from "../ledger/keys.mjs";
 
 // App-level tests: exercise the Companion application API end-to-end against the offline
 // vow ledger (makeVow → checkin → audit → status → restore) and the key helpers. With the

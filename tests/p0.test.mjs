@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Companion} from '../src/companion.mjs';
-import {VowLedgerMock} from '../src/memwal-mock.mjs';
-import {CheckinWriter} from '../src/write-queue.mjs';
+import {Companion} from '../ledger/companion.mjs';
+import {VowLedgerMock} from '../ledger/memwal-mock.mjs';
+import {CheckinWriter} from '../ledger/write-queue.mjs';
 const input={vow_id:'v',date:'2026-01-01',status:'done',note:''};
 test('P0 full read build write serialized across companion instances',async()=>{
  const client=new VowLedgerMock(); const a=new Companion({client,owner:'o',mode:'mock'}); const b=new Companion({client,owner:'o',mode:'mock'});
@@ -26,7 +26,7 @@ test('P0 queue survives permanent failure',async()=>{
  await assert.rejects(w.submit('a','n'));assert.equal(await w.submit('b','n'),'ok');assert.equal(n,2);
 });
 
-import {adaptMemWal,createMemWal} from '../src/memwal.mjs';
+import {adaptMemWal,createMemWal} from '../ledger/memwal.mjs';
 test('P0 published SDK root factory contract without keys or network',async()=>{
  let config,params; const sdk={recall:async p=>{params=p;return {results:[]};}};
  const x=await createMemWal({MEMWAL_KEY:'MOCK_ONLY',MEMWAL_ACCOUNT_ID:'MOCK_ONLY'},async()=>({MemWal:{create:c=>{config=c;return sdk;}}}));
@@ -40,9 +40,9 @@ test('P0 transient retries are bounded even with retry_after',async()=>{
  await assert.rejects(writer.submit('x','n'));assert.equal(calls,3);
 });
 
-import {auditLedger} from '../src/ledger/audit.mjs';
-import {linkCheckin} from '../src/ledger/chain.mjs';
-import {honestSummary} from '../src/ledger/summary.mjs';
+import {auditLedger} from '../ledger/ledger/audit.mjs';
+import {linkCheckin} from '../ledger/ledger/chain.mjs';
+import {honestSummary} from '../ledger/ledger/summary.mjs';
 test('P0 structural chain without trusted manifest is not completion',()=>{
  const e={...linkCheckin(null,{checkin_id:'c',seq:1,vow_id:'v',date:'2026-01-01',status:'done',ts:1}),receipt:{blob_id:'a'.repeat(43)}};
  const d=auditLedger([e]);assert.equal(d.ok,false);assert.equal(d.summary.done,0);

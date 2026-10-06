@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { VowLedgerMock } from "../src/memwal-mock.mjs";
-import { Companion } from "../src/companion.mjs";
+import { VowLedgerMock } from "../ledger/memwal-mock.mjs";
+import { Companion } from "../ledger/companion.mjs";
 import { createDiary, reduceNutriMind, toCheckinInput, goalSnapshot, PRESET_ID } from "../src/presets/nutrimind.mjs";
 import { listPresets } from "../src/presets/index.mjs";
 
