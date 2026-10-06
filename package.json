@@ -11,6 +11,7 @@
   },
   "scripts": {
     "test": "node --test",
+    "test:prompts": "node --test tests/prompts/lint.test.mjs",
     "demo": "node examples/demo/demo.mjs",
     "mcp": "node apps/mcp/server.mjs"
   },

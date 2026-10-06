@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Mic, Shield } from 'lucide-react'
+import { Send, Mic } from 'lucide-react'
 import { useAuth } from '../lib/auth'
+import { RoleAvatar } from '../components/RoleAvatar'
 import { ROLES, ROLE_IDS, COLORS, routeText, shouldShowRoleLabel, loadPref, savePref, type RoleId, type LabelMode } from '../lib/roles'
 
 interface Message {
@@ -11,6 +12,7 @@ interface Message {
   receipt?: string
   buttons?: string[]
   roleTag?: string
+  role?: RoleId
 }
 
 // Simulated bot responses (will be replaced with real Groq API)
@@ -78,10 +80,12 @@ export default function ChatPage() {
       const reply = { ...getReply(text) }
       const r = routeText(text, enabled)
       let tag: string | undefined
+      let msgRole: RoleId | undefined
       if (r.primary) {
         const meta = ROLES[r.primary]
         if (shouldShowRoleLabel(labelMode, r.primary, lastRole.current)) tag = meta.emoji + ' ' + meta.label
         lastRole.current = r.primary
+        msgRole = r.primary
       } else if (r.outOfScope) {
         reply.text = 'That is outside what I can help with here. I can help with ' + enabled.map(x => ROLES[x].label).join(', ') + '.'
         reply.buttons = undefined
@@ -95,6 +99,7 @@ export default function ChatPage() {
         receipt: reply.receipt,
         buttons: reply.buttons,
         roleTag: tag,
+        role: msgRole,
       }
       setMessages(prev => [...prev, botMsg])
       setTyping(false)
@@ -107,9 +112,7 @@ export default function ChatPage() {
     <div className="flex flex-col h-full">
       {/* Chat header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
-        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: '#0E9C8620' }}>
-          <Shield size={14} style={{ color: '#0E9C86' }} />
-        </div>
+        <RoleAvatar roles={enabled} size={32} />
         <div>
           <div className="text-sm font-semibold">Vow Bot</div>
           <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
@@ -135,7 +138,8 @@ export default function ChatPage() {
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {messages.map(m => (
           <div key={m.id}>
-            <div className={`flex ${m.from === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`flex gap-2 ${m.from === 'user' ? 'justify-end' : 'justify-start'}`}>
+              {m.from === 'bot' && <RoleAvatar roles={m.role ? [m.role] : []} size={28} />}
               <div className="max-w-[80%] sm:max-w-[60%]">
                 <div className="px-3 py-2.5 rounded-2xl text-sm whitespace-pre-line"
                   style={{
