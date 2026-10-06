@@ -11,6 +11,7 @@ async function modules(dir) {
   const files = [];
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);
+    if (entry.isDirectory() && (entry.name === "node_modules" || entry.name === "dist")) continue;
     if (entry.isDirectory()) files.push(...await modules(path));
     else if (entry.name.endsWith(".mjs")) files.push(path);
   }
