@@ -32,7 +32,7 @@ docs/              planning, audit and superseded preset docs (each starts with 
 
 ## What Vow does (accepted scope)
 
-One Steward, one ledger, three role modules:
+One Steward, one ledger, three engine modules and five user-facing roles ([Roles and Routing](internal/agent-pack/ROLES_AND_ROUTING.md): Health & Fitness, Medication, Sobriety, Health Companion, Study & Exam; several can be enabled at once, the AI routes each message and shows which role answered):
 
 | Role | What it does | What it never does |
 |---|---|---|
