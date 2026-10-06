@@ -184,5 +184,27 @@
   ],
   "p": null,
   "model": true
+ },
+ {
+  "t": "how much protein after leg day",
+  "en": [
+   "fitness",
+   "medication",
+   "nutrition",
+   "health",
+   "study"
+  ],
+  "p": "nutrition"
+ },
+ {
+  "t": "plan my gym training for this week",
+  "en": [
+   "fitness",
+   "medication",
+   "nutrition",
+   "health",
+   "study"
+  ],
+  "p": "fitness"
  }
 ]
