@@ -28,7 +28,7 @@ export const ROLES = Object.freeze({
   }),
   sobriety: def({
     id: 'sobriety', label: 'Sobriety', emoji: '🌱', sensitive: true,
-    keywords: ['sober', 'drink', 'alcohol', 'craving', 'relapse', 'streak', 'clean', 'sobriety'],
+    keywords: ['sober', 'drink', 'drank', 'alcohol', 'craving', 'relapse', 'streak', 'clean', 'sobriety'],
     scope: ['daily check-in', 'streak of days the user confirmed', 'journal entries', 'alert the user\'s chosen support contact only if the user enabled it'],
     never: ['shame or lecture', 'give clinical or withdrawal advice', 'improvise in a crisis: use the fixed safe message (contact your support person or local emergency number)'],
     buttons: ['taken', 'snooze', 'cancel'],
