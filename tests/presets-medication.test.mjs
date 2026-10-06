@@ -11,7 +11,7 @@ import {
   localClock,
   toCheckinInput,
   PRESET_ID,
-} from "../src/presets/medication.mjs";
+} from "../packages/presets/medication.mjs";
 
 const NOW = Date.parse("2026-10-02T06:30:00.000Z"); // 09:30 Europe/Minsk
 

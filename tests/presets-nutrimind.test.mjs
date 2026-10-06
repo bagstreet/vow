@@ -2,8 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { VowLedgerMock } from "../packages/core/memwal-mock.mjs";
 import { Companion } from "../packages/core/companion.mjs";
-import { createDiary, reduceNutriMind, toCheckinInput, goalSnapshot, PRESET_ID } from "../src/presets/nutrimind.mjs";
-import { listPresets } from "../src/presets/index.mjs";
+import { createDiary, reduceNutriMind, toCheckinInput, goalSnapshot, PRESET_ID } from "../packages/presets/nutrimind.mjs";
+import { listPresets } from "../packages/presets/index.mjs";
 
 const NOW = Date.parse("2026-10-02T12:00:00.000Z");
 

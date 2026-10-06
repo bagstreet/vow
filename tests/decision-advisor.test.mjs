@@ -1,4 +1,4 @@
-import {test} from 'node:test';import assert from 'node:assert/strict';import {DecisionAdvisor} from '../runtime/decision-advisor.mjs';
+import {test} from 'node:test';import assert from 'node:assert/strict';import {DecisionAdvisor} from '../packages/core/advisor/decision-advisor.mjs';
 const input={authorizedState:'User requests help preparing a check-in.',options:{plan:'Plan next step',checkin:'Record a check-in'}};
 const answer={model:'selfjev-4b',answers:{intent:{type:'choice',choice:'checkin',probabilities:{plan:0.1,checkin:0.9},confidence:0.8}}};
 const fake=d=>async()=>new Response(JSON.stringify(d),{status:200});
