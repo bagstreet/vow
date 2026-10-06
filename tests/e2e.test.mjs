@@ -11,7 +11,7 @@ import { join } from "node:path";
 
 // Offline fixtures must never inherit live provider credentials. Assertions are unchanged.
 const demoEnv = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("MEMWAL_")));
-const BIN = fileURLToPath(new URL("../bin/vow.mjs", import.meta.url));
+const BIN = fileURLToPath(new URL("../apps/cli/vow.mjs", import.meta.url));
 const STORE = join(mkdtempSync(join(tmpdir(), "vow-e2e-")), "store.json");
 const run = (args) => spawnSync("node", [BIN, ...args], { encoding: "utf8", env: { ...demoEnv, VOW_STORE: STORE } });
 

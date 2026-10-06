@@ -11,7 +11,7 @@ NODE="${NODE:-node}"
 STORE="$(mktemp -d)/jury.json"; export VOW_STORE="$STORE"
 pass=0; fail=0
 grn() { printf '\033[32m%s\033[0m' "$1"; }; red() { printf '\033[31m%s\033[0m' "$1"; }
-run() { OUT="$("$NODE" bin/vow.mjs "$@" 2>&1)"; ACT=$?; }
+run() { OUT="$("$NODE" apps/cli/vow.mjs "$@" 2>&1)"; ACT=$?; }
 check() { if [ "$ACT" = "$2" ] && printf '%s' "$OUT" | grep -qE "$3"; then
     printf '  %s %s\n' "$(grn ✓)" "$1"; pass=$((pass+1))
   else printf '  %s %s  (exit=%s want=%s; /%s/)\n' "$(red ✗)" "$1" "$ACT" "$2" "$3"; fail=$((fail+1)); fi; }

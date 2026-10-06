@@ -33,24 +33,24 @@ evidence:
 	$(NODE) --test tests/evidence.test.mjs
 
 demo:
-	$(NODE) demo/demo.mjs
+	$(NODE) examples/demo/demo.mjs
 
 # A clean ledger verifies (exit 0).
 audit:
 	@rm -f /tmp/vow-audit-demo.json
-	@VOW_STORE=/tmp/vow-audit-demo.json $(NODE) bin/vow.mjs make --id vow:run-3x --title "Run 3x a week" --cadence weekly >/dev/null
-	@VOW_STORE=/tmp/vow-audit-demo.json $(NODE) bin/vow.mjs checkin --vow vow:run-3x --date 2026-09-25 --status done >/dev/null
-	@VOW_STORE=/tmp/vow-audit-demo.json $(NODE) bin/vow.mjs checkin --vow vow:run-3x --date 2026-09-26 --status done >/dev/null
-	VOW_STORE=/tmp/vow-audit-demo.json $(NODE) bin/vow.mjs audit
+	@VOW_STORE=/tmp/vow-audit-demo.json $(NODE) apps/cli/vow.mjs make --id vow:run-3x --title "Run 3x a week" --cadence weekly >/dev/null
+	@VOW_STORE=/tmp/vow-audit-demo.json $(NODE) apps/cli/vow.mjs checkin --vow vow:run-3x --date 2026-09-25 --status done >/dev/null
+	@VOW_STORE=/tmp/vow-audit-demo.json $(NODE) apps/cli/vow.mjs checkin --vow vow:run-3x --date 2026-09-26 --status done >/dev/null
+	VOW_STORE=/tmp/vow-audit-demo.json $(NODE) apps/cli/vow.mjs audit
 
 # Rewrite a stored check-in, then audit: the tamper is caught (exit 1).
 tamper:
 	@rm -f /tmp/vow-tamper-demo.json
-	@VOW_STORE=/tmp/vow-tamper-demo.json $(NODE) bin/vow.mjs make --id vow:run-3x --title "Run 3x a week" >/dev/null
-	@VOW_STORE=/tmp/vow-tamper-demo.json $(NODE) bin/vow.mjs checkin --vow vow:run-3x --date 2026-09-25 --status done >/dev/null
-	@VOW_STORE=/tmp/vow-tamper-demo.json $(NODE) bin/vow.mjs checkin --vow vow:run-3x --date 2026-09-26 --status missed >/dev/null
-	@VOW_STORE=/tmp/vow-tamper-demo.json $(NODE) demo/tamper.mjs
-	-VOW_STORE=/tmp/vow-tamper-demo.json $(NODE) bin/vow.mjs audit
+	@VOW_STORE=/tmp/vow-tamper-demo.json $(NODE) apps/cli/vow.mjs make --id vow:run-3x --title "Run 3x a week" >/dev/null
+	@VOW_STORE=/tmp/vow-tamper-demo.json $(NODE) apps/cli/vow.mjs checkin --vow vow:run-3x --date 2026-09-25 --status done >/dev/null
+	@VOW_STORE=/tmp/vow-tamper-demo.json $(NODE) apps/cli/vow.mjs checkin --vow vow:run-3x --date 2026-09-26 --status missed >/dev/null
+	@VOW_STORE=/tmp/vow-tamper-demo.json $(NODE) examples/demo/tamper.mjs
+	-VOW_STORE=/tmp/vow-tamper-demo.json $(NODE) apps/cli/vow.mjs audit
 	@echo "(a non-zero exit above is the point: the rewrite was caught)"
 
 coverage:
@@ -59,8 +59,8 @@ coverage:
 
 coverage-core:
 	$(NODE) --test --experimental-test-coverage \
-	  --test-coverage-include='src/ledger/audit.mjs' --test-coverage-include='src/ledger/chain.mjs' \
-	  --test-coverage-include='src/ledger/screen.mjs' --test-coverage-include='src/ledger/summary.mjs' \
+	  --test-coverage-include='packages/core/ledger/audit.mjs' --test-coverage-include='packages/core/ledger/chain.mjs' \
+	  --test-coverage-include='packages/core/ledger/screen.mjs' --test-coverage-include='packages/core/ledger/summary.mjs' \
 	  --test-coverage-include='src/companion.mjs' --test-coverage-include='src/keys.mjs' \
 	  --test-coverage-lines=100 --test-coverage-functions=100
 
@@ -74,7 +74,7 @@ setup:
 	./scripts/setup.sh
 
 mcp:
-	$(NODE) mcp/server.mjs
+	$(NODE) apps/mcp/server.mjs
 
 clean:
 	rm -rf node_modules

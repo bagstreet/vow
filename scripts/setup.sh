@@ -11,8 +11,8 @@ echo "▸ Running the offline test suite (no keys/network)…"
 "$NODE" --test >/dev/null && echo "  ✓ tests pass"
 echo "▸ Checking business-logic coverage (ledger/app/keys = 100% lines+functions)…"
 "$NODE" --test --experimental-test-coverage \
-  --test-coverage-include='src/ledger/audit.mjs' --test-coverage-include='src/ledger/chain.mjs' \
-  --test-coverage-include='src/ledger/screen.mjs' --test-coverage-include='src/ledger/summary.mjs' \
+  --test-coverage-include='packages/core/ledger/audit.mjs' --test-coverage-include='packages/core/ledger/chain.mjs' \
+  --test-coverage-include='packages/core/ledger/screen.mjs' --test-coverage-include='packages/core/ledger/summary.mjs' \
   --test-coverage-include='src/companion.mjs' --test-coverage-include='src/keys.mjs' \
   --test-coverage-lines=100 --test-coverage-functions=100 >/dev/null && echo "  ✓ business logic fully covered"
 cat <<'NEXT'

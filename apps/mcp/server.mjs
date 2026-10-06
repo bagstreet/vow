@@ -9,7 +9,7 @@
 // Requires the optional dependency @modelcontextprotocol/sdk (run `npm install`). Not
 // needed for `make test` / `make demo` — the offline path has no dependencies.
 
-import { Companion, exitCodeFor } from "../packages/core/companion.mjs";
+import { Companion, exitCodeFor } from "../../packages/core/companion.mjs";
 
 async function loadSdk() {
   try {

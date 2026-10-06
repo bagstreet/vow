@@ -4,4 +4,4 @@ WORKDIR /app
 COPY . .
 ENV NODE_ENV=development
 EXPOSE 8788
-CMD ["node", "bin/vow-http.mjs"]
+CMD ["node", "apps/cli/vow-http.mjs"]

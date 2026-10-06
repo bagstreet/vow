@@ -1,4 +1,3 @@
-import { existsSync } from "node:fs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdir, readFile, stat } from "node:fs/promises";
@@ -6,7 +5,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { join, relative } from "node:path";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
-const SOURCE_DIRS = ["bin", "demo", "mcp", "apps", "packages", "examples", "src", "runtime", "tests"].filter((d) => existsSync(join(ROOT, d)));
+const SOURCE_DIRS = ["apps", "packages", "examples", "tests"];
 
 async function modules(dir) {
   const files = [];

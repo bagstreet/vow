@@ -1,27 +1,31 @@
 {
   "name": "vow-honest-habit",
   "version": "1.0.0",
-  "description": "Vow \u2014 make a vow, keep the receipt. An honest, tamper-evident commitment ledger: each check-in is a durable receipt on an append-only hash chain, so the streak can't be faked or lost, and correcting the past means appending a supersede, never editing it. On Walrus (MemWal).",
+  "description": "Vow — make a vow, keep the receipt. An honest, tamper-evident commitment ledger: each check-in is a durable receipt on an append-only hash chain, so the streak can't be faked or lost, and correcting the past means appending a supersede, never editing it. On Walrus (MemWal).",
   "type": "module",
   "bin": {
-    "vow": "bin/vow.mjs"
+    "vow": "apps/cli/vow.mjs"
   },
   "engines": {
     "node": ">=20"
   },
   "scripts": {
     "test": "node --test",
-    "demo": "node demo/demo.mjs",
-    "mcp": "node mcp/server.mjs"
+    "demo": "node examples/demo/demo.mjs",
+    "mcp": "node apps/mcp/server.mjs"
   },
   "keywords": [
-    "walrus",
-    "memwal",
-    "agent-memory",
     "accountability",
-    "tamper-evident",
+    "adaptive-delivery",
+    "agent-memory",
+    "hackathon",
     "hash-chain",
-    "mcp"
+    "mcp",
+    "memwal",
+    "reminders",
+    "tamper-evident",
+    "walrus",
+    "walrus-memory"
   ],
   "author": "bagstreet",
   "license": "MIT",
@@ -29,5 +33,13 @@
     "@modelcontextprotocol/sdk": "^1.0.0",
     "zod": "^3.23.0",
     "@mysten-incubation/memwal": "0.1.8"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bagstreet/vow.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bagstreet/vow/issues"
+  },
+  "homepage": "https://github.com/bagstreet/vow#readme"
 }
