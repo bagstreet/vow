@@ -255,7 +255,7 @@ function Nav() {
     const h = () => {
       setScrolled(window.scrollY > 60)
       // Detect active section
-      const sections = ['presets','demo','architecture','deploy','faq','signin']
+      const sections = ['roles','demo','architecture','deploy','faq','signin']
       let current = ''
       for (const id of sections) {
         const el = document.getElementById(id)
@@ -269,7 +269,7 @@ function Nav() {
     window.addEventListener('scroll', h, { passive: true })
     return () => window.removeEventListener('scroll', h)
   }, [])
-  const links = ['Presets','Demo','Architecture','Deploy','FAQ']
+  const links = ['Roles','Demo','Architecture','Deploy','FAQ']
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'py-1' : 'py-3'}`}>
       <div className="max-w-6xl mx-auto px-4">
@@ -399,7 +399,7 @@ function Hero() {
           Hash-chained. Tamper-proof. Yours. Every check-in sealed on Walrus, verifiable from anywhere.
         </p>
         <div className="flex flex-wrap gap-3 justify-center">
-          <a href="#presets" className="px-6 py-3 rounded-xl font-semibold text-sm cursor-pointer transition-all hover:brightness-110" style={{ background: T.accent, color: '#000' }}>
+          <a href="#roles" className="px-6 py-3 rounded-xl font-semibold text-sm cursor-pointer transition-all hover:brightness-110" style={{ background: T.accent, color: '#000' }}>
             Download a preset
           </a>
           <a href="#demo" className="px-6 py-3 rounded-xl font-semibold text-sm border cursor-pointer transition-colors hover:bg-white/5" style={{ borderColor: T.borderVis, color: T.text }}>
@@ -694,14 +694,29 @@ function DemoChat({ platformId }: { platformId: string }) {
 /* ═══ Block 7: MERGED Presets+Demo ═══ */
 function PresetsDemoMerged() {
   const [active, setActive] = useState(0)
+  const [enabled, setEnabled] = useState<string[]>(PRESETS.map(r => r.id))
   const p = PRESETS[active]
+  const toggle = (id: string) => setEnabled(cur => cur.includes(id) ? (cur.length > 1 ? cur.filter(x => x !== id) : cur) : [...cur, id])
+  const others = PRESETS.filter(r => r.id !== p.id && enabled.includes(r.id))
 
   return (
-    <section id="presets" className="py-20 px-6" aria-label="Presets and live demo">
+    <section id="roles" className="py-20 px-6" aria-label="Roles and live demo">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-10">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-3" style={{color:T.text}}>Presets in action</h2>
-          <p style={{color:T.textMuted}}>Pick a preset. See how the bot works on each platform.</p>
+          <h2 className="text-2xl sm:text-3xl font-bold mb-3" style={{color:T.text}}>Roles in action</h2>
+          <p style={{color:T.textMuted}}>Turn on any roles you need, all at once. The assistant picks the right one for each message and tells you which.</p>
+          <div className="flex gap-2 flex-wrap justify-center mt-4" role="group" aria-label="Enabled roles">
+            {PRESETS.map(r => {
+              const on = enabled.includes(r.id)
+              return (
+                <button key={r.id} type="button" aria-pressed={on} onClick={() => toggle(r.id)}
+                  className="text-xs px-3 py-1.5 rounded-full cursor-pointer transition-all"
+                  style={{ background: on ? `${r.color}22` : 'transparent', color: on ? r.color : T.textMuted, border: `1px solid ${on ? r.color + '66' : T.border}` }}>
+                  {on ? '✓ ' : ''}{r.label}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-4">
@@ -747,6 +762,10 @@ function PresetsDemoMerged() {
 
           {/* Right: demo chat for the selected preset's platform */}
           <div className="flex-1 min-w-0">
+            <div className="mb-2 flex items-center gap-2 flex-wrap text-[11px]" style={{color:T.textSec}} aria-live="polite">
+              <span className="px-2 py-0.5 rounded-full" style={{background:`${p.color}22`, color:p.color, border:`1px solid ${p.color}44`}}>Role: {p.label}</span>
+              <span>Why: this message matches {p.label.toLowerCase()} topics.{others.length > 0 && ` Also enabled: ${others.map(o => o.label).join(', ')}.`}</span>
+            </div>
             <DemoChat platformId={p.platform} key={p.id} />
           </div>
         </div>
@@ -829,7 +848,7 @@ function Architecture() {
     { icon: Key, title: 'Delegate Keys', desc: 'Owner key stays offline. Delegate key handles daily ops. Compromise it? Revoke. History untouched.' },
     { icon: FileCheck, title: 'Honest Receipts', desc: 'Every check-in returns blob ID + hash + timestamp. Verify on Walruscan. Zero trust.' },
     { icon: RotateCcw, title: 'Cold Restore', desc: 'Lost your device? New install rebuilds full chain from Walrus. Zero data loss.' },
-    { icon: Settings, title: 'Preset Engine', desc: 'System prompts, slash commands, reminder schedules, check-in types. Community presets via PR.' },
+    { icon: Settings, title: 'Role Engine', desc: 'System prompts, slash commands, reminder schedules, check-in types. Community roles via PR.' },
   ]
   return (
     <section id="architecture" className="py-20 px-6 pattern-diagonal" aria-label="Architecture">
@@ -896,7 +915,7 @@ function Deploy() {
     { prompt: true, cmd: 'cp .env.example .env' },
     { output: '# Edit .env: add GROQ_API_KEY, MEMWAL_PRIVATE_KEY, MEMWAL_ACCOUNT_ID' },
     { prompt: true, cmd: 'make setup' },
-    { output: 'Installing dependencies... done.\nConfiguring Walrus Memory... connected.\nPresets loaded: 5' },
+    { output: 'Installing dependencies... done.\nConfiguring Walrus Memory... connected.\nRoles loaded: 5' },
     { prompt: true, cmd: 'make demo' },
     { output: 'Starting Vow bot on http://localhost:3000\nTelegram webhook: ready\nWalrus Memory: mainnet\n\n  Ready. Try: /checkin or just say "I ran 5km today"' },
   ]
@@ -1199,7 +1218,7 @@ function AnimatedCounter() {
   }, [])
   const counters = [
     /* Only show provable numbers; fake social proof hurts credibility */
-    { target: 5, label: 'Presets available', suffix: '' },
+    { target: 5, label: 'Roles available', suffix: '' },
     { target: 4, label: 'Platforms supported', suffix: '' },
     { target: 6, label: 'Integrations', suffix: '' },
     { target: 256, label: 'Bit hash chain', suffix: '' },
@@ -1316,7 +1335,7 @@ function DotNav() {
   const [active, setActive] = useState('')
   const [show, setShow] = useState(false)
   const sections = [
-    {id:'presets',label:'Presets'},
+    {id:'roles',label:'Roles'},
     {id:'demo',label:'Demo'},
     {id:'architecture',label:'Architecture'},
     {id:'deploy',label:'Deploy'},
