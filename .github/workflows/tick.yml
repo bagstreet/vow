@@ -1,0 +1,20 @@
+name: ⏰ Reminder tick (backup)
+# Backup trigger for /api/tick. Primary trigger is an external 1-minute cron; this runs every 5 min.
+# Needs repo secret TICK_SECRET. Safe to overlap with the primary: the tick is idempotent.
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+permissions: {}
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Call /api/tick
+        env:
+          TICK_SECRET: ${{ secrets.TICK_SECRET }}
+          TICK_URL: https://vow-livid.vercel.app/api/tick
+        run: |
+          test -n "$TICK_SECRET" || { echo "TICK_SECRET not set"; exit 1; }
+          curl -fsS --retry 2 --max-time 30 -X POST -H "x-tick-secret: $TICK_SECRET" "$TICK_URL"
