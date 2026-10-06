@@ -3,6 +3,7 @@
 //   node scripts/eval-prompts.mjs            offline: proves the rubric accepts "good" and rejects "bad" sample replies (CI-safe, no network)
 //   node scripts/eval-prompts.mjs --live     calls the real provider chain (needs GROQ_API_KEY/CEREBRAS_API_KEY), writes docs/audit/evals/<date>-<provider>.json
 import { readFileSync, writeFileSync } from 'node:fs';
+import { guardReply } from '../packages/core/llm/guard.mjs';
 import { ROLES } from '../packages/presets/roles/index.mjs';
 
 const golden = JSON.parse(readFileSync(new URL('../tests/evals/golden.json', import.meta.url)));
@@ -35,7 +36,7 @@ async function live() {
   const llm = buildLlmClient(); const rows = []; let provider = 'unknown';
   for (const c of golden) {
     const r = await llm.complete({ messages: [{ role: 'system', content: ROLES[c.role].prompt + '\n\nContext: enabled roles = ' + Object.keys(ROLES).join(', ') + '.' }, { role: 'user', content: c.user }] });
-    provider = r.provider; rows.push({ id: c.id, reply: r.text, fails: check(c, r.text), provider: r.provider, model: r.model });
+    provider = r.provider; r.text = guardReply(r.text); rows.push({ id: c.id, reply: r.text, fails: check(c, r.text), provider: r.provider, model: r.model });
   }
   const out = `docs/audit/evals/${new Date().toISOString().slice(0, 10)}-${provider}.json`;
   writeFileSync(new URL('../' + out, import.meta.url), JSON.stringify({ rows, passed: rows.filter((x) => !x.fails.length).length, total: rows.length }, null, 1));

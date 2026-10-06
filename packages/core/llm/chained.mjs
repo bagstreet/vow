@@ -1,4 +1,5 @@
 // llm/chained.mjs — walk the chain; never reject.
+import { guardReply } from "./guard.mjs";
 
 export class ChainedLlmClient {
   constructor(clients) {
@@ -11,7 +12,7 @@ export class ChainedLlmClient {
     for (const c of this.clients) {
       try {
         const out = await c.complete(req);
-        if (out && out.text) return out;
+        if (out && out.text) return { ...out, text: guardReply(out.text) };
       } catch (err) {
         lastErr = err;
       }
