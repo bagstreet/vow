@@ -12,26 +12,27 @@ const def = (r) => Object.freeze({ ...r, prompt: `${COMMON}\n\nRole: ${r.label}.
 export const ROLES = Object.freeze({
   fitness: def({
     id: 'fitness', label: 'Health & Fitness', emoji: '💪', sensitive: false,
-    keywords: ['workout', 'gym', 'run', 'training', 'steps', 'stretch', 'rest day', 'meal', 'protein', 'calories', 'diet'],
-    scope: ['workout and nutrition habits', 'rest-day rules', 'streaks and check-ins', 'plans the user asked for, framed as general guidance'],
+    keywords: ['workout', 'gym', 'run', 'training', 'steps', 'stretch', 'rest day'],
+    scope: ['workout habits (food and supplements belong to the nutrition role)', 'rest-day rules', 'streaks and check-ins', 'plans the user asked for, framed as general guidance'],
     never: ['diagnose or treat injuries or illness', 'prescribe supplements or doses', 'promote extreme diets'],
     buttons: ['taken', 'skipped', 'snooze'],
     extra: 'For pain, injury or medical conditions give general guidance only and point to a doctor.',
   }),
   medication: def({
     id: 'medication', label: 'Medication Tracker', emoji: '💊', sensitive: true,
-    keywords: ['pill', 'tablet', 'vitamin', 'supplement', 'dose', 'medication', 'meds', 'refill', 'water', 'prescription'],
+    keywords: ['pill', 'tablet', 'dose', 'medication', 'meds', 'refill', 'prescription'],
     scope: ['reminders for items the user typed (pills, supplements, water)', 'log taken/skipped/snoozed', 'refill and doctor-visit reminders'],
     never: ['suggest or change a dose or regimen', 'state interactions as medical fact (say: ask a pharmacist or doctor)', 'add items the user did not enter'],
     buttons: ['taken', 'skipped', 'snooze', 'snooze_1h'],
     extra: 'Reminder text contains only the user\'s own label and time.',
   }),
-  sobriety: def({
-    id: 'sobriety', label: 'Sobriety', emoji: '🌱', sensitive: true,
-    keywords: ['sober', 'drink', 'drank', 'alcohol', 'craving', 'relapse', 'streak', 'clean', 'sobriety'],
-    scope: ['daily check-in', 'streak of days the user confirmed', 'journal entries', 'alert the user\'s chosen support contact only if the user enabled it'],
-    never: ['shame or lecture', 'give clinical or withdrawal advice', 'improvise in a crisis: use the fixed safe message (contact your support person or local emergency number)'],
-    buttons: ['taken', 'snooze', 'cancel'],
+  nutrition: def({
+    id: 'nutrition', label: 'Nutritionist', emoji: '🥗', sensitive: false,
+    keywords: ['supplement', 'vitamin', 'protein', 'calories', 'macros', 'carbs', 'fat', 'water', 'meal', 'diet', 'omega', 'magnesium'],
+    scope: ['supplement and vitamin schedule reminders', 'meal and water reminders', 'calorie and macro (protein/fat/carbs) logging from what the user reports', 'daily and weekly totals against the user\'s own targets', 'general food-group education'],
+    never: ['diagnose or treat conditions', 'prescribe diets for medical conditions, eating disorders or pregnancy', 'set dosages or tell the user to start/stop a medication', 'shame about food or weight; no extreme-restriction targets'],
+    buttons: ['taken', 'skipped', 'snooze'],
+    extra: 'Totals are computed by code from logged entries; the model never invents numbers. Prescription drugs belong to the medication role.',
   }),
   health: def({
     id: 'health', label: 'Health Companion (cycle tracking)', emoji: '🌸', sensitive: true,

@@ -5,7 +5,7 @@ import { useAuth } from '../lib/auth'
 const PRESETS = [
   { id: 'fitness', label: 'Health & Fitness', color: '#22c55e' },
   { id: 'medication', label: 'Medication Tracker', color: '#f59e0b' },
-  { id: 'sobriety', label: 'Sobriety', color: '#ef4444' },
+  { id: 'nutrition', label: 'Nutritionist', color: '#ef4444' },
   { id: 'health', label: 'Health Companion', color: '#ec4899' },
   { id: 'study', label: 'Study & Exam', color: '#8b5cf6' },
 ]

@@ -32,10 +32,10 @@ test('API error throws (so router retries/escalates)', async () => {
 });
 test('roleTag: italic last line, HTML-escaped text, Role button', async () => {
   const { a, calls } = mk();
-  await a.send({ ...buildReminder({ id: 'o2', label: 'a<b' }), roleTag: { emoji: '💊', label: 'Medication Tracker', alsoUsed: ['Sobriety'] } });
+  await a.send({ ...buildReminder({ id: 'o2', label: 'a<b' }), roleTag: { emoji: '💊', label: 'Medication Tracker', alsoUsed: ['Nutritionist'] } });
   const b = calls[0].body;
   assert.equal(b.parse_mode, 'HTML');
-  assert.match(b.text, /<i>💊 Medication Tracker · also: Sobriety<\/i>$/);
+  assert.match(b.text, /<i>💊 Medication Tracker · also: Nutritionist<\/i>$/);
   assert.doesNotMatch(b.text, /a<b/);
   assert.equal(b.reply_markup.inline_keyboard[1][0].callback_data, 'o2:role');
 });

@@ -4,14 +4,14 @@ import { route as _route, shouldShowRoleLabel as _show } from '@vow/core/roles/r
 // @ts-ignore
 import { ROLES as _ROLES, ROLE_IDS as _IDS } from '@vow/presets/roles/index.mjs'
 
-export type RoleId = 'fitness' | 'medication' | 'sobriety' | 'health' | 'study'
+export type RoleId = 'fitness' | 'medication' | 'nutrition' | 'health' | 'study'
 export type LabelMode = 'always' | 'change' | 'off'
 export interface RoleMeta { id: RoleId; label: string; emoji: string; sensitive: boolean }
 export interface Route { primary: RoleId | null; reason: string; outOfScope: boolean; crisis: boolean; needsModel: boolean }
 
 export const ROLE_IDS: RoleId[] = _IDS
 export const ROLES: Record<RoleId, RoleMeta> = _ROLES
-export const COLORS: Record<RoleId, string> = { fitness: '#22c55e', medication: '#f59e0b', sobriety: '#ef4444', health: '#ec4899', study: '#8b5cf6' }
+export const COLORS: Record<RoleId, string> = { fitness: '#22c55e', medication: '#f59e0b', nutrition: '#ef4444', health: '#ec4899', study: '#8b5cf6' }
 export const routeText = (text: string, enabled: RoleId[], extra: Record<string, unknown> = {}): Route =>
   _route(text, { enabled, channel: 'web', ...extra })
 export const shouldShowRoleLabel = (mode: LabelMode, role: RoleId, last: RoleId | null): boolean => _show(mode, role, last)

@@ -14,7 +14,7 @@ const done = (o) => ({ primary: null, secondary: [], kind: 'log', confidence: 1,
 export function route(text, ctx = {}) {
   const enabled = (ctx.enabled ?? ROLE_IDS).filter((r) => ROLES[r]);
   const t = String(text ?? '').trim();
-  if (CRISIS.test(t)) return done({ primary: enabled.includes('sobriety') ? 'sobriety' : enabled[0] ?? null, crisis: true, reason: 'crisis wording' });
+  if (CRISIS.test(t)) return done({ primary: enabled.includes('health') ? 'health' : enabled[0] ?? null, crisis: true, reason: 'crisis wording' });
   // 2. occurrence context: role already known, no model call (even if role was later disabled)
   if (ctx.occurrenceRole) return done({ primary: ctx.occurrenceRole, reason: 'occurrence' });
   if (INJECTION.test(t)) return done({ outOfScope: true, reason: 'injection' });
@@ -22,11 +22,11 @@ export function route(text, ctx = {}) {
   // '@' only addresses a role on web; in Telegram/Slack/Discord '@' is a user/bot mention, so use /role, "role: text" or "ask the X".
   const atOk = !ctx.channel || ctx.channel === 'web';
   const prefix = atOk ? '[\\/@]' : '[\\/]';
-  const cmd = t.match(new RegExp('^' + prefix + '(?:role\\s+)?(fitness|medication|sobriety|health|study)(?:@\\w+)?\\b', 'i'))
-    || t.match(/^(fitness|medication|sobriety|health|study)\s*:\s*\S/i);
+  const cmd = t.match(new RegExp('^' + prefix + '(?:role\\s+)?(fitness|medication|nutrition|health|study)(?:@\\w+)?\\b', 'i'))
+    || t.match(/^(fitness|medication|nutrition|health|study)\s*:\s*\S/i);
   if (cmd && enabled.includes(cmd[1].toLowerCase())) return done({ primary: cmd[1].toLowerCase(), reason: 'explicit' });
-  const named = t.match(/\bask (?:the )?(fitness|medication|sobriety|health|study|nutrition)\b/i);
-  if (named) { const id = named[1].toLowerCase() === 'nutrition' ? 'fitness' : named[1].toLowerCase(); if (enabled.includes(id)) return done({ primary: id, reason: 'named' }); }
+  const named = t.match(/\bask (?:the )?(fitness|medication|nutrition|health|study)\b/i);
+  if (named) { const id = named[1].toLowerCase(); if (enabled.includes(id)) return done({ primary: id, reason: 'named' }); }
   if (MEDICAL_Q.test(t) && !/\b(period|cycle)\b/i.test(t)) return done({ outOfScope: true, reason: 'medical-question', kind: 'log' });
   if (OFFTOPIC.test(t)) return done({ outOfScope: true, reason: 'off-topic' });
   // learning about a topic of another role is still study

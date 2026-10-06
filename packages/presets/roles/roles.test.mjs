@@ -4,7 +4,7 @@ import { ROLES, ROLE_IDS, getRole, enabledRoles } from './index.mjs';
 import { BUTTON_CATALOG } from '../../core/delivery/quickreply.mjs';
 
 test('five roles exactly as on the site', () => {
-  assert.deepEqual([...ROLE_IDS], ['fitness', 'medication', 'sobriety', 'health', 'study']);
+  assert.deepEqual([...ROLE_IDS], ['fitness', 'medication', 'nutrition', 'health', 'study']);
 });
 test('every role is complete and uses catalog buttons only', () => {
   for (const r of Object.values(ROLES)) {
@@ -15,7 +15,7 @@ test('every role is complete and uses catalog buttons only', () => {
   }
 });
 test('sensitive roles are marked', () => {
-  assert.deepEqual(Object.values(ROLES).filter((r) => r.sensitive).map((r) => r.id), ['medication', 'sobriety', 'health']);
+  assert.deepEqual(Object.values(ROLES).filter((r) => r.sensitive).map((r) => r.id), ['medication', 'health']);
 });
 test('health role is cycle tracking and predictions come from code', () => {
   assert.match(ROLES.health.prompt, /cycle|period/i);

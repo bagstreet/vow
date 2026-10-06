@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { COLORS, type RoleId } from '../lib/roles'
 
-// Mascot per role (files in /public/mascots). Sobriety reuses the nutrition mascot until it gets its own.
+// Mascot per role (files in /public/mascots). Nutritionist reuses the nutrition mascot until it gets its own.
 export const MASCOT: Record<RoleId, string> = {
   fitness: '/mascots/fitness.png',
   medication: '/mascots/medication.png',
-  sobriety: '/mascots/nutrition.png',
+  nutrition: '/mascots/nutrition.png',
   health: '/mascots/health.png',
   study: '/mascots/study.png',
 }

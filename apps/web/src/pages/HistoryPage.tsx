@@ -16,7 +16,7 @@ interface BlobEntry {
 
 // Mock data — will be replaced with real Walrus blob reads
 const MOCK_HISTORY: BlobEntry[] = Array.from({ length: 35 }, (_, i) => {
-  const presets = ['fitness', 'medication', 'study', 'health', 'sobriety']
+  const presets = ['fitness', 'medication', 'study', 'health', 'nutrition']
   const texts = [
     '5km run completed', 'Vitamin D + Omega-3 taken', 'React hooks study - 2h',
     'Correction: 5km > 3km (knee pain)', 'Day 28 - cycle log (encrypted)',

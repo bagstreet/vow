@@ -5,7 +5,7 @@
  },
  {
   "t": "ask the nutrition side about protein",
-  "p": "fitness"
+  "p": "nutrition"
  },
  {
   "t": "ask study about tomorrow",
@@ -21,10 +21,7 @@
  },
  {
   "t": "I skipped my pill and drank",
-  "p": "medication",
-  "sec": [
-   "sobriety"
-  ]
+  "p": "medication"
  },
  {
   "t": "What is good for a headache?",
@@ -58,11 +55,11 @@
  },
  {
   "t": "snooze",
-  "occ": "sobriety",
+  "occ": "nutrition",
   "en": [
    "fitness"
   ],
-  "p": "sobriety"
+  "p": "nutrition"
  },
  {
   "t": "my period is late",
@@ -78,11 +75,11 @@
  },
  {
   "t": "refill my vitamin supplement",
-  "p": "medication"
+  "p": "nutrition"
  },
  {
-  "t": "craving a drink, day 12 sober",
-  "p": "sobriety"
+  "t": "logged 1800 calories and 90g protein today",
+  "p": "nutrition"
  },
  {
   "t": "exam on monday, revise chapter 3",
@@ -110,7 +107,7 @@
   "p": "study"
  },
  {
-  "t": "/sobriety",
+  "t": "/nutrition",
   "en": [
    "fitness"
   ],
@@ -161,7 +158,7 @@
   "sticky": "medication",
   "p": "medication",
   "sec": [
-   "fitness"
+   "nutrition"
   ]
  },
  {

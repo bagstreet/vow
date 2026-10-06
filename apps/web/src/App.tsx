@@ -225,7 +225,7 @@ const PRESETS = [
     features: ['Cross-channel delivery (TG > Slack > Push)', 'Drug interaction checks', 'Doctor visit log', 'Refill reminders'],
     commands: ['/take', '/skip', '/interactions', '/refill'],
     platform: 'telegram' as const },
-  { id: 'sobriety', Icon: Apple, label: 'Sobriety', color: '#ef4444', img: '/mascots/nutrition.png',
+  { id: 'nutrition', Icon: Apple, label: 'Nutritionist', color: '#ef4444', img: '/mascots/nutrition.png',
     pitch: 'Every sober day recorded and verifiable. Build streaks that no one, not even you, can fake.',
     botMsg: 'Daily check-in time. How are you feeling?', buttons: ['Sober today', 'Need support', 'Log journal'],
     features: ['Daily accountability check-in', 'Streak verification on-chain', 'Support contact alerts', 'Journal with receipts'],

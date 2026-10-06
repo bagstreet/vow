@@ -7,7 +7,7 @@ import { ROLES, ROLE_IDS } from '../../packages/presets/roles/index.mjs';
 const BUTTONS = new Set(['taken', 'skipped', 'snooze', 'snooze_1h', 'cancel', 'yes', 'no']);
 
 test('exactly the five site roles exist', () => {
-  assert.deepEqual([...ROLE_IDS].sort(), ['fitness', 'health', 'medication', 'sobriety', 'study']);
+  assert.deepEqual([...ROLE_IDS].sort(), ['fitness', 'health', 'medication', 'nutrition', 'study']);
 });
 
 for (const id of ROLE_IDS) {
