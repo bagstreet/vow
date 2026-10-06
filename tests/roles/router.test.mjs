@@ -20,3 +20,11 @@ test('disabled role is never selected by keywords', () => {
   const r = route('my period is late', { enabled: ['fitness'], now: 0 });
   assert.notEqual(r.primary, 'health');
 });
+import { shouldShowRoleLabel } from '../../packages/core/roles/router.mjs';
+test('role label policy', () => {
+  assert.equal(shouldShowRoleLabel('off', 'a', 'b'), false);
+  assert.equal(shouldShowRoleLabel('always', 'a', 'a'), true);
+  assert.equal(shouldShowRoleLabel('on_change', 'a', 'a'), false);
+  assert.equal(shouldShowRoleLabel('on_change', 'a', 'b'), true);
+  assert.equal(shouldShowRoleLabel('on_change', 'a', undefined), true);
+});

@@ -19,7 +19,7 @@ export function route(text, ctx = {}) {
   if (ctx.occurrenceRole) return done({ primary: ctx.occurrenceRole, reason: 'occurrence' });
   if (INJECTION.test(t)) return done({ outOfScope: true, reason: 'injection' });
   // 1. explicit command or named role
-  const cmd = t.match(/^\/(?:role\s+)?(fitness|medication|sobriety|health|study)\b/i);
+  const cmd = t.match(/^[\/@](?:role\s+)?(fitness|medication|sobriety|health|study)\b/i);
   if (cmd && enabled.includes(cmd[1].toLowerCase())) return done({ primary: cmd[1].toLowerCase(), reason: 'explicit' });
   const named = t.match(/\bask (?:the )?(fitness|medication|sobriety|health|study|nutrition)\b/i);
   if (named) { const id = named[1].toLowerCase() === 'nutrition' ? 'fitness' : named[1].toLowerCase(); if (enabled.includes(id)) return done({ primary: id, reason: 'named' }); }
@@ -40,4 +40,11 @@ export function route(text, ctx = {}) {
   // 3. sticky
   if (sticky) return done({ primary: sticky, reason: 'sticky', confidence: 0.6 });
   return done({ primary: null, reason: 'no match', confidence: 0, needsModel: true });
+}
+
+/** Role label policy (dashboard setting): 'always' | 'on_change' | 'off'. Pure. */
+export function shouldShowRoleLabel(mode, role, lastRole) {
+  if (mode === 'off') return false;
+  if (mode === 'always') return true;
+  return role !== lastRole;
 }
