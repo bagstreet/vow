@@ -11,7 +11,7 @@ Vow is a Commitment Steward: one assistant that helps you confirm a commitment, 
 [![CI](https://github.com/bagstreet/vow/actions/workflows/ci.yml/badge.svg)](https://github.com/bagstreet/vow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-[Web prototype (landing, not verified end to end)](https://vow-site-impixles.vercel.app) · [Agent execution pack](internal/agent-pack/START_HERE.md) · [Discord](https://discord.com/invite/walrusprotocol)
+[Live web prototype (Vercel, not verified end to end)](https://vow-livid.vercel.app) · [Agent execution pack](internal/agent-pack/START_HERE.md) · [Discord](https://discord.com/invite/walrusprotocol)
 
 </div>
 
