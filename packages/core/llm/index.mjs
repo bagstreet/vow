@@ -1,23 +1,23 @@
-// llm/index.mjs — build Vow's provider chain from the environment.
-//
-// Groq (Llama) → Cerebras (Qwen) → deterministic tail. A provider joins only when its key
-// is set; the tail always resolves. Flip with LLM_PRIMARY=cerebras. The model is the
-// companion's voice; it never decides what the ledger says.
-
-import { GroqClient } from "./groq.mjs";
-import { CerebrasClient } from "./cerebras.mjs";
+// llm/index.mjs — build the router from env. A provider joins when its key is set.
+// LLM_PRIMARY=<id> moves one provider to the front of every route; LLM_ROUTE_<TASK>=a,b,c overrides a route.
+import { OpenAICompatClient, PROVIDERS } from "./openai-compat.mjs";
 import { DeterministicClient } from "./deterministic.mjs";
 import { ChainedLlmClient } from "./chained.mjs";
+import { LlmRouter, DEFAULT_ROUTES } from "./router.mjs";
+import { GroqClient } from "./groq.mjs";
+import { CerebrasClient } from "./cerebras.mjs";
 
 export function buildLlmClient(env = process.env) {
-  const primary = (env.LLM_PRIMARY || "groq").toLowerCase();
-  const groq = env.GROQ_API_KEY ? new GroqClient(env) : null;
-  const cerebras = env.CEREBRAS_API_KEY ? new CerebrasClient(env) : null;
-
-  const order = primary === "cerebras" ? [cerebras, groq] : [groq, cerebras];
-  const chain = order.filter(Boolean);
-  chain.push(new DeterministicClient());
-  return new ChainedLlmClient(chain);
+  const clients = {};
+  for (const id of Object.keys(PROVIDERS)) if (env[PROVIDERS[id].key]) clients[id] = new OpenAICompatClient(id, env);
+  const routes = {};
+  for (const task of Object.keys(DEFAULT_ROUTES)) {
+    let r = (env["LLM_ROUTE_" + task.toUpperCase()] || "").split(",").map((s) => s.trim()).filter(Boolean);
+    if (!r.length) r = [...DEFAULT_ROUTES[task]];
+    const p = (env.LLM_PRIMARY || "").toLowerCase();
+    if (task === "chat" && p && r.includes(p)) r = [p, ...r.filter((x) => x !== p)];
+    routes[task] = r;
+  }
+  return new LlmRouter(clients, { routes, tail: new DeterministicClient() });
 }
-
-export { ChainedLlmClient, DeterministicClient, GroqClient, CerebrasClient };
+export { LlmRouter, ChainedLlmClient, DeterministicClient, GroqClient, CerebrasClient, OpenAICompatClient, PROVIDERS };
