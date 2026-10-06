@@ -1,5 +1,13 @@
 // Telegram adapter (T47). Bot API via injectable fetch; no live calls without a bot token.
 // Status: implemented, tested offline with mock fetch. NOT tested live.
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+/** RoleTag {id, emoji, label, alsoUsed[]} -> last small italic line (Telegram has no footer). */
+export function renderRoleTag(tag) {
+  if (!tag) return '';
+  const also = tag.alsoUsed?.length ? ` · also: ${tag.alsoUsed.join(', ')}` : '';
+  return `\n\n<i>${esc(tag.emoji ?? '')} ${esc(tag.label)}${esc(also)}</i>`;
+}
+
 export function createTelegramAdapter({ token, chatId, fetchFn = globalThis.fetch, lastSeen = () => null, now = Date.now, onlineWindowMs = 5 * 60_000 }) {
   if (!token || !chatId) throw new TypeError('telegram: token and chatId required');
   const api = async (method, body) => {
@@ -17,8 +25,11 @@ export function createTelegramAdapter({ token, chatId, fetchFn = globalThis.fetc
       return now() - ts <= onlineWindowMs ? { state: 'online', ts } : { state: 'last_seen', ts };
     },
     send(msg) {
-      return api('sendMessage', { chat_id: chatId, text: msg.text,
-        reply_markup: { inline_keyboard: [msg.buttons.map(b => ({ text: b.label, callback_data: `${msg.occurrenceId}:${b.id}` }))] } });
+      const rows = [msg.buttons.map(b => ({ text: b.label, callback_data: `${msg.occurrenceId}:${b.id}` }))];
+      if (msg.roleTag) rows.push([{ text: '🔁 Role', callback_data: `${msg.occurrenceId}:role` }]);
+      const body = { chat_id: chatId, text: msg.roleTag ? esc(msg.text) + renderRoleTag(msg.roleTag) : msg.text, reply_markup: { inline_keyboard: rows } };
+      if (msg.roleTag) body.parse_mode = 'HTML';
+      return api('sendMessage', body);
     },
     // Feed callback_query updates here; returns {occurrenceId, reply} or null. Caller passes it to bus.ack.
     parseUpdate(update) {
