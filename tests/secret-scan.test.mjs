@@ -10,7 +10,7 @@ import { join, relative } from "node:path";
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const DIRS = ["src", "ledger", "bin", "mcp", "demo", "docs", "tests", "web"];
 const ROOT_FILES = ["README.md", "PROMPT.md", "Makefile", "package.json", ".gitignore"];
-const EXCLUDE = new Set(["ledger/ledger/screen.mjs", "tests/secret-scan.test.mjs"]);
+const EXCLUDE = new Set(["packages/core/ledger/screen.mjs", "tests/secret-scan.test.mjs"]);
 
 const SHAPES = [
   ["GitHub PAT", /ghp_[A-Za-z0-9]{20,}/],

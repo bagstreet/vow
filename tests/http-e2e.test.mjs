@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { startVowHttp } from "../ledger/http/server.mjs";
+import { startVowHttp } from "../apps/api/server.mjs";
 
 const env = {
   NODE_ENV: "development",

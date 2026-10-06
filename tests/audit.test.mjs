@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { linkCheckin, hashOf, payloadOf } from "../ledger/ledger/chain.mjs";
-import { auditLedger as structuralAudit } from "../ledger/ledger/audit.mjs";
+import { linkCheckin, hashOf, payloadOf } from "../packages/core/ledger/chain.mjs";
+import { auditLedger as structuralAudit } from "../packages/core/ledger/audit.mjs";
 
 const BLOB = "a".repeat(43);
 

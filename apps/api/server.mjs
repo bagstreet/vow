@@ -5,9 +5,9 @@ import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
-import { Companion } from "../companion.mjs";
-import { DeterministicClient } from "../llm/deterministic.mjs";
-import { localDecision } from "../decision/local.mjs";
+import { Companion } from "../../packages/core/companion.mjs";
+import { DeterministicClient } from "../../packages/core/llm/deterministic.mjs";
+import { localDecision } from "../../packages/core/decision/local.mjs";
 import { authenticate, loadPrincipalTable, rejectPrivilegeBody, signingKey } from "./auth.mjs";
 
 const ROOT = fileURLToPath(new URL("../../web/", import.meta.url));

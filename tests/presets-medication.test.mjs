@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { VowLedgerMock } from "../ledger/memwal-mock.mjs";
-import { Companion } from "../ledger/companion.mjs";
+import { VowLedgerMock } from "../packages/core/memwal-mock.mjs";
+import { Companion } from "../packages/core/companion.mjs";
 import {
   createMedicationPlan,
   reduceMedication,

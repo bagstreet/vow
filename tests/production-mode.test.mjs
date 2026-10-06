@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {createMemWal} from '../ledger/memwal.mjs';
+import {createMemWal} from '../packages/core/memwal.mjs';
 test('P0 parent: production cannot silently use mock', async()=>{
  await assert.rejects(()=>createMemWal({NODE_ENV:'production'}), /Production requires/);
 });
