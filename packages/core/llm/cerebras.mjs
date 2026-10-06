@@ -4,7 +4,7 @@ export class CerebrasClient {
   constructor(env = process.env) {
     this.name = "cerebras";
     this.apiKey = env.CEREBRAS_API_KEY;
-    this.model = env.CEREBRAS_MODEL || "qwen-3-32b";
+    this.model = env.CEREBRAS_MODEL || "qwen-3.8-27b";
     this.baseUrl = "https://api.cerebras.ai/v1";
     this.timeoutMs = Number(env.CEREBRAS_TIMEOUT_MS || 20_000);
   }

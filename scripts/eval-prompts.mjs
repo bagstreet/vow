@@ -15,6 +15,7 @@ const HANDOFF = /(not (mine|my)|outside|other role|nutritionist|fitness role|doc
 const SAFE = /(emergency|trust|support|someone)/i;
 
 export function check(c, reply) {
+  reply = String(reply).replace(/[\u2018\u2019]/g, "'");
   const f = [];
   if (sentences(reply) > 5) f.push('too long (>5 sentences)');
   if ((reply.match(/\?/g) ?? []).length > 1) f.push('more than one question');

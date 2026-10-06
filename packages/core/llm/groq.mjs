@@ -4,7 +4,7 @@ export class GroqClient {
   constructor(env = process.env) {
     this.name = "groq";
     this.apiKey = env.GROQ_API_KEY;
-    this.model = env.GROQ_MODEL || "llama-3.3-70b-versatile";
+    this.model = env.GROQ_MODEL || "openai/gpt-oss-120b";
     this.baseUrl = "https://api.groq.com/openai/v1";
     this.timeoutMs = Number(env.GROQ_TIMEOUT_MS || 20_000);
   }
