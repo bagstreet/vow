@@ -65,6 +65,7 @@ export async function handleUpdate(update, { store, tg, webBase, llm }) {
       if (cmd || !llm) return { ok: true, cmd: cmd ?? 'chat', route: 'router' };
       const enabled = await store.listRoles(user.id);
       const r = await chatReply({ text, enabled, def: user.default_role, llm });
+      await store.setLastRole?.(user.id, r.role);
       await send(withRoleLabel(r.text, r.role, user.role_label ?? 'always', user.last_role ?? null));
       return { ok: true, cmd: 'chat', role: r.role };
     }
