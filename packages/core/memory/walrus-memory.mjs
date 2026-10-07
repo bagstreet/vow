@@ -1,7 +1,7 @@
 // Real, long-term, cross-channel memory on Walrus Mainnet (via MemWal), independent from the
 // Companion/ledger code path (packages/core/companion.mjs), which needs client.completeLedger()
 // — a method the production adapter (memwal.mjs's adaptMemWal) never implements, so Companion
-// cannot run against the live relayer today. This module talks to the MemWal SDK directly instead:
+// cannot run against the live relayer today. This module talks to a MemWal SDK client directly:
 //
 // - remember(): submits text to the relayer and returns as soon as the job is ACCEPTED (~1-3s).
 //   It deliberately does NOT await full completion (embed + Seal-encrypt + Walrus upload + Sui tx,
@@ -12,46 +12,23 @@
 //
 // One namespace per app user (`vow:mem:<userId>`), spanning every channel (telegram/discord/slack/web) —
 // by design the same person is one memory no matter which channel they write from.
-let sdkPromise = null;
-
-async function getSdk(env) {
-  if (!env.MEMWAL_PRIVATE_KEY || !env.MEMWAL_ACCOUNT_ID) return null;
-  if (!sdkPromise) {
-    sdkPromise = import('@mysten-incubation/memwal')
-      .then(({ MemWal }) =>
-        MemWal.create({
-          key: env.MEMWAL_PRIVATE_KEY,
-          accountId: env.MEMWAL_ACCOUNT_ID,
-          serverUrl: env.MEMWAL_SERVER_URL || undefined,
-          requestTimeoutMs: 20000,
-        }),
-      )
-      .catch((e) => {
-        console.error('memwal sdk init failed', e.message);
-        sdkPromise = null;
-        return null;
-      });
-  }
-  return sdkPromise;
-}
-
+//
+// The actual `@mysten-incubation/memwal` SDK client is constructed by the caller (see
+// apps/web/api/telegram.mjs / discord.mjs) and injected here, deliberately NOT imported from this file:
+// this module lives under packages/core/, outside the Vercel project root (apps/web), and Node's module
+// resolution never looks sideways into apps/web/node_modules from there — only ancestors of the importing
+// file are searched. A dynamic import('@mysten-incubation/memwal') here resolved fine locally (repo-root
+// node_modules) but silently returned nothing in the deployed function (verified 2026-10-07). Constructing
+// the SDK inside apps/web/api/*.mjs, which IS under the project root, sidesteps the resolution gap entirely
+// and keeps this module dependency-injected/offline-testable like the rest of the codebase (store/tg/llm).
 const ns = (userId) => `vow:mem:${userId}`;
 
-// TEMP diagnostic export, remove once the production wiring is confirmed working end-to-end.
-export async function debugRemember(env, userId, text) {
-  const sdk = await getSdk(env);
-  if (!sdk) return { sdk: null, env: { k: !!env.MEMWAL_PRIVATE_KEY, a: !!env.MEMWAL_ACCOUNT_ID } };
-  const job = await sdk.remember(text, ns(userId));
-  return { job };
-}
-
-export function createWalrusMemory(env = process.env) {
+export function createWalrusMemory(sdk) {
   return {
     /** Submit-only: returns a job_id string once the relayer accepts the write, or null (never throws). */
     async remember(userId, text) {
+      if (!sdk) return null;
       try {
-        const sdk = await getSdk(env);
-        if (!sdk) return null;
         const job = await sdk.remember(String(text).slice(0, 2000), ns(userId));
         return job?.job_id ?? null;
       } catch (e) {
@@ -59,11 +36,10 @@ export function createWalrusMemory(env = process.env) {
         return null;
       }
     },
-    /** Read-only semantic recall. Returns plain text snippets, oldest concerns first; [] on any failure. */
+    /** Read-only semantic recall. Returns plain text snippets; [] on any failure. */
     async recall(userId, query, { limit = 4 } = {}) {
+      if (!sdk) return [];
       try {
-        const sdk = await getSdk(env);
-        if (!sdk) return [];
         const r = await sdk.recall({ query, namespace: ns(userId), limit });
         return (r?.results ?? []).map((x) => x.text).filter(Boolean);
       } catch (e) {

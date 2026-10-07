@@ -4,6 +4,7 @@ import { createNeonStore } from '../../../packages/core/channels/neon-store.mjs'
 import { buildLlmClient } from '../../../packages/core/llm/index.mjs';
 import { handleUpdate, verifySecret } from '../../../packages/core/channels/telegram-webhook.mjs';
 import { createWalrusMemory } from '../../../packages/core/memory/walrus-memory.mjs';
+import { buildMemwalSdk } from '../lib/walrus-memory-client.mjs';
 
 export const config = { maxDuration: 30 };
 
@@ -15,7 +16,7 @@ export default async function handler(req, res) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const tg = { sendMessage: (chat_id, text) => call(token, 'sendMessage', { chat_id, text }), answerCallbackQuery: (id) => call(token, 'answerCallbackQuery', { callback_query_id: id }) };
   try {
-    const r = await handleUpdate(req.body, { store: createNeonStore(createSql()), tg, llm: buildLlmClient(), memory: createWalrusMemory(), webBase: process.env.WEB_BASE_URL ?? 'https://vow-livid.vercel.app' });
+    const r = await handleUpdate(req.body, { store: createNeonStore(createSql()), tg, llm: buildLlmClient(), memory: createWalrusMemory(buildMemwalSdk()), webBase: process.env.WEB_BASE_URL ?? 'https://vow-livid.vercel.app' });
     return res.status(200).json(r);
   } catch (e) {
     console.error('telegram webhook', e.message);
