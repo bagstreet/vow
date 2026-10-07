@@ -9,6 +9,7 @@ import ChatPage from './pages/ChatPage'
 import HistoryPage from './pages/HistoryPage'
 import SettingsPage from './pages/SettingsPage'
 import ExportPage from './pages/ExportPage'
+import LoginPage from './pages/LoginPage'
 import './index.css'
 
 // PWA (DASHBOARD_UX_AUDIT §A7): app-shell cache + offline page only, never caches /api/*.
@@ -24,6 +25,7 @@ createRoot(document.getElementById('root')!).render(
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<App />} />
+          <Route path="/login" element={<LoginPage />} />
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<ChatPage />} />
             <Route path="channels" element={<ChannelsPage />} />

@@ -1,6 +1,7 @@
-import { useState } from 'react'
-import { MessageCircle, Hash, Monitor, Globe, Smartphone, Laptop, ArrowDown, ArrowUp } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { MessageCircle, Hash, Monitor, Globe, Smartphone, Laptop, ArrowDown, ArrowUp, Copy, Check } from 'lucide-react'
 import { loadPref, savePref, type LabelMode } from '../lib/roles'
+import { useAuth } from '../lib/auth'
 
 type ChanId = 'web' | 'telegram' | 'slack' | 'discord' | 'desktop' | 'push'
 interface Chan { id: ChanId; name: string; icon: typeof Globe; connected: boolean; note: string; how: string }
@@ -16,6 +17,7 @@ const DEFAULTS: Chan[] = [
 const LABELS: { v: LabelMode; t: string }[] = [{ v: 'always', t: 'Always' }, { v: 'change', t: 'On change' }, { v: 'off', t: 'Off' }]
 
 export default function ChannelsPage() {
+  const { user } = useAuth()
   const [chans, setChans] = useState<Chan[]>(() => {
     const saved = loadPref<{ id: ChanId; connected: boolean }[]>('channels', [])
     return DEFAULTS.map(c => ({ ...c, connected: saved.find(s => s.id === c.id)?.connected ?? c.connected }))
@@ -25,12 +27,52 @@ export default function ChannelsPage() {
   const [mode, setMode] = useState<LabelMode>(() => loadPref<LabelMode>('labelMode', 'change'))
   const [quiet, setQuiet] = useState(() => loadPref('quiet', { from: '22:00', to: '07:00' }))
 
+  // Telegram: real link-code flow against the live backend (T54). Other channels stay mock until
+  // their own app/bot exists (Slack/Discord — see DASHBOARD_UX_AUDIT §C, blocked on app creation).
+  const [linkState, setLinkState] = useState<{ code: string; deepLink?: string; expiresAt: string } | null>(null)
+  const [linkError, setLinkError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current) }, [])
+
+  const startTelegramLink = async () => {
+    setLinkError(null)
+    if (!user) { setLinkError('Sign in first.'); return }
+    try {
+      const r = await fetch('/api/link-code', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, channel: 'telegram' }),
+      }).then(x => x.json())
+      if (!r.ok) { setLinkError(r.error === 'user_not_found' ? 'Account not ready yet — reload and try again.' : 'Could not create a link code.'); return }
+      setLinkState({ code: r.code, deepLink: r.deepLink, expiresAt: r.expiresAt })
+      if (pollRef.current) clearInterval(pollRef.current)
+      pollRef.current = setInterval(async () => {
+        try {
+          const s = await fetch(`/api/link-status?userId=${encodeURIComponent(user.id)}&channel=telegram`).then(x => x.json())
+          if (s?.ok && s.linked) {
+            if (pollRef.current) clearInterval(pollRef.current)
+            setLinkState(null)
+            toggle('telegram', true)
+          }
+        } catch { /* keep polling, transient network errors are expected */ }
+      }, 3000)
+    } catch {
+      setLinkError('Network error reaching the backend — is it deployed?')
+    }
+  }
+
   const planned = (id: ChanId) => id === 'desktop' || id === 'push'
-  const toggle = (id: ChanId) => {
+  const toggle = (id: ChanId, forceConnect = false) => {
     if (planned(id)) return
-    const next = chans.map(c => (c.id === id ? { ...c, connected: id === 'web' ? true : !c.connected } : c))
+    const next = chans.map(c => (c.id === id ? { ...c, connected: id === 'web' ? true : (forceConnect ? true : !c.connected) } : c))
     setChans(next); savePref('channels', next.map(c => ({ id: c.id, connected: c.connected })))
   }
+  const onConnectClick = (id: ChanId) => {
+    if (id === 'telegram' && !byIdSafe(id)?.connected) { startTelegramLink(); return }
+    toggle(id)
+  }
+  const byIdSafe = (id: ChanId) => chans.find(c => c.id === id)
   const move = (id: ChanId, d: -1 | 1) => {
     const i = order.indexOf(id), j = i + d
     if (i < 0 || j < 0 || j >= order.length) return
@@ -42,25 +84,49 @@ export default function ChannelsPage() {
   return (
     <div className="p-4 sm:p-6 max-w-3xl mx-auto space-y-6 overflow-y-auto h-full">
       <div className="text-[11px] px-3 py-2 rounded-lg" style={{ background: '#f59e0b18', color: '#f59e0b' }}>
-        Preview with mock data: connect and disconnect are stored in this browser only. Real OAuth installs arrive with the backend (T50, T51).
+        Telegram linking is live against the real backend (T54). Slack and Discord are still preview/mock: connect and disconnect there are stored in this browser only, pending their app setup.
       </div>
       <section>
         <h1 className="text-lg font-semibold mb-1">Channels</h1>
         <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>Connect any channel, disconnect it any time. Sign-in works through any connected channel; a Sui wallet is optional.</p>
         <div className="grid gap-2">
           {chans.map(c => (
-            <div key={c.id} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-              <c.icon size={18} style={{ color: c.connected ? '#0E9C86' : 'var(--text-muted)' }} />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium">{c.name} <span className="text-[10px] ml-1" style={{ color: c.connected ? '#0E9C86' : 'var(--text-muted)' }}>{planned(c.id) ? 'planned' : c.connected ? 'connected' : 'not connected'}</span></div>
-                <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{c.note}</div>
-                {!c.connected && !planned(c.id) && <div className="text-[10px] mt-1 opacity-70">How: {c.how}</div>}
+            <div key={c.id}>
+              <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                <c.icon size={18} style={{ color: c.connected ? '#0E9C86' : 'var(--text-muted)' }} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium">{c.name} <span className="text-[10px] ml-1" style={{ color: c.connected ? '#0E9C86' : 'var(--text-muted)' }}>{planned(c.id) ? 'planned' : c.connected ? 'connected' : 'not connected'}</span></div>
+                  <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{c.note}</div>
+                  {!c.connected && !planned(c.id) && <div className="text-[10px] mt-1 opacity-70">How: {c.how}</div>}
+                </div>
+                <button disabled={planned(c.id) || c.id === 'web'} onClick={() => onConnectClick(c.id)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer disabled:opacity-30"
+                  style={{ background: c.connected ? 'transparent' : '#0E9C86', color: c.connected ? 'var(--text)' : '#000', border: '1px solid var(--border)' }}>
+                  {c.connected ? 'Disconnect' : c.id === 'telegram' ? 'Get link code' : 'Connect'}
+                </button>
               </div>
-              <button disabled={planned(c.id) || c.id === 'web'} onClick={() => toggle(c.id)}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer disabled:opacity-30"
-                style={{ background: c.connected ? 'transparent' : '#0E9C86', color: c.connected ? 'var(--text)' : '#000', border: '1px solid var(--border)' }}>
-                {c.connected ? 'Disconnect' : 'Connect'}
-              </button>
+
+              {c.id === 'telegram' && linkState && (
+                <div className="mt-1 p-3 rounded-xl text-xs space-y-2" style={{ background: 'var(--recessed)', border: '1px solid #0E9C8633' }}>
+                  <div style={{ color: 'var(--text-muted)' }}>Open the bot and tap Start, or send <code className="font-mono">/link {linkState.code}</code> manually. Expires in 10 minutes, one use.</div>
+                  <div className="flex items-center gap-2">
+                    <code className="px-2 py-1 rounded font-mono text-sm tracking-wider" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>{linkState.code}</code>
+                    <button onClick={() => { navigator.clipboard?.writeText(linkState.code); setCopied(true); setTimeout(() => setCopied(false), 1500) }}
+                      className="p-1.5 rounded cursor-pointer hover:bg-white/10" aria-label="Copy code" style={{ color: 'var(--text-muted)' }}>
+                      {copied ? <Check size={14} /> : <Copy size={14} />}
+                    </button>
+                    {linkState.deepLink && (
+                      <a href={linkState.deepLink} target="_blank" rel="noopener" className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: '#0E9C86', color: '#000' }}>
+                        Open bot
+                      </a>
+                    )}
+                  </div>
+                  <div style={{ color: 'var(--text-muted)' }}>Waiting for confirmation…</div>
+                </div>
+              )}
+              {c.id === 'telegram' && linkError && (
+                <div className="mt-1 p-2 rounded-lg text-[11px]" style={{ background: '#ef444415', color: '#ef4444', border: '1px solid #ef444433' }}>{linkError}</div>
+              )}
             </div>
           ))}
         </div>
