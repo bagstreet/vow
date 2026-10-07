@@ -1,7 +1,7 @@
 // Telegram webhook handler (T47/T54). Pure: store + tg client injected, so every branch is testable offline.
 // Link: deep link t.me/<bot>?start=<code> or manual /link CODE. /login returns a one-time web link (login happens via the bot).
 import { ROLES, ROLE_IDS } from '../../presets/roles/index.mjs';
-import { chatReply } from './chat.mjs';
+import { chatReply, withRoleLabel } from './chat.mjs';
 
 const HELP = 'I am Vow. Commands: /link CODE, /login, /roles, /role <name>, /status, /quiet, /help.';
 const CODE_RE = /^[A-Z0-9]{6,12}$/i;
@@ -65,7 +65,7 @@ export async function handleUpdate(update, { store, tg, webBase, llm }) {
       if (cmd || !llm) return { ok: true, cmd: cmd ?? 'chat', route: 'router' };
       const enabled = await store.listRoles(user.id);
       const r = await chatReply({ text, enabled, def: user.default_role, llm });
-      await send(r.text);
+      await send(withRoleLabel(r.text, r.role, user.role_label ?? 'always', user.last_role ?? null));
       return { ok: true, cmd: 'chat', role: r.role };
     }
   }

@@ -15,3 +15,9 @@ export async function chatReply({ text, enabled, def, llm }) {
   const out = await llm.complete({ task: 'chat', messages: [{ role: 'system', content: system }, { role: 'user', content: q }], maxTokens: 400 });
   return { text: out.text, role };
 }
+
+/** Role label: mode always | on_change | off. lastRole unknown => treated as a change. */
+export function withRoleLabel(text, role, mode = 'always', lastRole = null) {
+  if (!role || mode === 'off' || (mode === 'on_change' && role === lastRole)) return text;
+  return `${ROLES[role].emoji} ${ROLES[role].label}\n${text}`;
+}
