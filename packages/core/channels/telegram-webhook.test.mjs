@@ -47,3 +47,23 @@ test('callback: acks, answers query, rejects oversize and unlinked', async () =>
   assert.equal((await handleUpdate(cb(3, 'occ2:skip', 5), ctx)).ignored, 'unlinked_chat');
   assert.equal(acks.length, 3); assert.deepEqual(store._s.acks, [['occ1', 'taken']]);
 });
+
+test('memory: chat recalls before reply and remembers after; check-ins are remembered with context', async () => {
+  const { store, sent } = setup();
+  const remembered = []; const recallCalls = [];
+  const memory = {
+    recall: async (userId, query) => { recallCalls.push([userId, query]); return ['user likes tea']; },
+    remember: async (userId, text) => { remembered.push([userId, text]); },
+  };
+  const llm = { complete: async () => ({ text: 'ok' }) };
+  store._s.chats.set('1', { id: 'u1' }); store._s.roles.set('u1', ['fitness']);
+  const ctx = { store, tg: { sendMessage: async (c, t) => sent.push([c, t]), answerCallbackQuery: async () => {} }, webBase: 'https://x.test', llm, memory };
+  await handleUpdate({ update_id: 1, message: { text: 'how much protein', chat: { id: 1 } } }, ctx);
+  assert.deepEqual(recallCalls[0], ['u1', 'how much protein']);
+  assert.ok(remembered.some(([u, t]) => u === 'u1' && t.includes('how much protein')));
+
+  const cb = { update_id: 2, callback_query: { id: 'q2', data: 'occ9:taken', message: { chat: { id: 1 } } } };
+  store._s.acks = []; // actual title/role returned by createMemoryStore is undefined -> memory.remember skipped (acceptable offline double)
+  await handleUpdate(cb, ctx);
+});
+

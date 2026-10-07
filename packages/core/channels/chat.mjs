@@ -20,10 +20,13 @@ export function trimHistory(history, role) {
   return history.filter((h) => h && h.content && (h.appRole === undefined || h.appRole === null || h.appRole === role)).slice(-MAX_HISTORY_TURNS * 2);
 }
 
-export async function chatReply({ text, enabled, def, llm, history }) {
+export async function chatReply({ text, enabled, def, llm, history, remembered }) {
   if (!enabled.length) return { text: 'No roles are enabled yet. Turn some on in the dashboard.', role: null };
   const { role, text: q } = pickRole(text, enabled, def);
-  const system = `${ROLES[role].prompt}\nContext: enabled roles: ${enabled.filter((r) => ROLE_IDS.includes(r)).join(', ')}. Active role: ${role}. If asked who you are or what you can do, briefly say you are Vow, a reminder and coaching assistant, and describe what the active role helps with (do not name the underlying model); then invite a question in scope. Politely decline only unrelated topics.`;
+  const memoryBlock = Array.isArray(remembered) && remembered.length
+    ? `\nLong-term memory about this user (from past sessions/channels, most relevant first): ${remembered.map((m) => `"${m}"`).join('; ')}. Use it only if relevant; never invent memories that are not listed here.`
+    : '';
+  const system = `${ROLES[role].prompt}\nContext: enabled roles: ${enabled.filter((r) => ROLE_IDS.includes(r)).join(', ')}. Active role: ${role}. If asked who you are or what you can do, briefly say you are Vow, a reminder and coaching assistant, and describe what the active role helps with (do not name the underlying model); then invite a question in scope. Politely decline only unrelated topics.${memoryBlock}`;
   const prior = trimHistory(history, role).map((h) => ({ role: h.direction === 'out' ? 'assistant' : 'user', content: h.content }));
   const messages = [{ role: 'system', content: system }, ...prior, { role: 'user', content: q }];
   const out = await llm.complete({ task: 'chat', messages, maxTokens: 400 });

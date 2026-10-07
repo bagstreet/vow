@@ -8,12 +8,28 @@ export function createNeonStore(sql) {
       return r[0] ? { userId: r[0].user_id } : null;
     },
     async linkChannel(userId, channel, ext) { await sql('insert into channel_links(user_id, channel, external_id, last_seen_at) values ($1,$2,$3,now()) on conflict (channel, external_id) do update set user_id = excluded.user_id, enabled = true, last_seen_at = now()', [userId, channel, ext]); },
+    // Channels already linked for this user BEFORE this call — used to detect "this is a returning
+    // user adding another channel" so the bot can say it recognizes them, not just silently continue.
+    async listChannels(userId) { return (await sql('select channel from channel_links where user_id = $1 and enabled', [userId])).map((x) => x.channel); },
     async userByChat(chat, channel = 'telegram') { const r = await sql('select l.user_id, u.default_role, u.role_label, u.last_role from channel_links l join users u on u.id = l.user_id where l.channel = $2 and l.external_id = $1 and l.enabled', [chat, channel]); return r[0] ? { id: r[0].user_id, default_role: r[0].default_role, role_label: r[0].role_label, last_role: r[0].last_role } : null; },
     async listRoles(u) { return (await sql('select role from user_roles where user_id = $1 and enabled order by role', [u])).map((x) => x.role); },
     async setLastRole(u, role) { await sql('update users set last_role = $2 where id = $1', [u, role]); },
     async setDefaultRole(u, role) { await sql('update users set default_role = $2 where id = $1', [u, role]); },
     async setQuiet(u, v) { const m = v?.match(/^(\d\d:\d\d)-(\d\d:\d\d)$/); await sql('update users set quiet_start = $2, quiet_end = $3 where id = $1', [u, m?.[1] ?? null, m?.[2] ?? null]); },
-    async ackOccurrence(id, reply) { await sql("update outbox set status = 'acked', reply = case when id::text = $1 then $2 else reply end, acked_at = now() where occurrence_id = (select occurrence_id from outbox where id::text = $1) and status in ('pending','sent','escalated','expired')", [id, reply]); },
+    // Returns the reminder's title/role so callers can log a meaningful "what was this check-in about"
+    // memory, or null if nothing matched (already acked, unknown occurrence, etc).
+    async ackOccurrence(id, reply) {
+      const r = await sql(
+        `update outbox o set status = 'acked', reply = case when o.id::text = $1 then $2 else o.reply end, acked_at = now()
+         from reminders rem
+         where o.occurrence_id = (select occurrence_id from outbox where id::text = $1)
+           and o.status in ('pending','sent','escalated','expired')
+           and rem.id = o.reminder_id
+         returning rem.title, rem.role`,
+        [id, reply],
+      );
+      return r[0] ? { title: r[0].title, role: r[0].role } : null;
+    },
     async createLoginToken(u) { const t = randomBytes(24).toString('base64url'); await sql("insert into login_tokens(token, user_id, expires_at) values ($1,$2, now() + interval '10 minutes')", [t, u]); return t; },
     async getHistory(u, limit = 12) {
       const r = await sql('select direction, role, content from chat_messages where user_id = $1 order by created_at desc limit $2', [u, limit]);

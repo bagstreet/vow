@@ -9,6 +9,7 @@ Everything runs on free tiers: Vercel (functions), Neon (Postgres), cron-job.org
    - `DATABASE_URL`, `TELEGRAM_BOT_TOKEN`, `WEB_BASE_URL` (your Vercel URL)
    - `TELEGRAM_WEBHOOK_SECRET`, `TICK_SECRET` (any long random strings)
    - at least one LLM key: `GROQ_API_KEY` or `CEREBRAS_API_KEY` (more: `OPENROUTER_API_KEY`, ...). Routing: `LLM_PRIMARY`, `LLM_ROUTE_CHAT=a,b,c`.
+   - `MEMWAL_PRIVATE_KEY`, `MEMWAL_ACCOUNT_ID`, optional `MEMWAL_SERVER_URL` (default `https://relayer.memory.walrus.xyz`) — a Walrus Memory account/delegate key, see [docs.wal.app/walrus-memory](https://docs.wal.app/docs/walrus-memory) to create one. Without these, chat and check-ins still work but nothing is written to Walrus (`packages/core/memory/walrus-memory.mjs` silently no-ops) — see `docs/MAINNET_EVIDENCE.md` for what gets written once they're set.
    - optional, only if you also want Slack/Discord: `SLACK_BOT_TOKEN` + `SLACK_SIGNING_SECRET` (Slack app, Event Subscriptions + Interactivity both pointed at `<WEB_BASE_URL>/api/slack`), `DISCORD_PUBLIC_KEY` (+ `DISCORD_BOT_TOKEN` if you also want to manage the app via the Discord REST API) with the Interactions Endpoint URL set to `<WEB_BASE_URL>/api/discord`. Each channel works independently — skip the ones you don't need.
 5. **Deploy**, then register the webhook:
    `curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=<WEB_BASE_URL>/api/telegram&secret_token=<TELEGRAM_WEBHOOK_SECRET>"`

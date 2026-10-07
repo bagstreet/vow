@@ -40,7 +40,7 @@ function opt(interaction, name) {
 }
 
 /** Single entry point for every Discord interaction (PING, slash command, button press). */
-export async function handleInteraction(interaction, { store, webBase, llm }) {
+export async function handleInteraction(interaction, { store, webBase, llm, memory }) {
   if (interaction?.type === PING) return PONG;
 
   // Identity key for linking/storage: prefer the Discord *user* id (interaction.member.user in a guild,
@@ -53,8 +53,11 @@ export async function handleInteraction(interaction, { store, webBase, llm }) {
     const data = String(interaction.data?.custom_id ?? '');
     const i = data.lastIndexOf(':');
     if (i < 1) return ackUpdate();
-    if (!(await store.userByChat(chat, CHANNEL))) return ackUpdate();
-    await store.ackOccurrence(data.slice(0, i), data.slice(i + 1));
+    const cqUser = await store.userByChat(chat, CHANNEL);
+    if (!cqUser) return ackUpdate();
+    const status = data.slice(i + 1);
+    const info = await store.ackOccurrence(data.slice(0, i), status);
+    if (memory && info) await memory.remember(cqUser.id, `[check-in, discord] "${info.title}" (${info.role}) -> ${status}`);
     return ackUpdate();
   }
 
@@ -70,8 +73,11 @@ export async function handleInteraction(interaction, { store, webBase, llm }) {
     if (!CODE_RE.test(code)) return reply('That code does not look right. Codes are 6-12 letters/digits.');
     const r = await store.consumeLinkCode(code.toUpperCase(), CHANNEL);
     if (!r) return reply('That code is invalid or expired. Create a new one in the dashboard.');
+    const priorChannels = (await store.listChannels?.(r.userId)) ?? [];
     await store.linkChannel(r.userId, CHANNEL, chat);
-    return reply('Linked. I will remind you here. Use /roles to see who answers what.');
+    return reply(priorChannels.length
+      ? `Linked. I will remind you here. Welcome back — I already know you from ${priorChannels.join(', ')}. Same memory, one more place to reach me.`
+      : 'Linked. I will remind you here. Use /roles to see who answers what.');
   }
   if (!user) return reply('Not linked yet. Get a code in the dashboard, then /link code:CODE.');
 
@@ -96,10 +102,12 @@ export async function handleInteraction(interaction, { store, webBase, llm }) {
       if (!text || !llm) return reply('Ask something, e.g. /ask text: plan my leg day.');
       const enabled = await store.listRoles(user.id);
       const history = (await store.getHistory?.(user.id)) ?? [];
-      const r = await chatReply({ text, enabled, def: user.default_role, llm, history });
+      const remembered = memory ? await memory.recall(user.id, text) : [];
+      const r = await chatReply({ text, enabled, def: user.default_role, llm, history, remembered });
       await store.setLastRole?.(user.id, r.role);
       await store.saveMessage?.(user.id, CHANNEL, 'in', text, r.role);
       await store.saveMessage?.(user.id, CHANNEL, 'out', r.text, r.role);
+      if (memory) await memory.remember(user.id, `[discord] ${text}`);
       return reply(withRoleLabel(r.text, r.role, user.role_label ?? 'always', user.last_role ?? null));
     }
     default: return reply('Unknown command. Try /help.');

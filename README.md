@@ -59,6 +59,16 @@ flowchart LR
 - Only ciphertext is written to Walrus (client-side Seal "Manual" mode by default; if the day-0 spike T44 fails, a disclosed fallback encrypts at the app layer before the relayer). The UI always shows the active mode.
 - The user is acknowledged only after the record is in the local write-ahead outbox; "stored on Walrus" appears only after the blob id is confirmed.
 
+> **What is actually deployed today (2026-10-07):** the hash-chain/event-sourcing/Seal design above is the
+> target architecture, not yet built against the live relayer (`packages/core/companion.mjs` is an unused
+> prototype — see `docs/planning/KNOWN_LIMITATIONS.md`). What *is* live, verified against the real mainnet
+> relayer: `packages/core/memory/walrus-memory.mjs`, called from the Telegram and Discord webhooks
+> (`apps/web/api/{telegram,discord}.mjs`). Every chat turn and reminder check-in is written as a MemWal
+> `remember()` call (relayer-encrypted at rest, not client-side Seal yet) into one namespace per app user
+> (`vow:mem:<userId>`, shared across every channel they've linked — one memory, many doors in); the next chat
+> turn recalls relevant past memories before the model replies. See `docs/MAINNET_EVIDENCE.md` for real blob
+> ids. Slack is not wired to memory yet (Slack is also single-tenant today, see `docs/SELF_HOST.md`).
+
 ## Access and privacy
 
 - **Stored:** your commitments, schedule labels and times, check-ins, corrections, consent records, Study lessons and progress; all as encrypted records in your Walrus Memory account (or the workspace account with roles).
@@ -103,7 +113,7 @@ Desktop app (`desktop/`, Tauri + Ollama) and the Study/Schedule roles are tasks 
 | Claim | Where it is proven | Current state |
 |---|---|---|
 | Tests pass, coverage | `docs/audit/ACCEPTANCE_STATUS.md` after `npm test` on the current head | not re-measured since the audit; inherited numbers removed |
-| Records stored on Walrus Mainnet | `docs/MAINNET_EVIDENCE.md` (T10): blob ids, explorer links, dedicated wallet | not yet |
+| Records stored on Walrus Mainnet | `docs/MAINNET_EVIDENCE.md`: blob ids, explorer links, agent/account id | yes — verified 2026-10-07 against the live mainnet relayer; see the doc for current blob count |
 | Cold recovery | T06 test + desktop demo (T38) | not yet |
 | Seal active | active-mode indicator + T44 spike log in `docs/audit/FRICTION.md` | not yet |
 | Badges | generated from CI/eval output only | CI badge only |

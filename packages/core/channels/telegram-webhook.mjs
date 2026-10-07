@@ -11,7 +11,7 @@ export function verifySecret(headers, expected) {
   return Boolean(expected) && got === expected;
 }
 
-export async function handleUpdate(update, { store, tg, webBase, llm }) {
+export async function handleUpdate(update, { store, tg, webBase, llm, memory }) {
   if (!update || typeof update.update_id !== 'number') return { ok: false, reason: 'bad_update' };
   if (await store.seenUpdate(update.update_id)) return { ok: true, duplicate: true };
 
@@ -21,8 +21,11 @@ export async function handleUpdate(update, { store, tg, webBase, llm }) {
     await tg.answerCallbackQuery(cq.id);
     if (i < 1 || Buffer.byteLength(data) > 64) return { ok: true, ignored: 'bad_callback' };
     const chat = String(cq.message?.chat?.id ?? '');
-    if (!(await store.userByChat(chat))) return { ok: true, ignored: 'unlinked_chat' };
-    await store.ackOccurrence(data.slice(0, i), data.slice(i + 1));
+    const cqUser = await store.userByChat(chat);
+    if (!cqUser) return { ok: true, ignored: 'unlinked_chat' };
+    const status = data.slice(i + 1);
+    const info = await store.ackOccurrence(data.slice(0, i), status);
+    if (memory && info) await memory.remember(cqUser.id, `[check-in, telegram] "${info.title}" (${info.role}) -> ${status}`);
     return { ok: true, acked: data.slice(0, i) };
   }
 
@@ -39,8 +42,10 @@ export async function handleUpdate(update, { store, tg, webBase, llm }) {
     if (!CODE_RE.test(code)) { await send('That code does not look right. Codes are 6-12 letters/digits.'); return { ok: true, cmd, linked: false }; }
     const r = await store.consumeLinkCode(code.toUpperCase());
     if (!r) { await send('That code is invalid or expired. Create a new one in the dashboard.'); return { ok: true, cmd, linked: false }; }
+    const priorChannels = (await store.listChannels?.(r.userId)) ?? [];
     await store.linkChannel(r.userId, 'telegram', chat);
     await send('Linked. I will remind you here. Use /roles to see who answers what.');
+    if (priorChannels.length) await send(`Welcome back — I already know you from ${priorChannels.join(', ')}. Same memory, one more place to reach me.`);
     return { ok: true, cmd, linked: true };
   }
   if (!user) { await send('Not linked yet. Get a code in the dashboard, then /link CODE.'); return { ok: true, ignored: 'unlinked' }; }
@@ -65,11 +70,13 @@ export async function handleUpdate(update, { store, tg, webBase, llm }) {
       if (cmd || !llm) return { ok: true, cmd: cmd ?? 'chat', route: 'router' };
       const enabled = await store.listRoles(user.id);
       const history = (await store.getHistory?.(user.id)) ?? [];
-      const r = await chatReply({ text, enabled, def: user.default_role, llm, history });
+      const remembered = memory ? await memory.recall(user.id, text) : [];
+      const r = await chatReply({ text, enabled, def: user.default_role, llm, history, remembered });
       await store.setLastRole?.(user.id, r.role);
       await store.saveMessage?.(user.id, 'telegram', 'in', text, r.role);
       await store.saveMessage?.(user.id, 'telegram', 'out', r.text, r.role);
       await send(withRoleLabel(r.text, r.role, user.role_label ?? 'always', user.last_role ?? null));
+      if (memory) await memory.remember(user.id, `[telegram] ${text}`);
       return { ok: true, cmd: 'chat', role: r.role };
     }
   }
@@ -83,6 +90,7 @@ export function createMemoryStore() {
     seenUpdate: async (id) => (s.seen.has(id) ? true : (s.seen.add(id), false)),
     consumeLinkCode: async (c) => { const r = s.codes.get(c); if (!r || r.exp < Date.now()) return null; s.codes.delete(c); return { userId: r.userId }; },
     linkChannel: async (userId, _ch, chat) => { s.chats.set(chat, { id: userId }); },
+    listChannels: async () => [],
     userByChat: async (chat) => s.chats.get(chat) ?? null,
     listRoles: async (u) => s.roles.get(u) ?? [],
     setDefaultRole: async (u, r) => { s.def.set(u, r); },
