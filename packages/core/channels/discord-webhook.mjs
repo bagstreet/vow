@@ -43,7 +43,11 @@ function opt(interaction, name) {
 export async function handleInteraction(interaction, { store, webBase, llm }) {
   if (interaction?.type === PING) return PONG;
 
-  const chat = String(interaction.channel_id ?? interaction.channel?.id ?? '');
+  // Identity key for linking/storage: prefer the Discord *user* id (interaction.member.user in a guild,
+  // interaction.user in a DM) over channel_id. A slash command can be run from any guild channel, but
+  // reminders are sent via DM (see delivery/adapters/discord.mjs), which needs the user id, not that
+  // channel. Falls back to channel_id only when no user id is present (keeps older/offline tests valid).
+  const chat = String(interaction.member?.user?.id ?? interaction.user?.id ?? interaction.channel_id ?? interaction.channel?.id ?? '');
 
   if (interaction.type === MESSAGE_COMPONENT) {
     const data = String(interaction.data?.custom_id ?? '');

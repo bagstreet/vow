@@ -1,5 +1,5 @@
 // Vercel function: reminder tick. Called every minute by cron-job.org (primary) and every 5 min by GitHub Actions (backup).
-// Env: DATABASE_URL, TELEGRAM_BOT_TOKEN, TICK_SECRET
+// Env: DATABASE_URL, TELEGRAM_BOT_TOKEN, DISCORD_BOT_TOKEN, TICK_SECRET
 import { timingSafeEqual } from 'node:crypto';
 import { createSql } from '../../../packages/db/neon.mjs';
 import { createNeonTickStore } from '../../../packages/core/scheduler/neon-tick-store.mjs';
@@ -7,6 +7,7 @@ import { runTick } from '../../../packages/core/scheduler/tick.mjs';
 import { buildLlmClient } from '../../../packages/core/llm/index.mjs';
 import { pickButtons } from '../../../packages/core/channels/buttons.mjs';
 import { createTelegramAdapter } from '../../../packages/core/delivery/adapters/telegram.mjs';
+import { createDiscordAdapter } from '../../../packages/core/delivery/adapters/discord.mjs';
 
 export function authorized(headers, secret) {
   const got = String(headers['x-tick-secret'] ?? '');
@@ -14,11 +15,17 @@ export function authorized(headers, secret) {
   return timingSafeEqual(Buffer.from(got), Buffer.from(secret));
 }
 
+const discordDmCache = new Map(); // survives across ticks on a warm lambda; keyed by Discord user id, see adapters/discord.mjs
+
 export default async function handler(req, res) {
   if (!['POST', 'GET'].includes(req.method)) return res.status(405).json({ ok: false });
   if (!authorized(req.headers, process.env.TICK_SECRET)) return res.status(401).json({ ok: false });
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  const senders = token ? { telegram: ({ externalId, text, buttons, outboxId }) => createTelegramAdapter({ token, chatId: externalId }).send({ occurrenceId: outboxId, text, buttons }) } : {};
+  const tgToken = process.env.TELEGRAM_BOT_TOKEN;
+  const dcToken = process.env.DISCORD_BOT_TOKEN;
+  const senders = {
+    ...(tgToken ? { telegram: ({ externalId, text, buttons, outboxId }) => createTelegramAdapter({ token: tgToken, chatId: externalId }).send({ occurrenceId: outboxId, text, buttons }) } : {}),
+    ...(dcToken ? { discord: ({ externalId, text, buttons, outboxId }) => createDiscordAdapter({ token: dcToken, userId: externalId, dmChannelCache: discordDmCache }).send({ occurrenceId: outboxId, text, buttons }) } : {}),
+  };
   const llm = buildLlmClient();
   try {
     const result = await runTick({ store: createNeonTickStore(createSql()), senders, pickButtons: (a) => pickButtons({ ...a, llm }) });
