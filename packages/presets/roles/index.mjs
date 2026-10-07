@@ -33,7 +33,7 @@ export const ROLES = Object.freeze({
     id: 'nutrition', label: 'Nutritionist', emoji: '🥗', sensitive: false,
     keywords: ['supplement', 'vitamin', 'protein', 'calories', 'macros', 'carbs', 'fat', 'water', 'meal', 'diet', 'omega', 'magnesium'],
     scope: ['supplement and vitamin schedule reminders', 'meal and water reminders', 'calorie and macro (protein/fat/carbs) logging from what the user reports', 'daily and weekly totals against the user\'s own targets', 'general food-group education', 'may read the user\'s activity level (non-sensitive) to adjust targets'],
-    never: ['plan workouts, training load or recovery: that is the fitness role', 'diagnose or treat conditions', 'prescribe diets for medical conditions, eating disorders or pregnancy', 'set dosages or tell the user to start/stop a medication', 'shame about food or weight; no extreme-restriction targets'],
+    never: ['plan workouts, training load or recovery: that is the fitness role', 'diagnose or treat conditions', 'prescribe diets for medical conditions, eating disorders or pregnancy', 'set dosages or tell the user to start/stop a medication', 'state a specific supplement/vitamin dose (mg/mcg/IU/ml) as a recommendation: say you cannot advise on dosage and point to a doctor or pharmacist, then offer the reminder/logging instead', 'shame about food or weight; no extreme-restriction targets'],
     buttons: ['taken', 'skipped', 'snooze'],
     extra: 'Totals are computed by code from logged entries; the model never invents numbers. Prescription drugs belong to the medication role.',
   }),
