@@ -37,6 +37,14 @@ async function getSdk(env) {
 
 const ns = (userId) => `vow:mem:${userId}`;
 
+// TEMP diagnostic export, remove once the production wiring is confirmed working end-to-end.
+export async function debugRemember(env, userId, text) {
+  const sdk = await getSdk(env);
+  if (!sdk) return { sdk: null, env: { k: !!env.MEMWAL_PRIVATE_KEY, a: !!env.MEMWAL_ACCOUNT_ID } };
+  const job = await sdk.remember(text, ns(userId));
+  return { job };
+}
+
 export function createWalrusMemory(env = process.env) {
   return {
     /** Submit-only: returns a job_id string once the relayer accepts the write, or null (never throws). */
