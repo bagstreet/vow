@@ -45,6 +45,31 @@ export default function SettingsPage() {
     { id: '3', label: 'Magnesium', time: '20:00', days: ['Mon','Wed','Fri'], channel: 'slack' },
   ])
 
+  const updateReminder = (id: string, patch: Partial<Reminder>) =>
+    setReminders(prev => prev.map(r => (r.id === id ? { ...r, ...patch } : r)))
+  const toggleDay = (id: string, d: string) =>
+    setReminders(prev => prev.map(r => {
+      if (r.id !== id) return r
+      const days = r.days.includes(d) ? r.days.filter(x => x !== d) : [...r.days, d]
+      return days.length ? { ...r, days } : r // keep at least one day
+    }))
+
+  // Active roles: several can be on at once (min 1); first one stays the legacy single `preset`.
+  const [activeRoles, setActiveRoles] = useState<string[]>(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem('vow.activeRoles') || 'null')
+      if (Array.isArray(v) && v.length) return v.filter((x: string) => PRESETS.some(p => p.id === x))
+    } catch { /* ignore */ }
+    return [user?.preset || 'fitness']
+  })
+  const toggleRole = (id: string) => {
+    const next = activeRoles.includes(id) ? activeRoles.filter(x => x !== id) : [...activeRoles, id]
+    if (!next.length) return
+    setActiveRoles(next)
+    try { localStorage.setItem('vow.activeRoles', JSON.stringify(next)) } catch { /* ignore */ }
+    updateUser({ preset: next[0] })
+  }
+
   const [showAddReminder, setShowAddReminder] = useState(false)
   const [newReminder, setNewReminder] = useState({ label: '', time: '08:00', channel: 'telegram' })
 
@@ -138,16 +163,16 @@ export default function SettingsPage() {
       <section className="p-5 rounded-xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
         <div className="flex items-center gap-2 mb-4">
           <Shield size={16} style={{ color: '#0E9C86' }} />
-          <h2 className="text-sm font-semibold">Active Preset</h2>
+          <h2 className="text-sm font-semibold">Active Roles</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {PRESETS.map(p => (
-            <button key={p.id} onClick={() => updateUser({ preset: p.id })}
+            <button key={p.id} onClick={() => toggleRole(p.id)} aria-pressed={activeRoles.includes(p.id)}
               className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left cursor-pointer transition-colors"
               style={{
-                background: user?.preset === p.id ? `${p.color}15` : 'var(--recessed)',
-                border: `1px solid ${user?.preset === p.id ? p.color : 'var(--border)'}`,
-                color: user?.preset === p.id ? p.color : 'var(--text-sec)',
+                background: activeRoles.includes(p.id) ? `${p.color}15` : 'var(--recessed)',
+                border: `1px solid ${activeRoles.includes(p.id) ? p.color : 'var(--border)'}`,
+                color: activeRoles.includes(p.id) ? p.color : 'var(--text-sec)',
               }}>
               <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: p.color }} />
               {p.label}
@@ -179,27 +204,36 @@ export default function SettingsPage() {
             return (
               <div key={r.id} className="p-3 rounded-lg" style={{ background: 'var(--recessed)', border: '1px solid var(--border)' }}>
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="text-sm font-medium flex-1">{r.label}</span>
-                  <div className="flex items-center gap-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                    <Clock size={10} /> {r.time}
-                  </div>
-                  <div className="flex items-center gap-1 text-[10px]" style={{ color: '#0E9C86' }}>
-                    <ChIcon size={10} /> {r.channel}
-                  </div>
+                  <input value={r.label} onChange={e => updateReminder(r.id, { label: e.target.value })} aria-label="Reminder name"
+                    className="text-sm font-medium flex-1 min-w-0 bg-transparent outline-none border-b border-transparent focus:border-[#0E9C86]" />
+                  <label className="flex items-center gap-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                    <Clock size={10} />
+                    <input type="time" value={r.time} onChange={e => updateReminder(r.id, { time: e.target.value })} aria-label="Time"
+                      className="bg-transparent outline-none text-[11px]" />
+                  </label>
+                  <label className="flex items-center gap-1 text-[10px]" style={{ color: '#0E9C86' }}>
+                    <ChIcon size={10} />
+                    <select value={r.channel} onChange={e => updateReminder(r.id, { channel: e.target.value })} aria-label="Channel"
+                      className="bg-transparent outline-none text-[11px] cursor-pointer">
+                      <option value="telegram">telegram</option><option value="slack">slack</option>
+                      <option value="discord">discord</option><option value="web">web</option>
+                    </select>
+                  </label>
                   <button onClick={() => removeReminder(r.id)} className="p-1 rounded cursor-pointer hover:bg-white/10" style={{ color: 'var(--text-muted)' }}>
                     <Trash2 size={12} />
                   </button>
                 </div>
                 <div className="flex gap-1">
                   {allDays.map(d => (
-                    <span key={d} className="px-1.5 py-0.5 rounded text-[9px] font-mono"
+                    <button key={d} type="button" onClick={() => toggleDay(r.id, d)} aria-pressed={r.days.includes(d)}
+                      className="px-1.5 py-0.5 rounded text-[9px] font-mono cursor-pointer"
                       style={{
                         background: r.days.includes(d) ? '#0E9C8620' : 'transparent',
                         color: r.days.includes(d) ? '#0E9C86' : 'var(--text-muted)',
                         border: `1px solid ${r.days.includes(d) ? '#0E9C8633' : 'var(--border)'}`,
                       }}>
                       {d}
-                    </span>
+                    </button>
                   ))}
                 </div>
               </div>
