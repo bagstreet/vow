@@ -11,7 +11,7 @@ export function pickRole(text, enabled, def) {
 export async function chatReply({ text, enabled, def, llm }) {
   if (!enabled.length) return { text: 'No roles are enabled yet. Turn some on in the dashboard.', role: null };
   const { role, text: q } = pickRole(text, enabled, def);
-  const system = `${ROLES[role].prompt}\nContext: enabled roles: ${enabled.filter((r) => ROLE_IDS.includes(r)).join(', ')}. Active role: ${role}.`;
+  const system = `${ROLES[role].prompt}\nContext: enabled roles: ${enabled.filter((r) => ROLE_IDS.includes(r)).join(', ')}. Active role: ${role}. If asked who you are or what you can do, briefly say you are Vow, a reminder and coaching assistant, and describe what the active role helps with (do not name the underlying model); then invite a question in scope. Politely decline only unrelated topics.`;
   const out = await llm.complete({ task: 'chat', messages: [{ role: 'system', content: system }, { role: 'user', content: q }], maxTokens: 400 });
   return { text: out.text, role };
 }
