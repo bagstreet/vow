@@ -55,6 +55,29 @@ test('chatReply ignores history tagged with a different role than the one picked
   assert.equal(msgs.length, 2); // system + current question only, no leaked nutrition turn
 });
 
+test('eval ladder step 6: empty history (new user) still answers, no crash', async () => {
+  const llm = capturingLlm();
+  const r = await chatReply({ text: 'hello', enabled, def: 'fitness', llm, history: undefined });
+  assert.equal(r.role, 'fitness');
+  assert.equal(llm.calls[0].messages.length, 2); // system + current question only
+});
+
+test('eval ladder step 6: a fact mentioned early is still in context near the window edge, and context survives a provider/model switch mid-thread', async () => {
+  const history = [];
+  for (let i = 0; i < MAX_HISTORY_TURNS * 2 - 2; i++) history.push({ direction: i % 2 ? 'out' : 'in', appRole: 'fitness', content: `turn ${i}` });
+  history.unshift({ direction: 'in', appRole: 'fitness', content: 'my knee injury means no squats' });
+  history.unshift({ direction: 'out', appRole: 'fitness', content: 'got it, no squats' });
+
+  const groqLikeLlm = capturingLlm(); // different "provider" object, same call shape as the router
+  await chatReply({ text: 'plan today', enabled, def: 'fitness', llm: groqLikeLlm, history });
+  const sentFacts = groqLikeLlm.calls[0].messages.map((m) => m.content).join(' ');
+  assert.ok(sentFacts.includes('no squats'), 'early fact should still be inside the trimmed window');
+
+  const cerebrasLikeLlm = capturingLlm(); // simulate the router having failed over to a different provider mid-thread
+  await chatReply({ text: 'what about tomorrow', enabled, def: 'fitness', llm: cerebrasLikeLlm, history });
+  assert.equal(cerebrasLikeLlm.calls[0].messages[0].role, 'system'); // the new provider gets the same role prompt + history, context is not lost on failover
+});
+
 test('telegram webhook: second message in the same role reuses saved history', async () => {
   const store = createMemoryStore();
   await store.linkChannel('u1', 'telegram', '42');
