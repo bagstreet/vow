@@ -11,6 +11,13 @@ import SettingsPage from './pages/SettingsPage'
 import ExportPage from './pages/ExportPage'
 import './index.css'
 
+// PWA (DASHBOARD_UX_AUDIT §A7): app-shell cache + offline page only, never caches /api/*.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => { /* non-fatal: app still works without it */ })
+  })
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AuthProvider>

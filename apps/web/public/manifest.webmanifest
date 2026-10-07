@@ -1,0 +1,13 @@
+{
+  "name": "Vow — The commitment journal that can't lie",
+  "short_name": "Vow",
+  "description": "Hash-chained check-ins. Role-aware reminders across Telegram, Slack, Discord and web.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#020303",
+  "theme_color": "#0E9C86",
+  "icons": [
+    { "src": "/vow-favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
