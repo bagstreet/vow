@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { MessageCircle, Clock, Settings, Download, Radio, LogOut, Menu, X, ChevronLeft, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { MessageCircle, Clock, Settings, Download, Radio, LogOut, Menu, X, ChevronLeft, ChevronsLeft, ChevronsRight, HelpCircle } from 'lucide-react'
 import { useAuth } from '../lib/auth'
+import OnboardingTour, { useTourAutostart } from './OnboardingTour'
 
 const NAV = [
   { to: '/dashboard', icon: MessageCircle, label: 'Chat', end: true },
@@ -16,6 +17,7 @@ export default function DashboardLayout() {
   const navigate = useNavigate()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const tour = useTourAutostart()
 
   const handleLogout = () => { logout(); navigate('/') }
 
@@ -74,6 +76,13 @@ export default function DashboardLayout() {
               </div>
             </NavLink>
           )}
+          <button onClick={() => tour.setOpen(true)}
+            className={`flex items-center ${collapsed ? 'justify-center' : 'gap-2'} w-full px-3 py-2 rounded-lg text-xs cursor-pointer transition-colors hover:bg-white/5`}
+            style={{ color: 'var(--text-muted)' }}
+            title={collapsed ? 'Help / tour' : undefined}>
+            <HelpCircle size={13} />
+            {!collapsed && 'Help / tour'}
+          </button>
           <button onClick={handleLogout}
             className={`flex items-center ${collapsed ? 'justify-center' : 'gap-2'} w-full px-3 py-2 rounded-lg text-xs cursor-pointer transition-colors hover:bg-white/5`}
             style={{ color: 'var(--text-muted)' }}
@@ -136,6 +145,9 @@ export default function DashboardLayout() {
                     <div className="text-[10px] opacity-50">{user.provider}</div>
                   </div>
                 </NavLink>
+                <button onClick={() => { tour.setOpen(true); setMobileOpen(false) }} className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-xs cursor-pointer hover:bg-white/5" style={{ color: 'var(--text-muted)' }}>
+                  <HelpCircle size={13} /> Help / tour
+                </button>
                 <button onClick={handleLogout} className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-xs cursor-pointer hover:bg-white/5" style={{ color: 'var(--text-muted)' }}>
                   <LogOut size={13} /> Sign out
                 </button>
@@ -163,6 +175,8 @@ export default function DashboardLayout() {
           ))}
         </nav>
       </div>
+
+      <OnboardingTour open={tour.open} onClose={() => tour.setOpen(false)} />
     </div>
   )
 }
