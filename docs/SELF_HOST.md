@@ -32,6 +32,16 @@ API constraint, not something Vow's code can paper over.
    in the DM with the code already typed.
 
 ### Slack — also DM-first, but needs an Events subscription
+> **Distribution model today (variant 1, single-tenant): one `SLACK_BOT_TOKEN` env var = one Slack
+> workspace.** Unlike Telegram (one public `@bot`, anyone can DM it) and Discord (one bot token already
+> works across unlimited servers via the public Guild Install link), a Slack app's bot token is scoped to
+> the single workspace it was installed into. There is **no self-serve "Add to Slack" for other workspaces
+> yet** — a second workspace needs its own Slack app + its own token, following this same section. The
+> proper fix (variant 2, not built) is an OAuth v2 install flow (`/slack/install` → `oauth.v2.access` →
+> store the bot token per `team_id` in the DB instead of `process.env.SLACK_BOT_TOKEN`), which would make
+> Slack as self-serve as the other two channels and would need Slack's "Public Distribution" enabled. Until
+> that's built, treat Slack as single-workspace; for a demo audience outside your workspace, invite them as
+> guests into your workspace instead of expecting them to install their own copy.
 1. Create the Slack app (**"From a manifest"** is fastest; or **"Blank app"**, never the AI-agent/Starter
    templates — those add extra scaffolding you don't want).
 2. Scopes (OAuth & Permissions > Bot Token Scopes): `chat:write`, `im:read`, `im:history`. Install the app to
