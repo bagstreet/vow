@@ -1,6 +1,7 @@
 // Telegram webhook handler (T47/T54). Pure: store + tg client injected, so every branch is testable offline.
 // Link: deep link t.me/<bot>?start=<code> or manual /link CODE. /login returns a one-time web link (login happens via the bot).
 import { ROLES, ROLE_IDS } from '../../presets/roles/index.mjs';
+import { chatReply } from './chat.mjs';
 
 const HELP = 'I am Vow. Commands: /link CODE, /login, /roles, /role <name>, /status, /quiet, /help.';
 const CODE_RE = /^[A-Z0-9]{6,12}$/i;
@@ -10,7 +11,7 @@ export function verifySecret(headers, expected) {
   return Boolean(expected) && got === expected;
 }
 
-export async function handleUpdate(update, { store, tg, webBase }) {
+export async function handleUpdate(update, { store, tg, webBase, llm }) {
   if (!update || typeof update.update_id !== 'number') return { ok: false, reason: 'bad_update' };
   if (await store.seenUpdate(update.update_id)) return { ok: true, duplicate: true };
 
@@ -60,7 +61,13 @@ export async function handleUpdate(update, { store, tg, webBase }) {
     }
     case 'status': { const on = await store.listRoles(user.id); await send(`Linked. Active roles: ${on.length ? on.join(', ') : 'none'}.`); break; }
     case 'quiet': await store.setQuiet(user.id, arg || null); await send(arg ? `Quiet hours set: ${arg}.` : 'Quiet hours cleared. Use /quiet 22:00-07:00 to set.'); break;
-    default: return { ok: true, cmd: cmd ?? 'chat', route: 'router' }; // free text goes to the role router
+    default: {
+      if (cmd || !llm) return { ok: true, cmd: cmd ?? 'chat', route: 'router' };
+      const enabled = await store.listRoles(user.id);
+      const r = await chatReply({ text, enabled, def: user.default_role, llm });
+      await send(r.text);
+      return { ok: true, cmd: 'chat', role: r.role };
+    }
   }
   return { ok: true, cmd };
 }

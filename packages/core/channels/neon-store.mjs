@@ -8,7 +8,7 @@ export function createNeonStore(sql) {
       return r[0] ? { userId: r[0].user_id } : null;
     },
     async linkChannel(userId, channel, ext) { await sql('insert into channel_links(user_id, channel, external_id, last_seen_at) values ($1,$2,$3,now()) on conflict (channel, external_id) do update set user_id = excluded.user_id, enabled = true, last_seen_at = now()', [userId, channel, ext]); },
-    async userByChat(chat) { const r = await sql("select user_id from channel_links where channel = 'telegram' and external_id = $1 and enabled", [chat]); return r[0] ? { id: r[0].user_id } : null; },
+    async userByChat(chat) { const r = await sql("select l.user_id, u.default_role from channel_links l join users u on u.id = l.user_id where l.channel = 'telegram' and l.external_id = $1 and l.enabled", [chat]); return r[0] ? { id: r[0].user_id, default_role: r[0].default_role } : null; },
     async listRoles(u) { return (await sql('select role from user_roles where user_id = $1 and enabled order by role', [u])).map((x) => x.role); },
     async setDefaultRole(u, role) { await sql('update users set default_role = $2 where id = $1', [u, role]); },
     async setQuiet(u, v) { const m = v?.match(/^(\d\d:\d\d)-(\d\d:\d\d)$/); await sql('update users set quiet_start = $2, quiet_end = $3 where id = $1', [u, m?.[1] ?? null, m?.[2] ?? null]); },
