@@ -15,5 +15,10 @@ export function createNeonStore(sql) {
     async setQuiet(u, v) { const m = v?.match(/^(\d\d:\d\d)-(\d\d:\d\d)$/); await sql('update users set quiet_start = $2, quiet_end = $3 where id = $1', [u, m?.[1] ?? null, m?.[2] ?? null]); },
     async ackOccurrence(id, reply) { await sql("update outbox set status = 'acked', reply = case when id::text = $1 then $2 else reply end, acked_at = now() where occurrence_id = (select occurrence_id from outbox where id::text = $1) and status in ('pending','sent','escalated','expired')", [id, reply]); },
     async createLoginToken(u) { const t = randomBytes(24).toString('base64url'); await sql("insert into login_tokens(token, user_id, expires_at) values ($1,$2, now() + interval '10 minutes')", [t, u]); return t; },
+    async getHistory(u, limit = 12) {
+      const r = await sql('select direction, role, content from chat_messages where user_id = $1 order by created_at desc limit $2', [u, limit]);
+      return r.reverse().map((x) => ({ direction: x.direction, appRole: x.role, content: x.content }));
+    },
+    async saveMessage(u, channel, direction, content, role) { await sql('insert into chat_messages(user_id, channel, direction, role, content) values ($1,$2,$3,$4,$5)', [u, channel, direction, role ?? null, content]); },
   };
 }

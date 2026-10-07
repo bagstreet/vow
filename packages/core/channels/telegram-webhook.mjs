@@ -64,8 +64,11 @@ export async function handleUpdate(update, { store, tg, webBase, llm }) {
     default: {
       if (cmd || !llm) return { ok: true, cmd: cmd ?? 'chat', route: 'router' };
       const enabled = await store.listRoles(user.id);
-      const r = await chatReply({ text, enabled, def: user.default_role, llm });
+      const history = (await store.getHistory?.(user.id)) ?? [];
+      const r = await chatReply({ text, enabled, def: user.default_role, llm, history });
       await store.setLastRole?.(user.id, r.role);
+      await store.saveMessage?.(user.id, 'telegram', 'in', text, r.role);
+      await store.saveMessage?.(user.id, 'telegram', 'out', r.text, r.role);
       await send(withRoleLabel(r.text, r.role, user.role_label ?? 'always', user.last_role ?? null));
       return { ok: true, cmd: 'chat', role: r.role };
     }
@@ -74,7 +77,7 @@ export async function handleUpdate(update, { store, tg, webBase, llm }) {
 }
 
 export function createMemoryStore() {
-  const s = { seen: new Set(), codes: new Map(), chats: new Map(), roles: new Map(), acks: [], logins: [], quiet: new Map(), def: new Map() };
+  const s = { seen: new Set(), codes: new Map(), chats: new Map(), roles: new Map(), acks: [], logins: [], quiet: new Map(), def: new Map(), history: new Map() };
   return {
     _s: s,
     seenUpdate: async (id) => (s.seen.has(id) ? true : (s.seen.add(id), false)),
@@ -86,5 +89,9 @@ export function createMemoryStore() {
     setQuiet: async (u, v) => { s.quiet.set(u, v); },
     ackOccurrence: async (id, reply) => { s.acks.push([id, reply]); },
     createLoginToken: async (u) => { const t = 'tok' + s.logins.length; s.logins.push([u, t]); return t; },
+    getHistory: async (u, limit = 12) => (s.history.get(u) ?? []).slice(-limit),
+    saveMessage: async (u, _channel, direction, content, role) => {
+      const h = s.history.get(u) ?? []; h.push({ direction, appRole: role ?? null, content }); s.history.set(u, h);
+    },
   };
 }

@@ -8,11 +8,25 @@ export function pickRole(text, enabled, def) {
   return { role, text: String(text).trim() };
 }
 
-export async function chatReply({ text, enabled, def, llm }) {
+// Short-term dialog memory: history is prior turns for this user, oldest first,
+// [{ direction: 'in'|'out', appRole: <coaching role this turn belongs to, or null>, content }].
+// Only turns tagged with the currently active role are replayed as context (a role switch starts a
+// fresh view so the model does not answer as the wrong coach); capped at MAX_HISTORY_TURNS so prompts
+// stay small and old context cannot leak once the user has moved on.
+export const MAX_HISTORY_TURNS = 6;
+
+export function trimHistory(history, role) {
+  if (!Array.isArray(history) || !role) return [];
+  return history.filter((h) => h && h.content && (h.appRole === undefined || h.appRole === null || h.appRole === role)).slice(-MAX_HISTORY_TURNS * 2);
+}
+
+export async function chatReply({ text, enabled, def, llm, history }) {
   if (!enabled.length) return { text: 'No roles are enabled yet. Turn some on in the dashboard.', role: null };
   const { role, text: q } = pickRole(text, enabled, def);
   const system = `${ROLES[role].prompt}\nContext: enabled roles: ${enabled.filter((r) => ROLE_IDS.includes(r)).join(', ')}. Active role: ${role}. If asked who you are or what you can do, briefly say you are Vow, a reminder and coaching assistant, and describe what the active role helps with (do not name the underlying model); then invite a question in scope. Politely decline only unrelated topics.`;
-  const out = await llm.complete({ task: 'chat', messages: [{ role: 'system', content: system }, { role: 'user', content: q }], maxTokens: 400 });
+  const prior = trimHistory(history, role).map((h) => ({ role: h.direction === 'out' ? 'assistant' : 'user', content: h.content }));
+  const messages = [{ role: 'system', content: system }, ...prior, { role: 'user', content: q }];
+  const out = await llm.complete({ task: 'chat', messages, maxTokens: 400 });
   return { text: out.text, role };
 }
 
