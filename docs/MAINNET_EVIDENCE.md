@@ -36,8 +36,34 @@ The rule requires **at least 10 blobs on Mainnet at time of submission** (not 10
 `docs/audit/OFFICIAL_RULES.md`). The 2 sandbox-verification blobs above do not count toward that — they
 predate the live wiring and used a disposable test namespace, not a real user's.
 
-**TODO before submission:** once real users chat with the live Telegram/Discord bots (or a scripted test
-pass simulating one — see `docs/audit/OFFICIAL_RULES.md` for the >=10 minimum and the owner's own stretch
-target of 100+ from 3+ users), query the account for its real namespaces/blob count and paste the real
-numbers and blob ids here. Do not submit with only the sandbox-verification numbers above — they prove the
-pipe works, not that it was used.
+### First confirmed real production write (2026-10-07)
+Sent a real message through the live `https://vow-livid.vercel.app/api/telegram` webhook for a disposable
+test account (created via a direct DB insert to simulate a linked Telegram chat, same code path a real
+`/link` would produce) and confirmed the resulting blob via `recall()` against the real mainnet account:
+
+| channel | namespace | blob_id | walruscan |
+|---|---|---|---|
+| telegram (prod webhook) | `vow:mem:47b8a831-da8b-433a-af06-bf542c2acf75` | `-vw-SOe15vCCQgjVtP230cxEY4WvgOhHsmkBKtTONdI` | https://walruscan.com/mainnet/blob/-vw-SOe15vCCQgjVtP230cxEY4WvgOhHsmkBKtTONdI |
+
+This confirms the full path works end-to-end in production: Telegram webhook -> `chatReply()` -> MemWal
+`remember()` -> real Mainnet blob -> `recall()` finds it again. Two earlier attempts at this same test failed
+for infrastructure reasons unrelated to MemWal itself, both now fixed and documented as learnings:
+1. `@mysten-incubation/memwal` was only listed in the **monorepo root** `package.json` (under
+   `optionalDependencies`), but Vercel's install (`npm ci`) runs against `apps/web`'s own
+   `package.json`/lockfile — the root one is never installed by the deployed build. Fixed by adding it as a
+   real dependency of `apps/web/package.json`.
+2. Even after that, the shared module `packages/core/memory/walrus-memory.mjs` still silently got no SDK:
+   it lives outside `apps/web` (the Vercel project/root directory), and Node's module resolution only walks
+   **up** from the importing file's own directory to find `node_modules` — it never looks sideways into a
+   sibling directory's `node_modules`. So a package installed under `apps/web/node_modules` is invisible to
+   a bare `import` from `packages/core/...`. Fixed by constructing the MemWal SDK client inside
+   `apps/web/lib/walrus-memory-client.mjs` (which *is* under the project root) and injecting it into the
+   shared module, matching this codebase's existing dependency-injection pattern (store/tg/llm are all
+   passed in, not imported deep in shared code).
+
+**TODO before submission:** once more real users chat with the live Telegram/Discord bots (or a scripted
+test pass simulating one — see `docs/audit/OFFICIAL_RULES.md` for the >=10 minimum and the owner's own
+stretch target of 100+ from 3+ users), query the account for its real namespaces/blob count and paste the
+real numbers here. Do not submit with only the evidence above — it proves the pipe works end-to-end, not
+that real usage happened yet.
+
