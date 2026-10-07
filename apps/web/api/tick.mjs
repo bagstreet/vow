@@ -4,6 +4,8 @@ import { timingSafeEqual } from 'node:crypto';
 import { createSql } from '../../../packages/db/neon.mjs';
 import { createNeonTickStore } from '../../../packages/core/scheduler/neon-tick-store.mjs';
 import { runTick } from '../../../packages/core/scheduler/tick.mjs';
+import { buildLlmClient } from '../../../packages/core/llm/index.mjs';
+import { pickButtons } from '../../../packages/core/channels/buttons.mjs';
 import { createTelegramAdapter } from '../../../packages/core/delivery/adapters/telegram.mjs';
 
 export function authorized(headers, secret) {
@@ -17,8 +19,9 @@ export default async function handler(req, res) {
   if (!authorized(req.headers, process.env.TICK_SECRET)) return res.status(401).json({ ok: false });
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const senders = token ? { telegram: ({ externalId, text, buttons, outboxId }) => createTelegramAdapter({ token, chatId: externalId }).send({ occurrenceId: outboxId, text, buttons }) } : {};
+  const llm = buildLlmClient();
   try {
-    const result = await runTick({ store: createNeonTickStore(createSql()), senders });
+    const result = await runTick({ store: createNeonTickStore(createSql()), senders, pickButtons: (a) => pickButtons({ ...a, llm }) });
     return res.status(200).json({ ok: true, ...result });
   } catch (e) {
     console.error('tick', e.message);

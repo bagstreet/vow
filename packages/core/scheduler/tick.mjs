@@ -16,8 +16,10 @@ export const SNOOZE_MIN = { snooze: 10, snooze_1h: 60 };
  *        claimEscalations(now), expire(id), claimSnoozes(now), userPrefs(userId) -> {tz,quietStart,quietEnd,ackMin}
  * senders: { telegram: async ({externalId,text,buttons,outboxId}) => void }
  */
-export async function runTick({ store, senders, now = Date.now(), batch = 50 }) {
+export async function runTick({ store, senders, pickButtons = null, now = Date.now(), batch = 50 }) {
   const out = { initialized: 0, fired: 0, sent: 0, deferred: 0, retried: 0, failed: 0, escalated: 0, expired: 0, snoozed: 0 };
+
+  const choose = async (row, text) => { try { return pickButtons ? await pickButtons({ role: row.role, reminderText: text }) : selectButtons(null); } catch { return selectButtons(null); } };
 
   for (const r of await store.initReminders(now)) { out.initialized++; void r; }
 
@@ -41,7 +43,7 @@ export async function runTick({ store, senders, now = Date.now(), batch = 50 }) 
     if (!target) { await store.markRetry(row.id, { sendAt: now, error: 'no_channel', failed: true }); out.failed++; continue; }
     try {
       const msg = buildReminder({ id: row.id, label: row.label });
-      await senders[target.channel]({ externalId: target.externalId, text: msg.text, buttons: selectButtons(null), outboxId: row.id });
+      await senders[target.channel]({ externalId: target.externalId, text: msg.text, buttons: await choose(row, msg.text), outboxId: row.id });
       await store.markSent(row.id, { channel: target.channel, escalateAt: now + (prefs.ackMin ?? DEFAULT_ACK_MIN) * 60000 });
       out.sent++;
     } catch (e) {
