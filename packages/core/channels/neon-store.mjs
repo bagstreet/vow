@@ -12,7 +12,7 @@ export function createNeonStore(sql) {
     async listRoles(u) { return (await sql('select role from user_roles where user_id = $1 and enabled order by role', [u])).map((x) => x.role); },
     async setDefaultRole(u, role) { await sql('update users set default_role = $2 where id = $1', [u, role]); },
     async setQuiet(u, v) { const m = v?.match(/^(\d\d:\d\d)-(\d\d:\d\d)$/); await sql('update users set quiet_start = $2, quiet_end = $3 where id = $1', [u, m?.[1] ?? null, m?.[2] ?? null]); },
-    async ackOccurrence(id, reply) { await sql("update outbox set status = 'acked', reply = case when id::text = $1 then $2 else reply end, acked_at = now() where occurrence_id = (select occurrence_id from outbox where id::text = $1) and status in ('pending','sent','escalated')", [id, reply]); },
+    async ackOccurrence(id, reply) { await sql("update outbox set status = 'acked', reply = case when id::text = $1 then $2 else reply end, acked_at = now() where occurrence_id = (select occurrence_id from outbox where id::text = $1) and status in ('pending','sent','escalated','expired')", [id, reply]); },
     async createLoginToken(u) { const t = randomBytes(24).toString('base64url'); await sql("insert into login_tokens(token, user_id, expires_at) values ($1,$2, now() + interval '10 minutes')", [t, u]); return t; },
   };
 }
