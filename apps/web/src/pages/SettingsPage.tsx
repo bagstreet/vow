@@ -12,6 +12,13 @@ const PRESETS = [
   { id: 'study', label: 'Study & Exam', color: '#8b5cf6' },
 ]
 
+const TONES = [
+  { id: 'friendly', label: 'Friendly', hint: 'Warm, encouraging, a little informal' },
+  { id: 'neutral', label: 'Neutral', hint: 'Plain and matter-of-fact (default)' },
+  { id: 'concise', label: 'Concise', hint: 'Shortest possible replies' },
+  { id: 'strict', label: 'Strict', hint: 'No fluff, direct accountability language' },
+]
+
 const CHANNEL_ICONS: Record<string, typeof Globe> = {
   telegram: MessageCircle,
   discord: Hash,
@@ -82,6 +89,13 @@ export default function SettingsPage() {
 
   const [showAddReminder, setShowAddReminder] = useState(false)
   const [newReminder, setNewReminder] = useState({ label: '', time: '08:00', channel: 'telegram' })
+
+  // Tone: a prompt modifier only — never overrides role scope or safety text (DASHBOARD_UX_AUDIT §A5).
+  const [tone, setTone] = useState(() => localStorage.getItem('vow.tone') || 'neutral')
+  const setToneAndSave = (id: string) => {
+    setTone(id)
+    try { localStorage.setItem('vow.tone', id) } catch { /* ignore */ }
+  }
 
   const addReminder = () => {
     if (!newReminder.label.trim()) return
@@ -226,6 +240,31 @@ export default function SettingsPage() {
               }}>
               <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: p.color }} />
               {p.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Tone — prompt modifier, never overrides role scope/safety text */}
+      <section className="p-5 rounded-xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+        <div className="flex items-center gap-2 mb-1">
+          <MessageCircle size={16} style={{ color: '#0E9C86' }} />
+          <h2 className="text-sm font-semibold">Tone</h2>
+        </div>
+        <p className="text-[11px] mb-4" style={{ color: 'var(--text-muted)' }}>
+          How the bot phrases replies. Crisis wording and dosage safety language are never changed by tone.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {TONES.map(t => (
+            <button key={t.id} onClick={() => setToneAndSave(t.id)} aria-pressed={tone === t.id}
+              className="flex flex-col gap-0.5 px-3 py-2.5 rounded-lg text-sm text-left cursor-pointer transition-colors"
+              style={{
+                background: tone === t.id ? '#0E9C8615' : 'var(--recessed)',
+                border: `1px solid ${tone === t.id ? '#0E9C86' : 'var(--border)'}`,
+                color: tone === t.id ? '#0E9C86' : 'var(--text-sec)',
+              }}>
+              <span className="font-medium">{t.label}</span>
+              <span className="text-[10px] opacity-70">{t.hint}</span>
             </button>
           ))}
         </div>
