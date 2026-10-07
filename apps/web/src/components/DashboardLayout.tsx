@@ -63,7 +63,8 @@ export default function DashboardLayout() {
 
         <div className="p-3 border-t" style={{ borderColor: 'var(--border)' }}>
           {!collapsed && (
-            <div className="flex items-center gap-2 px-2 py-1.5 mb-2">
+            <NavLink to="/dashboard/settings" title="Account settings"
+              className="flex items-center gap-2 px-2 py-1.5 mb-2 rounded-lg cursor-pointer hover:bg-white/5 transition-colors">
               <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0" style={{ background: '#0E9C86', color: '#000' }}>
                 {user.name[0]}
               </div>
@@ -71,7 +72,7 @@ export default function DashboardLayout() {
                 <div className="text-xs font-medium truncate">{user.name}</div>
                 <div className="text-[10px] opacity-50">{user.provider}</div>
               </div>
-            </div>
+            </NavLink>
           )}
           <button onClick={handleLogout}
             className={`flex items-center ${collapsed ? 'justify-center' : 'gap-2'} w-full px-3 py-2 rounded-lg text-xs cursor-pointer transition-colors hover:bg-white/5`}
@@ -125,7 +126,8 @@ export default function DashboardLayout() {
               </nav>
               {/* User info in mobile sidebar */}
               <div className="p-3 border-t" style={{ borderColor: 'var(--border)' }}>
-                <div className="flex items-center gap-2 px-2 py-1.5 mb-2">
+                <NavLink to="/dashboard/settings" onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-2 px-2 py-1.5 mb-2 rounded-lg cursor-pointer hover:bg-white/5 transition-colors">
                   <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ background: '#0E9C86', color: '#000' }}>
                     {user.name[0]}
                   </div>
@@ -133,7 +135,7 @@ export default function DashboardLayout() {
                     <div className="text-xs font-medium truncate">{user.name}</div>
                     <div className="text-[10px] opacity-50">{user.provider}</div>
                   </div>
-                </div>
+                </NavLink>
                 <button onClick={handleLogout} className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-xs cursor-pointer hover:bg-white/5" style={{ color: 'var(--text-muted)' }}>
                   <LogOut size={13} /> Sign out
                 </button>

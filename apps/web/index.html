@@ -86,6 +86,27 @@
     });
   </script>
 
+  <!-- Legacy/unsupported browser banner (DASHBOARD_UX_AUDIT §A8). Feature-detect fetch, CSS vars, ES modules
+       (nomodule script only runs where ES modules are NOT supported). No assumptions, no UA sniffing. -->
+  <script nomodule>
+    document.documentElement.setAttribute('data-legacy-browser', '1');
+  </script>
+  <script>
+    (function () {
+      var supportsFetch = typeof window.fetch === 'function';
+      var supportsCssVars = window.CSS && window.CSS.supports && window.CSS.supports('(--a: 0)');
+      var isLegacy = document.documentElement.getAttribute('data-legacy-browser') === '1' || !supportsFetch || !supportsCssVars;
+      if (!isLegacy) return;
+      var el = document.createElement('div');
+      el.setAttribute('role', 'alert');
+      el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:10000;background:#f59e0b;color:#020303;font-family:system-ui,sans-serif;font-size:13px;padding:10px 16px;text-align:center';
+      el.innerHTML = 'Your browser is missing features Vow needs (fetch, CSS variables or ES modules) — parts of the app may not work. Please update your browser. <button id="vow-legacy-dismiss" style="margin-left:12px;border:1px solid #020303;background:transparent;color:#020303;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:12px">Dismiss</button>';
+      document.body.prepend(el);
+      var btn = document.getElementById('vow-legacy-dismiss');
+      if (btn) btn.addEventListener('click', function () { el.remove(); });
+    })();
+  </script>
+
   <div id="root"></div>
 
   <!-- Console easter egg for devs -->

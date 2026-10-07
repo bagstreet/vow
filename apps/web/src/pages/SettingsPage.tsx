@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { Bell, Shield, Key, User, Smartphone, Plus, Trash2, MessageCircle, Hash, Monitor, Globe, Clock } from 'lucide-react'
+import { Bell, Shield, Key, User, Smartphone, Plus, Trash2, MessageCircle, Hash, Monitor, Globe, Clock, AlertTriangle } from 'lucide-react'
 import { useAuth } from '../lib/auth'
+
+const TIMEZONES = Intl.supportedValuesOf ? Intl.supportedValuesOf('timeZone') : [Intl.DateTimeFormat().resolvedOptions().timeZone]
 
 const PRESETS = [
   { id: 'fitness', label: 'Health & Fitness', color: '#22c55e' },
@@ -26,9 +28,17 @@ interface Reminder {
 }
 
 export default function SettingsPage() {
-  const { user, updateUser } = useAuth()
+  const { user, updateUser, logout } = useAuth()
   const [name, setName] = useState(user?.name || '')
   const [saved, setSaved] = useState(false)
+  const [timezone, setTimezone] = useState(() => localStorage.getItem('vow.timezone') || Intl.DateTimeFormat().resolvedOptions().timeZone)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  const deleteMyData = () => {
+    // Clears every local mock-state key this dashboard writes (T51 will replace with a real account-delete API call).
+    Object.keys(localStorage).filter(k => k.startsWith('vow.') || k === 'vow_user').forEach(k => localStorage.removeItem(k))
+    logout()
+  }
 
   // Linked accounts (multi-channel identity)
   const [linkedAccounts, setLinkedAccounts] = useState<{ provider: string; username: string; linked: boolean }[]>([
@@ -96,6 +106,7 @@ export default function SettingsPage() {
 
   const save = () => {
     updateUser({ name })
+    try { localStorage.setItem('vow.timezone', timezone) } catch { /* ignore */ }
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -119,11 +130,50 @@ export default function SettingsPage() {
               className="w-full px-3 py-2 rounded-lg text-sm outline-none"
               style={{ background: 'var(--recessed)', color: 'var(--text)', border: '1px solid var(--border)' }} />
           </div>
+          <div>
+            <label className="text-xs block mb-1" style={{ color: 'var(--text-muted)' }}>Timezone (used for reminder times)</label>
+            <select value={timezone} onChange={e => setTimezone(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg text-sm outline-none cursor-pointer"
+              style={{ background: 'var(--recessed)', color: 'var(--text)', border: '1px solid var(--border)' }}>
+              {TIMEZONES.map((tz: string) => <option key={tz} value={tz}>{tz}</option>)}
+            </select>
+          </div>
           <button onClick={save} className="px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all hover:brightness-110"
             style={{ background: '#0E9C86', color: '#000' }}>
             {saved ? 'Saved!' : 'Save changes'}
           </button>
         </div>
+      </section>
+
+      {/* Account — identities + destructive actions */}
+      <section className="p-5 rounded-xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+        <div className="flex items-center gap-2 mb-4">
+          <AlertTriangle size={16} style={{ color: '#ef4444' }} />
+          <h2 className="text-sm font-semibold">Danger zone</h2>
+        </div>
+        <p className="text-[11px] mb-3" style={{ color: 'var(--text-muted)' }}>
+          Deletes everything this preview dashboard stores locally (profile, linked channels, reminders, roles) and signs you out. Does not affect data already delivered to Telegram/Slack/Discord bots.
+        </p>
+        {!confirmDelete ? (
+          <button onClick={() => setConfirmDelete(true)}
+            className="px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
+            style={{ background: '#ef444415', color: '#ef4444', border: '1px solid #ef444433' }}>
+            Delete my data
+          </button>
+        ) : (
+          <div className="flex items-center gap-2">
+            <button onClick={deleteMyData}
+              className="px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer hover:brightness-110"
+              style={{ background: '#ef4444', color: '#fff' }}>
+              Confirm delete
+            </button>
+            <button onClick={() => setConfirmDelete(false)}
+              className="px-4 py-2 rounded-lg text-xs cursor-pointer hover:bg-white/5"
+              style={{ border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+              Cancel
+            </button>
+          </div>
+        )}
       </section>
 
       {/* Linked Accounts — cross-channel identity */}

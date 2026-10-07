@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Mic } from 'lucide-react'
+import { Send } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 import { RoleAvatar } from '../components/RoleAvatar'
 import { ROLES, ROLE_IDS, COLORS, routeText, shouldShowRoleLabel, loadPref, savePref, type RoleId, type LabelMode } from '../lib/roles'
@@ -192,9 +192,7 @@ export default function ChatPage() {
 
       {/* Input */}
       <div className="px-4 py-3 border-t flex items-center gap-2" style={{ borderColor: 'var(--border)', background: 'var(--shell)', paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
-        <button className="w-10 h-10 rounded-lg flex items-center justify-center cursor-pointer hover:bg-white/5" style={{ color: 'var(--text-muted)' }}>
-          <Mic size={18} />
-        </button>
+        {/* Voice input: hidden until built (DASHBOARD_UX_AUDIT §A2). Re-enable via browser SpeechRecognition, web-only, feature-detected. */}
         <input ref={inputRef} value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && send(input)}
