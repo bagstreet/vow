@@ -14,7 +14,8 @@ const PING = 1;
 const APPLICATION_COMMAND = 2;
 const MESSAGE_COMPONENT = 3;
 const PONG = { type: 1 };
-const reply = (content, extra) => ({ type: 4, data: { content, ...extra } });
+const EPHEMERAL = 64; // visible only to the invoking user — commands here carry link codes/login tokens, never post them to the whole channel
+const reply = (content, extra) => ({ type: 4, data: { content, flags: EPHEMERAL, ...extra } });
 const ackUpdate = () => ({ type: 6 }); // DEFERRED_UPDATE_MESSAGE-style silent ack for button presses
 
 /** Discord Ed25519 request signing (discord.com/developers/docs/interactions/overview#setting-up-an-endpoint). */
