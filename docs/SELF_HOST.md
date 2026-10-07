@@ -12,8 +12,8 @@ Everything runs on free tiers: Vercel (functions), Neon (Postgres), cron-job.org
    - optional, only if you also want Slack/Discord: `SLACK_BOT_TOKEN` + `SLACK_SIGNING_SECRET` (Slack app, Event Subscriptions + Interactivity both pointed at `<WEB_BASE_URL>/api/slack`), `DISCORD_PUBLIC_KEY` (+ `DISCORD_BOT_TOKEN` if you also want to manage the app via the Discord REST API) with the Interactions Endpoint URL set to `<WEB_BASE_URL>/api/discord`. Each channel works independently — skip the ones you don't need.
 5. **Deploy**, then register the webhook:
    `curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=<WEB_BASE_URL>/api/telegram&secret_token=<TELEGRAM_WEBHOOK_SECRET>"`
-6. **Reminders tick**: on cron-job.org create a job every minute: POST `<WEB_BASE_URL>/api/tick` with header `x-tick-secret: <TICK_SECRET>`. (`.github/workflows/tick.yml` is a 5-minute fallback.) Note: the tick only delivers to Telegram today — Slack/Discord receive commands but not yet proactive reminders.
-7. **Link your chat**: sign in on the dashboard (creates a real account via `/api/account`), press "Get link code" on the Channels page, then either tap "Open bot" (deep link) or send `/link CODE` to your bot yourself. The dashboard polls and flips to "Connected" automatically once the bot confirms it.
+6. **Reminders tick**: on cron-job.org create a job every minute: POST `<WEB_BASE_URL>/api/tick` with header `x-tick-secret: <TICK_SECRET>`. (`.github/workflows/tick.yml` is a 5-minute fallback.) Telegram and Discord both get proactive DMs from the tick; Slack delivery is channel-command only today (no proactive sender wired yet for Slack — see `apps/web/api/tick.mjs` `senders`).
+7. **Link your chat**: sign in on the dashboard (creates a real account via `/api/account`), press "Get link code" on the Channels page for Telegram, Slack, or Discord (same flow for all three — `/api/link-code` + `/api/link-status` don't care which), then run the command it shows you in that bot (`/link CODE` for Telegram/Slack, `/link code:CODE` for Discord — Discord slash commands use named options, the others parse free text). The dashboard polls and flips to "Connected" automatically once the bot confirms it.
 8. **Optional backup**: add `DATABASE_URL_DIRECT` as a GitHub Actions secret; `backup.yml` dumps the DB weekly.
 
 Never commit tokens. Check: `curl <WEB_BASE_URL>/api/health`.
@@ -50,9 +50,11 @@ API constraint, not something Vow's code can paper over.
    URL didn't respond with the value of the challenge parameter," which just means the secret isn't live yet,
    not a code bug. Set the env var, redeploy, then save the URL again (or set it via manifest, see above).
 4. Avatar: Basic Information > Display Information, in the Slack UI only — the manifest API has no icon-upload
-   field, so this one stays a manual step. Description/background color: scriptable via the manifest API (step 2).
-   Slack has no app "tags" field in the manifest or API at all — that's a directory-listing concept, N/A for an
-   internal/unlisted app.
+   field, so this one stays a manual step. Use `brand/app-icon-1024.png` in this repo (square, "VOW." wordmark
+   on the dark brand background, safe margins for any circular crop) — don't improvise a generic colored circle,
+   that reads as a placeholder/broken icon, not a logo. Description/background color: scriptable via the
+   manifest API (step 2). Slack has no app "tags" field in the manifest or API at all — that's a
+   directory-listing concept, N/A for an internal/unlisted app.
 5. Using it: open a **DM with the app** in Slack (not a channel) and send `/link CODE` as a normal message —
    this isn't a registered Slack slash command, it's Vow parsing the leading `/` out of your DM text.
 
@@ -65,9 +67,12 @@ adapter sends unprompted reminders. All interaction replies stay ephemeral (`fla
 replies carry codes and one-time tokens.
 1. Create the application at discord.com/developers/applications, grab the Public Key (`DISCORD_PUBLIC_KEY`)
    and a bot token (`DISCORD_BOT_TOKEN`, Bot tab > Reset Token).
-2. Everything else — interactions endpoint URL, description, icon, install scopes — can be done over the REST
+2. Everything else — interactions endpoint URL, description, install scopes — can be done over the REST
    API with the bot token once it's in Vercel env (see git history of this file / internal TASKS.md for the
-   exact calls used). No portal UI steps are required beyond creating the app and the token.
+   exact calls used). Avatar: `PATCH /users/@me` with `{"avatar": "data:image/png;base64,<...>"}` using the
+   same `brand/app-icon-1024.png` as Slack — square assets crop fine into Discord's circular avatar because
+   the wordmark is centered with generous margin; a solid color/placeholder circle is not an acceptable
+   stand-in for the logo. No portal UI steps are required beyond creating the app and the token.
 3. Install scopes — **this is the one thing that must not be commands-only**, or DMs can never be sent:
    - **Guild Install** (`integration_types_config.0`): scopes `bot` + `applications.commands`, permissions `0`.
      The `bot` scope is what actually adds Vow as a member of the server you install it to — without it the
