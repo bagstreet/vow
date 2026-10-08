@@ -7,7 +7,7 @@ test('startUrl builds provider URL with state', () => {
 });
 test('discord identity', async () => {
   const f = async (url) => ({ json: async () => (url.includes('oauth2/token') ? { access_token: 'a' } : { id: 123, username: 'bob' }) });
-  assert.deepEqual(await resolveIdentity('discord', 'c', { clientId: 'C', clientSecret: 'S', redirectUri: 'r' }, f), { channel: 'discord', chat: '123', name: 'bob' });
+  assert.deepEqual(await resolveIdentity('discord', 'c', { clientId: 'C', clientSecret: 'S', redirectUri: 'r' }, f), { channel: 'discord', chat: '123', name: 'bob', email: null });
   await assert.rejects(resolveIdentity('discord', 'c', {}, async () => ({ json: async () => ({}) })), /token_exchange_failed/);
 });
 test('slack identity resolves the DM channel', async () => {
