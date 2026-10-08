@@ -3,7 +3,7 @@
 import { randomBytes } from 'node:crypto';
 
 export const PROVIDERS = {
-  discord: { authorize: 'https://discord.com/oauth2/authorize', scope: 'identify' },
+  discord: { authorize: 'https://discord.com/oauth2/authorize', scope: 'identify email' },
   slack: { authorize: 'https://slack.com/openid/connect/authorize', scope: 'openid profile' },
 };
 
@@ -24,7 +24,7 @@ export async function resolveIdentity(provider, code, { clientId, clientSecret, 
     if (!t.access_token) throw new Error('token_exchange_failed');
     const u = await fetchFn('https://discord.com/api/users/@me', { headers: { authorization: `Bearer ${t.access_token}` } }).then((r) => r.json());
     if (!u.id) throw new Error('no_identity');
-    return { channel: 'discord', chat: String(u.id), name: u.global_name ?? u.username ?? null };
+    return { channel: 'discord', chat: String(u.id), name: u.global_name ?? u.username ?? null, email: u.verified && u.email ? String(u.email).toLowerCase() : null };
   }
   if (provider === 'slack') {
     const t = await post('https://slack.com/api/openid.connect.token', { client_id: clientId, client_secret: clientSecret, grant_type: 'authorization_code', code, redirect_uri: redirectUri });
@@ -41,8 +41,15 @@ export async function resolveIdentity(provider, code, { clientId, clientSecret, 
 
 /** Find the account for this identity or create one (sign-in with a messenger is also sign-up). */
 export async function loginWithIdentity(store, id) {
+  const owner = id.email && store.emailOwner ? await store.emailOwner(id.email) : null;
   const found = await store.userByChat(id.chat, id.channel);
-  if (found) { await store.touchChannel?.(id.chat, id.channel); return { userId: found.id, created: false }; }
+  if (found) {
+    await store.touchChannel?.(id.chat, id.channel);
+    if (id.email && !owner && store.setEmail) await store.setEmail(found.id, id.email); // provider-verified address: attach once
+    return { userId: found.id, created: false };
+  }
+  if (owner && store.linkChannel) { await store.linkChannel(owner, id.channel, id.chat); return { userId: owner, created: false }; } // same verified email => same person
   const c = await store.signUp(id.channel, id.chat, id.name);
+  if (id.email && store.setEmail) await store.setEmail(c.id, id.email);
   return { userId: c.id, created: true };
 }

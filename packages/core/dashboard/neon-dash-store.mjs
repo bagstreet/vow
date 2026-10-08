@@ -70,6 +70,7 @@ export function createNeonDashStore(sql) {
       return (await sql("select id, channel, enabled, last_seen_at, created_at from channel_links where user_id = $1 and enabled and channel <> 'web' order by created_at", [userId]))
         .map((c) => ({ id: c.id, channel: c.channel, enabled: c.enabled, lastSeenAt: c.last_seen_at, linkedAt: c.created_at }));
     },
+    async linkChannel(userId, channel, ext) { await sql('insert into channel_links(user_id, channel, external_id, last_seen_at) values ($1,$2,$3,now()) on conflict (channel, external_id) do update set user_id = excluded.user_id, enabled = true', [userId, channel, ext]); },
     async unlinkChannel(userId, id) { await sql('delete from channel_links where id = $1 and user_id = $2', [id, userId]); },
     async listReminders(userId) { return (await sql('select * from reminders where user_id = $1 order by time_local, created_at', [userId])).map(remOut); },
     async createReminder(userId, v) {
@@ -104,9 +105,12 @@ export function createNeonDashStore(sql) {
       return (await sql(`select u.id, u.display_name, u.email, u.created_at, u.blocked_at is not null as blocked,
         (select array_agg(channel) from channel_links l where l.user_id = u.id and l.enabled) as channels,
         (select count(*)::int from memory_log m where m.user_id = u.id) as blobs,
-        (select count(*)::int from messages g where g.user_id = u.id) as messages from users u order by u.created_at desc limit 200`)).map((r) => ({ ...r, channels: parseTextArr(r.channels) }));
+        (select count(*)::int from chat_messages g where g.user_id = u.id) as messages from users u order by u.created_at desc limit 200`)).map((r) => ({ ...r, email: maskEmail(r.email), channels: parseTextArr(r.channels) }));
     },
     async setBlocked(id, blocked) { await sql('update users set blocked_at = case when $2 then now() else null end where id = $1', [id, !!blocked]); if (blocked) { await sql('delete from sessions where user_id = $1', [id]); await sql('update agent_tokens set revoked_at = now() where user_id = $1 and revoked_at is null', [id]); } },
     async deleteAccount(userId) { await sql('delete from users where id = $1', [userId]); },
   };
 }
+
+/** Admin view shows a masked address only (data minimisation): j***@gmail.com. */
+export function maskEmail(e) { if (!e) return null; const [l, d] = String(e).split('@'); return `${l.slice(0, 1)}***@${d ?? ''}`; }

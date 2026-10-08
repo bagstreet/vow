@@ -39,7 +39,7 @@ export default function AdminPage() {
         <h2 className="text-sm font-medium">Users ({users.length})</h2>
         {users.map(u => (
           <div key={u.id} className="flex items-center justify-between gap-2 text-xs p-2 rounded-lg" style={{ border: '1px solid var(--border)', opacity: u.blocked ? 0.6 : 1 }}>
-            <span className="min-w-0 truncate"><b>{u.display_name || u.email || u.id.slice(0, 8)}</b> · {u.channels.join(', ') || 'no channels'} · {u.messages} msgs · {u.blobs} blobs{u.blocked ? ' · BLOCKED' : ''}</span>
+            <span className="min-w-0 truncate"><b>{u.display_name || u.email || u.id.slice(0, 8)}</b>{u.email ? ` · ${u.email}` : ''} · joined {String(u.created_at).slice(0, 10)} · {u.channels.join(', ') || 'no channels'} · {u.messages} msgs · {u.blobs} blobs{u.blocked ? ' · BLOCKED' : ''}</span>
             {u.id !== profile.id && <button disabled={busy} onClick={() => void run(() => api('admin-block', 'POST', { id: u.id, blocked: !u.blocked }), u.blocked ? 'Unblocked.' : 'Blocked.')}
               className="px-2 py-0.5 rounded cursor-pointer disabled:opacity-50 hover:opacity-80" style={{ border: '1px solid var(--border)' }}>{u.blocked ? 'Unblock' : 'Block'}</button>}
           </div>))}

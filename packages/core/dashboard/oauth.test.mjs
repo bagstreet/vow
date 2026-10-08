@@ -2,7 +2,7 @@ import test from 'node:test'; import assert from 'node:assert/strict';
 import { startUrl, resolveIdentity, loginWithIdentity } from './oauth.mjs';
 test('startUrl builds provider URL with state', () => {
   const r = startUrl('discord', { clientId: 'C', redirectUri: 'https://x/cb' });
-  assert.match(r.url, /discord\.com\/oauth2\/authorize\?client_id=C/); assert.ok(r.url.includes(`state=${r.state}`)); assert.match(r.url, /scope=identify/);
+  assert.match(r.url, /discord\.com\/oauth2\/authorize\?client_id=C/); assert.ok(r.url.includes(`state=${r.state}`)); assert.match(r.url, /scope=identify\+email/);
   assert.equal(startUrl('nope', { clientId: 'C' }), null); assert.equal(startUrl('slack', {}), null);
 });
 test('discord identity', async () => {
