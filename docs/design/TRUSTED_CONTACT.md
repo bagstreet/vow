@@ -31,11 +31,22 @@
 - Alert text is neutral and actionable, never alarming; no health details.
 
 ## Edge cases to define before coding
-Guardian deletes account; both are the same person on two channels (reject: same user id); invite code leaked (guardian must be a different, logged-in user; code one-use, 10 min); guardian never answers (second alert after 2× window, then stop and show "unreachable" on the watched user's card); watched user changes timezone/quiet hours; rapid revoke/accept; duplicate alerts on tick retry (idempotency key = link+rule+window); guardian on a channel that is later unlinked (fall back to remaining channels, else mark link "guardian unreachable").
+Guardian deletes account (see Deletion semantics); both are the same person on two channels (reject: same user id); invite code leaked (guardian must be a different, logged-in user; code one-use, 10 min); guardian never answers (second alert after 2× window, then stop and show "unreachable" on the watched user's card); watched user changes timezone/quiet hours; rapid revoke/accept; duplicate alerts on tick retry (idempotency key = link+rule+window); guardian on a channel that is later unlinked (fall back to remaining channels, else mark link "guardian unreachable").
 
 ## Scope for the hackathon
-Phase A (must): tables, invite/accept/revoke, rule `missed_checkins` + `silence_hours`, alert delivery with buttons, both dashboard cards, notifications on revoke, tests. Phase B (if credits): `unanswered_messages`, crisis-flag opt-in, "Anna is back".
+Phase A (must): tables, invite/accept/revoke, rule `missed_checkins` + `silence_hours`, alert delivery with buttons, both dashboard cards, notifications on revoke, tests. Phase B (**Vision / roadmap, not built for the hackathon**): `unanswered_messages`, crisis-flag opt-in, "Anna is back".
 Estimated cost: about 1.2–1.8k credits including tests (cheap model for routine code).
 
 ## Scenarios
 See group L in `docs/testing/SCENARIOS.md`.
+
+## Guardian must be a Vow user
+A guardian is always a registered Vow user (accepts the invite from their own logged-in session). No anonymous guardians.
+
+## Deletion semantics
+- **Full deletion** = `DELETE /account` executed (users row gone; channels, tokens, links cascade). Unlinking or disabling every channel is NOT deletion: the link stays, the guardian card shows "unreachable for delivery" and the watched user gets a warning.
+- **Guardian deleted**: in one transaction collect all watched users, drop all links, then notify each watched user: "Trusted contact <name> deleted their account; protection is off, choose a new one." Dashboard card updates.
+- **Watched user deleted**: all links drop; each guardian is notified that they no longer watch that person.
+- **Guardian only leaves** (revokes): same notification, account stays.
+- Active alert during deletion is cancelled; simultaneous mutual deletion must leave no orphan links or crashes.
+- Scenarios: N18 guardian deleted with N watched users, N19 watched user deleted, N20 deletion during active alert, N21 two simultaneous mutual deletions.
