@@ -1,7 +1,7 @@
 // Neon store for the dashboard API (handleDash). Extends the bot store so chat reuses history/last_role helpers.
 import { createNeonStore } from '../channels/neon-store.mjs';
 import { createAccountStore } from '../channels/account-store.mjs';
-import { parseArr } from '../scheduler/time.mjs';
+import { parseArr, parseTextArr } from '../scheduler/time.mjs';
 
 import { SESSION_DAYS } from './session.mjs';
 
@@ -37,7 +37,7 @@ export function createNeonDashStore(sql) {
     async getProfile(userId) {
       const r = await sql('select id, display_name, email, tz, tone, role_label, default_role, last_role, quiet_start, quiet_end, ack_min, channel_priority from users where id = $1', [userId]);
       const u = r[0]; if (!u) return null;
-      return { ...u, quiet_start: u.quiet_start ? String(u.quiet_start).slice(0, 5) : null, quiet_end: u.quiet_end ? String(u.quiet_end).slice(0, 5) : null, channel_priority: parseArr(u.channel_priority) };
+      return { ...u, quiet_start: u.quiet_start ? String(u.quiet_start).slice(0, 5) : null, quiet_end: u.quiet_end ? String(u.quiet_end).slice(0, 5) : null, channel_priority: parseTextArr(u.channel_priority) };
     },
     async updateProfile(userId, p) {
       const set = { display_name: p.displayName, tz: p.tz, tone: p.tone, role_label: p.roleLabel, ack_min: p.ackMin, default_role: p.defaultRole };

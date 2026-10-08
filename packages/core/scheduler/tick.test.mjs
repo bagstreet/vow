@@ -102,3 +102,9 @@ test('tick: snooze creates a new occurrence later', async () => {
   assert.equal(t.snoozed, 1);
   assert.equal(store.outbox[1].sendAt, NOW + 1000 + 60 * 60000);
 });
+
+test('parseTextArr: text[] priority survives both Neon shapes (regression: parseArr turned names into NaN)', async () => {
+  const { parseTextArr } = await import('./time.mjs');
+  assert.deepEqual(parseTextArr('{slack,telegram}'), ['slack', 'telegram']); assert.deepEqual(parseTextArr('{}'), []);
+  assert.deepEqual(parseTextArr(['discord']), ['discord']); assert.deepEqual(parseTextArr(null), []);
+});

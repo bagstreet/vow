@@ -1,5 +1,5 @@
 // Neon implementation of the tick store. Claims use compare-and-swap UPDATEs (no long transactions over HTTP SQL).
-import { computeNextFire, parseArr, tzOffsetMin } from './time.mjs';
+import { computeNextFire, parseArr, parseTextArr, tzOffsetMin } from './time.mjs';
 
 const toMs = (v) => (v == null ? null : new Date(v).getTime());
 const iso = (ms) => new Date(ms).toISOString();
@@ -50,7 +50,7 @@ export function createNeonTickStore(sql) {
     },
     async userPrefs(userId) {
       const r = (await sql('select tz, quiet_start, quiet_end, channel_priority, ack_min from users where id = $1', [userId]))[0] ?? {};
-      return { tz: r.tz, quietStart: r.quiet_start ? String(r.quiet_start).slice(0, 5) : null, quietEnd: r.quiet_end ? String(r.quiet_end).slice(0, 5) : null, utcOffsetMin: tzOffsetMin(r.tz ?? 'UTC', Date.now()), ackMin: r.ack_min ?? 10, channelPriority: parseArr(r.channel_priority) };
+      return { tz: r.tz, quietStart: r.quiet_start ? String(r.quiet_start).slice(0, 5) : null, quietEnd: r.quiet_end ? String(r.quiet_end).slice(0, 5) : null, utcOffsetMin: tzOffsetMin(r.tz ?? 'UTC', Date.now()), ackMin: r.ack_min ?? 10, channelPriority: parseTextArr(r.channel_priority) };
     },
     async markSent(id, { channel, escalateAt }) { await sql("update outbox set status = 'sent', channel = $2, escalate_at = $3, last_error = null where id = $1", [id, channel, iso(escalateAt)]); },
     async markRetry(id, { sendAt, error, failed }) { await sql('update outbox set status = $2, send_at = $3, last_error = $4 where id = $1', [id, failed ? 'failed' : 'pending', iso(sendAt), error]); },

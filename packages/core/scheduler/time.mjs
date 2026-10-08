@@ -28,3 +28,10 @@ export function parseArr(v) {
   if (typeof v === 'string') return v.replace(/[{}]/g, '').split(',').filter(Boolean).map(Number);
   return [];
 }
+
+/** text[] column -> string[] (Neon returns either a JS array or a '{a,b}' literal). parseArr is numeric-only. */
+export function parseTextArr(v) {
+  if (Array.isArray(v)) return v.map(String);
+  if (typeof v === 'string') return v.replace(/^\{|\}$/g, '').split(',').map((x) => x.replace(/^"|"$/g, '').trim()).filter(Boolean);
+  return [];
+}
