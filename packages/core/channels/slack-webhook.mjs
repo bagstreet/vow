@@ -4,9 +4,10 @@
 // the HTTP layer calling it is expected to respond 200 immediately after awaiting this (no extra network round trip).
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { ROLES, ROLE_IDS } from '../../presets/roles/index.mjs';
+import { parsePriority } from '../delivery/choose.mjs';
 import { chatReply, withRoleLabel } from './chat.mjs';
 
-const HELP = 'I am Vow. Commands: /link CODE, /login, /roles, /role <name>, /status, /quiet, /help.';
+const HELP = 'I am Vow. Commands: /link CODE, /login, /roles, /role <name>, /status, /quiet, /priority, /help.';
 const CODE_RE = /^[A-Z0-9]{6,12}$/i;
 const CHANNEL = 'slack';
 
@@ -24,7 +25,7 @@ export function verifySlackSignature(headers, rawBody, signingSecret, nowSec = M
 }
 
 /** Events API entry point. Handles the one-time url_verification handshake and DM messages. */
-export async function handleEvent(body, { store, slack, webBase, llm }) {
+export async function handleEvent(body, { store, slack, webBase, llm, memory }) {
   if (body?.type === 'url_verification') return { ok: true, challenge: body.challenge };
   if (body?.type !== 'event_callback') return { ok: true, ignored: 'not_event' };
 
@@ -39,6 +40,7 @@ export async function handleEvent(body, { store, slack, webBase, llm }) {
   const m = text.match(/^\/(\w+)(?:\s+(.*))?$/s);
   const cmd = m?.[1]?.toLowerCase(); const arg = (m?.[2] ?? '').trim();
   const user = await store.userByChat(chat, CHANNEL);
+  if (user) await store.touchChannel?.(chat, CHANNEL); // activity feeds delivery ranking
 
   if (cmd === 'link') {
     const code = arg.split(/\s+/)[0];
@@ -46,8 +48,10 @@ export async function handleEvent(body, { store, slack, webBase, llm }) {
     if (!CODE_RE.test(code)) { await send('That code does not look right. Codes are 6-12 letters/digits.'); return { ok: true, cmd, linked: false }; }
     const r = await store.consumeLinkCode(code.toUpperCase(), CHANNEL);
     if (!r) { await send('That code is invalid or expired. Create a new one in the dashboard.'); return { ok: true, cmd, linked: false }; }
+    const priorChannels = ((await store.listChannels?.(r.userId)) ?? []).filter((c) => c !== CHANNEL);
     await store.linkChannel(r.userId, CHANNEL, chat);
     await send('Linked. I will remind you here. Use /roles to see who answers what.');
+    if (priorChannels.length) await send(`Welcome back — I already know you from ${priorChannels.join(', ')}. Same memory, one more place to reach me.`);
     return { ok: true, cmd, linked: true };
   }
   if (!user) { await send('Not linked yet. Get a code in the dashboard, then /link CODE.'); return { ok: true, ignored: 'unlinked' }; }
@@ -67,15 +71,23 @@ export async function handleEvent(body, { store, slack, webBase, llm }) {
       break;
     }
     case 'status': { const on = await store.listRoles(user.id); await send(`Linked. Active roles: ${on.length ? on.join(', ') : 'none'}.`); break; }
+    case 'priority': {
+      const list = parsePriority(arg);
+      await store.setChannelPriority?.(user.id, list);
+      await send(list.length ? `Delivery order: ${list.join(' > ')}. Reminders try the first, then escalate to the next.` : 'Delivery order: automatic (the channel you used most recently). Set one with /priority slack telegram.');
+      break;
+    }
     case 'quiet': await store.setQuiet(user.id, arg || null); await send(arg ? `Quiet hours set: ${arg}.` : 'Quiet hours cleared. Use /quiet 22:00-07:00 to set.'); break;
     default: {
       if (cmd || !llm) return { ok: true, cmd: cmd ?? 'chat', route: 'router' };
       const enabled = await store.listRoles(user.id);
       const history = (await store.getHistory?.(user.id)) ?? [];
-      const r = await chatReply({ text, enabled, def: user.default_role, llm, history });
+      const remembered = memory ? await memory.recall(user.id, text) : [];
+      const r = await chatReply({ text, enabled, def: user.default_role, llm, history, remembered });
       await store.setLastRole?.(user.id, r.role);
       await store.saveMessage?.(user.id, CHANNEL, 'in', text, r.role);
       await store.saveMessage?.(user.id, CHANNEL, 'out', r.text, r.role);
+      if (memory) await memory.remember(user.id, `[slack] ${text}`);
       await send(withRoleLabel(r.text, r.role, user.role_label ?? 'always', user.last_role ?? null));
       return { ok: true, cmd: 'chat', role: r.role };
     }
@@ -84,7 +96,7 @@ export async function handleEvent(body, { store, slack, webBase, llm }) {
 }
 
 /** Interactivity entry point: block_actions payload, one button press. action_id = "<occurrenceId>:<reply>" (mirrors the Telegram callback_data shape; action_id has no byte limit on Slack but we keep it consistent). */
-export async function handleInteraction(payload, { store }) {
+export async function handleInteraction(payload, { store, memory }) {
   if (payload?.type !== 'block_actions') return { ok: true, ignored: 'not_block_actions' };
   const action = payload.actions?.[0];
   const data = String(action?.action_id ?? action?.value ?? '');
@@ -92,6 +104,9 @@ export async function handleInteraction(payload, { store }) {
   if (i < 1) return { ok: true, ignored: 'bad_action' };
   const chat = String(payload.channel?.id ?? '');
   if (!(await store.userByChat(chat, CHANNEL))) return { ok: true, ignored: 'unlinked_chat' };
-  await store.ackOccurrence(data.slice(0, i), data.slice(i + 1));
+  const cqUser = await store.userByChat(chat, CHANNEL);
+  const status = data.slice(i + 1);
+  const info = await store.ackOccurrence(data.slice(0, i), status);
+  if (memory && info) await memory.remember(cqUser.id, `[check-in, slack] "${info.title}" (${info.role}) -> ${status}`);
   return { ok: true, acked: data.slice(0, i) };
 }

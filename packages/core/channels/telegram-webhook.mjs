@@ -1,9 +1,10 @@
 // Telegram webhook handler (T47/T54). Pure: store + tg client injected, so every branch is testable offline.
 // Link: deep link t.me/<bot>?start=<code> or manual /link CODE. /login returns a one-time web link (login happens via the bot).
 import { ROLES, ROLE_IDS } from '../../presets/roles/index.mjs';
+import { parsePriority } from '../delivery/choose.mjs';
 import { chatReply, withRoleLabel } from './chat.mjs';
 
-const HELP = 'I am Vow. Commands: /link CODE, /login, /roles, /role <name>, /status, /quiet, /help.';
+const HELP = 'I am Vow. Commands: /link CODE, /login, /roles, /role <name>, /status, /quiet, /priority, /help.';
 const CODE_RE = /^[A-Z0-9]{6,12}$/i;
 
 export function verifySecret(headers, expected) {
@@ -35,6 +36,7 @@ export async function handleUpdate(update, { store, tg, webBase, llm, memory }) 
   const m = text.match(/^\/(\w+)(?:@\w+)?(?:\s+(.*))?$/s);
   const cmd = m?.[1]?.toLowerCase(); const arg = (m?.[2] ?? '').trim();
   const user = await store.userByChat(chat);
+  if (user) await store.touchChannel?.(chat, 'telegram'); // activity feeds delivery ranking
 
   if (cmd === 'start' || cmd === 'link') {
     const code = arg.split(/\s+/)[0];
@@ -42,7 +44,7 @@ export async function handleUpdate(update, { store, tg, webBase, llm, memory }) 
     if (!CODE_RE.test(code)) { await send('That code does not look right. Codes are 6-12 letters/digits.'); return { ok: true, cmd, linked: false }; }
     const r = await store.consumeLinkCode(code.toUpperCase());
     if (!r) { await send('That code is invalid or expired. Create a new one in the dashboard.'); return { ok: true, cmd, linked: false }; }
-    const priorChannels = (await store.listChannels?.(r.userId)) ?? [];
+    const priorChannels = ((await store.listChannels?.(r.userId)) ?? []).filter((c) => c !== 'telegram');
     await store.linkChannel(r.userId, 'telegram', chat);
     await send('Linked. I will remind you here. Use /roles to see who answers what.');
     if (priorChannels.length) await send(`Welcome back — I already know you from ${priorChannels.join(', ')}. Same memory, one more place to reach me.`);
@@ -65,6 +67,7 @@ export async function handleUpdate(update, { store, tg, webBase, llm, memory }) 
       break;
     }
     case 'status': { const on = await store.listRoles(user.id); await send(`Linked. Active roles: ${on.length ? on.join(', ') : 'none'}.`); break; }
+    case 'priority': { const list = parsePriority(arg); await store.setChannelPriority?.(user.id, list); await send(list.length ? `Delivery order: ${list.join(' > ')}. Reminders try the first, then escalate to the next.` : 'Delivery order: automatic (the channel you used most recently). Set one with /priority slack telegram.'); break; }
     case 'quiet': await store.setQuiet(user.id, arg || null); await send(arg ? `Quiet hours set: ${arg}.` : 'Quiet hours cleared. Use /quiet 22:00-07:00 to set.'); break;
     default: {
       if (cmd || !llm) return { ok: true, cmd: cmd ?? 'chat', route: 'router' };
@@ -95,6 +98,8 @@ export function createMemoryStore() {
     listRoles: async (u) => s.roles.get(u) ?? [],
     setDefaultRole: async (u, r) => { s.def.set(u, r); },
     setQuiet: async (u, v) => { s.quiet.set(u, v); },
+    setChannelPriority: async (u, l) => { s.prio = s.prio ?? new Map(); s.prio.set(u, l); },
+    touchChannel: async () => {},
     ackOccurrence: async (id, reply) => { s.acks.push([id, reply]); },
     createLoginToken: async (u) => { const t = 'tok' + s.logins.length; s.logins.push([u, t]); return t; },
     getHistory: async (u, limit = 12) => (s.history.get(u) ?? []).slice(-limit),

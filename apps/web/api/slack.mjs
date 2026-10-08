@@ -3,6 +3,8 @@
 import { createSql } from '../../../packages/db/neon.mjs';
 import { createNeonStore } from '../../../packages/core/channels/neon-store.mjs';
 import { buildLlmClient } from '../../../packages/core/llm/index.mjs';
+import { createWalrusMemory } from '../../../packages/core/memory/walrus-memory.mjs';
+import { buildMemwalSdk } from '../lib/walrus-memory-client.mjs';
 import { handleEvent, handleInteraction, verifySlackSignature } from '../../../packages/core/channels/slack-webhook.mjs';
 
 export const config = { api: { bodyParser: false } }; // need the raw body for signature verification
@@ -29,7 +31,7 @@ export default async function handler(req, res) {
 
   const token = process.env.SLACK_BOT_TOKEN;
   const slack = { postMessage: (channel, text) => fetch('https://slack.com/api/chat.postMessage', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify({ channel, text }) }) };
-  const ctx = { store: createNeonStore(createSql()), slack, llm: buildLlmClient(), webBase: process.env.WEB_BASE_URL ?? 'https://vow-livid.vercel.app' };
+  const ctx = { store: createNeonStore(createSql()), slack, llm: buildLlmClient(), memory: createWalrusMemory(buildMemwalSdk()), webBase: process.env.WEB_BASE_URL ?? 'https://vow-livid.vercel.app' };
 
   try {
     if (body.type === 'block_actions') { await handleInteraction(body, ctx); return res.status(200).json({ ok: true }); }

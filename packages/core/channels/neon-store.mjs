@@ -15,6 +15,8 @@ export function createNeonStore(sql) {
     async listRoles(u) { return (await sql('select role from user_roles where user_id = $1 and enabled order by role', [u])).map((x) => x.role); },
     async setLastRole(u, role) { await sql('update users set last_role = $2 where id = $1', [u, role]); },
     async setDefaultRole(u, role) { await sql('update users set default_role = $2 where id = $1', [u, role]); },
+    async touchChannel(chat, channel) { await sql('update channel_links set last_seen_at = now() where channel = $2 and external_id = $1', [chat, channel]); },
+    async setChannelPriority(u, list) { await sql('update users set channel_priority = $2::text[] where id = $1', [u, list]); },
     async setQuiet(u, v) { const m = v?.match(/^(\d\d:\d\d)-(\d\d:\d\d)$/); await sql('update users set quiet_start = $2, quiet_end = $3 where id = $1', [u, m?.[1] ?? null, m?.[2] ?? null]); },
     // Returns the reminder's title/role so callers can log a meaningful "what was this check-in about"
     // memory, or null if nothing matched (already acked, unknown occurrence, etc).

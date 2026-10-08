@@ -78,3 +78,12 @@ test('verifySlackSignature matches Slack\'s v0 HMAC scheme and rejects stale/gar
   const oldSig = 'v0=' + createHmac('sha256', secret).update(`v0:${old}:${body}`).digest('hex');
   assert.equal(verifySlackSignature({ 'x-slack-request-timestamp': old, 'x-slack-signature': oldSig }, body, secret), false);
 });
+
+test('slack: /link on a returning user says welcome back', async () => {
+  const { createMemoryStore } = await import('./memory-store.mjs');
+  const store = createMemoryStore(); store.registerLinkCode('ABC123', 'u1', 'slack');
+  store.listChannels = async () => ['telegram'];
+  const sent = []; const slack = { postMessage: async (_c, t) => sent.push(t) };
+  await handleEvent({ type: 'event_callback', event: { type: 'message', channel: 'D1', ts: '1', text: '/link ABC123' } }, { store, slack });
+  assert.ok(sent.some(t => /Welcome back — I already know you from telegram/.test(t)));
+});

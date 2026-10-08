@@ -20,6 +20,8 @@ export function createMemoryStore() {
     setDefaultRole: async (u, r) => { s.def.set(u, r); },
     setLastRole: async (u, r) => { s.def.set(`last:${u}`, r); },
     setQuiet: async (u, v) => { s.quiet.set(u, v); },
+    setChannelPriority: async (u, l) => { s.prio = s.prio ?? new Map(); s.prio.set(u, l); },
+    touchChannel: async () => {},
     ackOccurrence: async (id, reply) => { s.acks.push([id, reply]); },
     createLoginToken: async (u) => { const t = 'tok' + s.logins.length; s.logins.push([u, t]); return t; },
     getHistory: async (u, limit = 12) => (s.history.get(u) ?? []).slice(-limit),

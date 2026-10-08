@@ -5,9 +5,10 @@
 // (Discord interactions are request/response).
 import { createPublicKey, verify as cryptoVerify } from 'node:crypto';
 import { ROLES, ROLE_IDS } from '../../presets/roles/index.mjs';
+import { parsePriority } from '../delivery/choose.mjs';
 import { chatReply, withRoleLabel } from './chat.mjs';
 
-const HELP = 'I am Vow. Commands: /link code:CODE, /login, /roles, /role name:<role>, /status, /quiet hours:<HH:MM-HH:MM>, /ask text:<question>, /help.';
+const HELP = 'I am Vow. Commands: /link code:CODE, /login, /roles, /role name:<role>, /status, /quiet hours:<HH:MM-HH:MM>, /priority order:<slack telegram discord>, /ask text:<question>, /help.';
 const CODE_RE = /^[A-Z0-9]{6,12}$/i;
 const CHANNEL = 'discord';
 const PING = 1;
@@ -66,6 +67,7 @@ export async function handleInteraction(interaction, { store, webBase, llm, memo
 
   const cmd = String(interaction.data?.name ?? '').toLowerCase();
   const user = await store.userByChat(chat, CHANNEL);
+  if (user) await store.touchChannel?.(chat, CHANNEL); // activity feeds delivery ranking
 
   if (cmd === 'link') {
     const code = String(opt(interaction, 'code') ?? '').trim();
@@ -73,7 +75,7 @@ export async function handleInteraction(interaction, { store, webBase, llm, memo
     if (!CODE_RE.test(code)) return reply('That code does not look right. Codes are 6-12 letters/digits.');
     const r = await store.consumeLinkCode(code.toUpperCase(), CHANNEL);
     if (!r) return reply('That code is invalid or expired. Create a new one in the dashboard.');
-    const priorChannels = (await store.listChannels?.(r.userId)) ?? [];
+    const priorChannels = ((await store.listChannels?.(r.userId)) ?? []).filter((c) => c !== CHANNEL);
     await store.linkChannel(r.userId, CHANNEL, chat);
     return reply(priorChannels.length
       ? `Linked. I will remind you here. Welcome back — I already know you from ${priorChannels.join(', ')}. Same memory, one more place to reach me.`
@@ -96,6 +98,7 @@ export async function handleInteraction(interaction, { store, webBase, llm, memo
       return reply(`Default role: ${ROLES[id].emoji} ${ROLES[id].label}.`);
     }
     case 'status': { const on = await store.listRoles(user.id); return reply(`Linked. Active roles: ${on.length ? on.join(', ') : 'none'}.`); }
+    case 'priority': { const list = parsePriority(opt(interaction, 'order')); await store.setChannelPriority?.(user.id, list); return reply(list.length ? `Delivery order: ${list.join(' > ')}. Reminders try the first, then escalate to the next.` : 'Delivery order: automatic (the channel you used most recently).'); }
     case 'quiet': { const v = opt(interaction, 'hours'); await store.setQuiet(user.id, v || null); return reply(v ? `Quiet hours set: ${v}.` : 'Quiet hours cleared.'); }
     case 'ask': {
       const text = String(opt(interaction, 'text') ?? '').trim();
