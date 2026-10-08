@@ -25,8 +25,12 @@ export function createNeonDashStore(sql) {
     },
     async deleteSession(hash) { await sql('delete from sessions where token_hash = $1', [hash]); },
     async countRecentMagic(email) { return Number((await sql("select count(*)::int n from magic_tokens where email = $1 and expires_at > now() - interval '50 minutes'", [email]))[0].n); },
-    async createMagic(email, hash) { await sql("insert into magic_tokens(token_hash, email, expires_at) values ($1,$2, now() + interval '10 minutes')", [hash, email]); },
-    async consumeMagic(hash) { return (await sql('update magic_tokens set used_at = now() where token_hash = $1 and used_at is null and expires_at > now() returning email', [hash]))[0]?.email ?? null; },
+    async createMagic(email, hash, userId = null) { await sql("insert into magic_tokens(token_hash, email, user_id, expires_at) values ($1,$2,$3, now() + interval '10 minutes')", [hash, email, userId]); },
+    async countLinkRequestsToday(userId) { return Number((await sql("select count(*)::int n from magic_tokens where user_id = $1 and expires_at > now() - interval '23 hours 50 minutes'", [userId]))[0].n); },
+    async emailOwner(email) { return (await sql('select id from users where lower(email) = $1', [email]))[0]?.id ?? null; },
+    async setEmail(userId, email) { await sql('update users set email = $2 where id = $1', [userId, email]); },
+    async clearEmail(userId) { await sql('update users set email = null where id = $1', [userId]); },
+    async consumeMagic(hash) { const r = (await sql('update magic_tokens set used_at = now() where token_hash = $1 and used_at is null and expires_at > now() returning email, user_id', [hash]))[0]; return r ? { email: r.email, userId: r.user_id } : null; },
     async userByChat(chat, channel) { const r = await sql('select user_id from channel_links where channel = $2 and external_id = $1 and enabled', [chat, channel]); return r[0] ? { id: r[0].user_id } : null; },
     async signUp(channel, chat, displayName) {
       const u = await sql('insert into users(display_name, default_role) values ($1, $2) returning id', [displayName ?? null, 'fitness']);

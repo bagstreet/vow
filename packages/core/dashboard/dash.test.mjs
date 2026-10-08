@@ -9,7 +9,9 @@ function makeStore() {
     consumeLoginToken: async (t) => { const u = s.logins.get(t); s.logins.delete(t); return u ? { id: u } : null; },
     createSession: async (u, h) => { s.sessions.set(h, u); }, sessionUser: async (h) => s.sessions.get(h) ?? null, deleteSession: async (h) => { s.sessions.delete(h); },
     countRecentMagic: async (e) => [...s.magic.values()].filter((m) => m.email === e).length,
-    createMagic: async (email, h) => { s.magic.set(h, { email }); }, consumeMagic: async (h) => { const m = s.magic.get(h); if (!m || m.used) return null; m.used = true; return m.email; },
+    createMagic: async (email, h, userId = null) => { s.magic.set(h, { email, userId }); }, consumeMagic: async (h) => { const m = s.magic.get(h); if (!m || m.used) return null; m.used = true; return { email: m.email, userId: m.userId }; },
+    countLinkRequestsToday: async (u) => [...s.magic.values()].filter((m) => m.userId === u).length,
+    emailOwner: async (e) => [...s.users.values()].find((u) => u.email === e)?.id ?? null, setEmail: async (id, e) => { s.users.get(id).email = e; }, clearEmail: async (id) => { s.users.get(id).email = null; },
     findOrCreateByEmail: async (email) => [...s.users.values()].find((u) => u.email === email) ?? mkUser({ email }),
     getProfile: async (id) => s.users.get(id) ?? null,
     updateProfile: async (id, p) => { const u = s.users.get(id); const m = { displayName: 'display_name', tz: 'tz', tone: 'tone', roleLabel: 'role_label', ackMin: 'ack_min', defaultRole: 'default_role', quietStart: 'quiet_start', quietEnd: 'quiet_end', priority: 'channel_priority' }; for (const [k, v] of Object.entries(p)) if (m[k]) u[m[k]] = v; },
@@ -165,4 +167,35 @@ test('memory-forget: hides own memory once, 404 for others/unknown, 401 anonymou
   assert.equal((await call(st, 'memory-forget', 'POST', { id: 'm1' }, 'u2', {})).status, 404);
   assert.equal((await call(st, 'memory-forget', 'POST', {}, 'u1', {})).status, 400);
   assert.equal((await call(st, 'memory-forget', 'POST', { id: 'm1' }, null, {})).status, 401);
+});
+
+test('email link: attach, conflict, daily limit, removal guard, admin rights follow the email', async () => {
+  const { isAdmin } = await import('../admin/admin.mjs');
+  const st = makeStore(); const u = st.mkUser(); const other = st.mkUser({ email: 'taken@x.io' });
+  let sent = []; const deps = { sendMagic: async (e, t, purpose) => sent.push({ e, t, purpose }) };
+  assert.equal((await call(st, 'email-add', 'POST', { email: 'bad' }, u.id, deps)).status, 400);
+  assert.equal((await call(st, 'email-add', 'POST', { email: 'taken@x.io' }, u.id, deps)).json.error, 'email_in_use');
+  assert.equal((await call(st, 'email-add', 'POST', { email: 'me@x.io' }, null, deps)).status, 401);
+  assert.equal((await call(st, 'email-add', 'POST', { email: 'ME@x.io' }, u.id, deps)).status, 200);
+  assert.equal(sent[0].purpose, 'link'); assert.equal(u.email, null, 'not attached before confirmation');
+  const v = await call(st, 'magic-verify', 'POST', { token: sent[0].t }, null, deps);
+  assert.equal(v.status, 200); assert.equal(v.json.userId, u.id); assert.equal(u.email, 'me@x.io');
+  assert.equal((await call(st, 'magic-verify', 'POST', { token: sent[0].t }, null, deps)).status, 401, 'one use');
+  assert.equal((await call(st, 'email-add', 'POST', { email: 'me@x.io' }, u.id, deps)).json.error, 'already_yours');
+  const env = { ADMIN_EMAILS: 'me@x.io' };
+  assert.equal(isAdmin(u, env), true);
+  // no channel -> the email is the only login method -> cannot be removed
+  assert.equal((await call(st, 'email', 'DELETE', {}, u.id, deps)).json.error, 'last_login_method');
+  st.updateProfile; st._s.chans.push({ id: 'c1', userId: u.id, enabled: true });
+  assert.equal((await call(st, 'email', 'DELETE', {}, u.id, deps)).status, 200);
+  assert.equal(isAdmin(u, env), false, 'admin rights vanish with the email');
+  assert.equal((await call(st, 'email', 'DELETE', {}, u.id, deps)).status, 404);
+  // daily limit
+  for (let i = 0; i < 4; i++) await call(st, 'email-add', 'POST', { email: `a${i}@x.io` }, u.id, deps);
+  assert.equal((await call(st, 'email-add', 'POST', { email: 'z@x.io' }, u.id, deps)).status, 429);
+  // link token whose email was taken meanwhile
+  const st2 = makeStore(); const a = st2.mkUser(); const b = st2.mkUser(); const got = [];
+  await call(st2, 'email-add', 'POST', { email: 'race@x.io' }, a.id, { sendMagic: async (e, t) => got.push(t) });
+  b.email = 'race@x.io';
+  assert.equal((await call(st2, 'magic-verify', 'POST', { token: got[0] }, null, {})).json.error, 'email_in_use');
 });

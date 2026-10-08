@@ -86,9 +86,14 @@ export async function handleDash({ store, op, method, body = {}, userId, deps = 
     return ok({ sent: true });
   }
   if (op === 'magic-verify' && method === 'POST') {
-    const email = await store.consumeMagic(hashToken(String(body.token ?? '')));
-    if (!email) return err(401, 'invalid_or_expired');
-    const u = await store.findOrCreateByEmail(email);
+    const m = await store.consumeMagic(hashToken(String(body.token ?? '')));
+    if (!m) return err(401, 'invalid_or_expired');
+    let u;
+    if (m.userId) { // link flow: the token was issued to a signed-in user to attach this email to their account
+      const owner = await store.emailOwner(m.email);
+      if (owner && owner !== m.userId) return err(409, 'email_in_use');
+      await store.setEmail(m.userId, m.email); u = { id: m.userId };
+    } else u = await store.findOrCreateByEmail(m.email);
     const token = newToken(); await store.createSession(u.id, hashToken(token));
     return ok({ userId: u.id }, { setSession: token });
   }
@@ -103,6 +108,24 @@ export async function handleDash({ store, op, method, body = {}, userId, deps = 
     p.isAdmin = isAdmin(p, deps.env);
     const [channels, roles] = await Promise.all([store.listChannels(userId), store.listRoles(userId)]);
     return ok({ profile: p, channels, roles });
+  }
+  if (op === 'email-add' && method === 'POST') {
+    const email = String(body.email ?? '').trim().toLowerCase();
+    if (!EMAIL_RE.test(email)) return err(400, 'bad_email');
+    const owner = await store.emailOwner(email);
+    if (owner === userId) return err(409, 'already_yours');
+    if (owner) return err(409, 'email_in_use');
+    if (await store.countLinkRequestsToday(userId) >= 5) return err(429, 'daily_limit');
+    const token = newToken(); await store.createMagic(email, hashToken(token), userId);
+    if (deps.sendMagic) await deps.sendMagic(email, token, 'link');
+    return ok({ sent: true });
+  }
+  if (op === 'email' && method === 'DELETE') {
+    const p = await store.getProfile(userId);
+    if (!p.email) return err(404, 'no_email');
+    if (!(await store.listChannels(userId)).some((c) => c.enabled)) return err(409, 'last_login_method');
+    await store.clearEmail(userId); // admin rights derived from the email vanish on the next request
+    return ok({});
   }
   if (op === 'link-code' && method === 'POST') {
     if (!CHANNELS.includes(body.channel)) return err(400, 'bad_channel');

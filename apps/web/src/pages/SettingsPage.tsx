@@ -48,6 +48,39 @@ interface Reminder { id: string; title: string; role: string; time: string; days
 const card = { background: 'var(--surface)', border: '1px solid var(--border)' }
 const field = { background: 'var(--recessed)', color: 'var(--text)', border: '1px solid var(--border)' }
 
+function EmailBox({ email, onChanged, flash }: { email: string | null; onChanged: () => void; flash: (m: string) => void }) {
+  const [val, setVal] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [sent, setSent] = useState(false)
+  const msgs: Record<string, string> = { bad_email: 'Enter a valid email address.', email_in_use: 'This email belongs to another Vow account.', already_yours: 'This email is already on your account.', daily_limit: 'Too many requests today. Try again tomorrow.', last_login_method: 'This is your only sign-in method. Connect a channel first.' }
+  const add = async () => {
+    setBusy(true); const r = await api('email-add', 'POST', { email: val }); setBusy(false)
+    if (r.ok) { setSent(true); flash('Confirmation link sent') } else flash(msgs[r.error ?? ''] ?? `Could not send (${r.error ?? 'error'})`)
+  }
+  const remove = async () => {
+    if (!window.confirm('Detach this email? Admin rights tied to it will be removed.')) return
+    setBusy(true); const r = await api('email', 'DELETE', {}); setBusy(false)
+    if (r.ok) { flash('Email detached'); onChanged() } else flash(msgs[r.error ?? ''] ?? `Could not detach (${r.error ?? 'error'})`)
+  }
+  const field = { background: 'var(--bg-input, rgba(255,255,255,0.04))', border: '1px solid var(--border, rgba(255,255,255,0.1))', color: 'inherit' }
+  if (email) return (
+    <div className="flex items-center justify-between gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+      <span>Email: <b style={{ color: 'inherit' }}>{email}</b></span>
+      <button type="button" onClick={() => void remove()} disabled={busy} className="px-2 py-1 rounded-md cursor-pointer hover:brightness-125 disabled:opacity-50" style={field}>Detach</button>
+    </div>
+  )
+  return (
+    <div>
+      <label className="text-xs block mb-1" htmlFor="em" style={{ color: 'var(--text-muted)' }}>Email (optional sign-in method)</label>
+      <div className="flex gap-2">
+        <input id="em" type="email" value={val} onChange={e => { setVal(e.target.value); setSent(false) }} placeholder="you@example.com" className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={field} />
+        <button type="button" onClick={() => void add()} disabled={busy || !val} aria-busy={busy} className="px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer hover:brightness-110 disabled:opacity-50" style={{ background: '#0E9C86', color: '#000' }}>{busy ? 'Sending…' : sent ? 'Resend link' : 'Send link'}</button>
+      </div>
+      <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>{sent ? 'Check your inbox and open the link within 10 minutes. The email attaches only after you confirm.' : 'We send a one-time confirmation link. Up to 5 requests per day.'}</p>
+    </div>
+  )
+}
+
 export default function SettingsPage() {
   const { user, profile, roles, refresh, patchLocal, logout } = useAuth()
   const [saving, setSaving] = useState<string | null>(null) // id of the control whose save is in flight; it is locked meanwhile
@@ -133,7 +166,7 @@ export default function SettingsPage() {
             </select>
           </div>
           <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Used for reminder times and quiet hours. Offsets shift with daylight saving.</p>
-          <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Email: {profile?.email ?? 'not set. Sign in with an email link to attach one.'}</p>
+          <EmailBox email={profile?.email ?? null} onChanged={() => void refresh()} flash={flash} />
           <button onClick={() => void savePrefs({ displayName: name, tz: timezone }, 'Saved', 'profile')} disabled={saving !== null} aria-busy={saving === 'profile'} className="px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer hover:brightness-110" style={{ background: '#0E9C86', color: '#000' }}>{saving === 'profile' ? 'Saving…' : 'Save changes'}</button>
         </div>
       </section>

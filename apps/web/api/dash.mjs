@@ -66,7 +66,7 @@ export default async function handler(req, res) {
     const userId = sid ? await store.sessionUser(hashToken(sid)) : null;
     // CSRF: state-changing calls must come from our own origin (SameSite=Lax cookie is the second layer).
     if (req.method !== 'GET' && req.headers.origin && new URL(req.headers.origin).host !== req.headers.host) return res.status(403).json({ ok: false, error: 'bad_origin' });
-    const deps = op === 'history' ? { memory: createWalrusMemory(buildMemwalSdk()) } : op === 'link-code' ? { telegramBot } : op === 'transcribe' ? { transcribe: transcribeAudio } : op === 'chat' ? { llm: buildLlmClient(), memory: buildMemory(store, 'web') } : { sendMagic: (email, token) => sendMagicMail(email, token, process.env.WEB_BASE_URL ?? 'https://vow-livid.vercel.app') };
+    const deps = op === 'history' ? { memory: createWalrusMemory(buildMemwalSdk()) } : op === 'link-code' ? { telegramBot } : op === 'transcribe' ? { transcribe: transcribeAudio } : op === 'chat' ? { llm: buildLlmClient(), memory: buildMemory(store, 'web') } : { sendMagic: (email, token, purpose) => sendMagicMail(email, token, process.env.WEB_BASE_URL ?? 'https://vow-livid.vercel.app', undefined, purpose) };
     deps.env = process.env;
     if (op === 'admin-flush' || op === 'memory-flush') deps.memory = buildMemory(store, 'web');
     const r = await handleDash({ store, op, method: req.method, body, userId, deps });

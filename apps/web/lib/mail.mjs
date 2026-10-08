@@ -13,13 +13,13 @@ export function magicMailHtml(link) {
 </table></td></tr></table></body></html>`;
 }
 
-export async function sendMagicMail(email, token, base, fetchFn = globalThis.fetch) {
+export async function sendMagicMail(email, token, base, fetchFn = globalThis.fetch, purpose = 'login') {
   const link = `${base}/magic?t=${encodeURIComponent(token)}`;
   const { BREVO_API_KEY, MAIL_FROM } = process.env;
   if (!BREVO_API_KEY || !MAIL_FROM) { console.warn('magic link mail not configured (BREVO_API_KEY/MAIL_FROM)'); return false; }
   const r = await fetchFn('https://api.brevo.com/v3/smtp/email', {
     method: 'POST', headers: { 'api-key': BREVO_API_KEY, 'content-type': 'application/json', accept: 'application/json' },
-    body: JSON.stringify({ sender: { name: 'Vow', email: MAIL_FROM }, to: [{ email }], subject: 'Your Vow sign-in link',
+    body: JSON.stringify({ sender: { name: 'Vow', email: MAIL_FROM }, to: [{ email }], subject: purpose === 'link' ? 'Confirm your email for Vow' : 'Your Vow sign-in link',
       htmlContent: magicMailHtml(link), textContent: `Sign in to Vow: ${link}\n\nThe link works once and expires in 10 minutes. If you did not request it, ignore this email.` }),
   });
   if (!r.ok) { console.warn('brevo send failed', r.status, (await r.text()).slice(0, 200)); return false; }
