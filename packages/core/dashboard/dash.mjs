@@ -4,6 +4,7 @@
 import { ROLE_IDS } from '../../presets/roles/index.mjs';
 import { chatReply, withRoleLabel, shouldRemember } from '../channels/chat.mjs';
 import { hashToken, newToken } from './session.mjs';
+import { manageTokens } from '../agent/agent.mjs';
 
 export const CHANNELS = ['telegram', 'slack', 'discord'];
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -150,6 +151,7 @@ export async function handleDash({ store, op, method, body = {}, userId, deps = 
     await resolveBlobIds(memory, store, deps.memory);
     return ok({ messages: await store.listMessages(userId, 100), memory });
   }
+  if (op === 'agent-tokens') return manageTokens({ store, method, body, userId });
   if (op === 'memory-forget' && method === 'POST') {
     const id = String(body.id ?? ''); if (!id) return err(400, 'id_required');
     return (await store.forgetMemory(userId, id)) ? ok({ forgotten: true, note: 'Hidden from future answers. The Walrus blob is immutable and stays on the network.' }) : err(404, 'not_found');

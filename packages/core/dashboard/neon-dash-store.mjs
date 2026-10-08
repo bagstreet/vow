@@ -84,6 +84,12 @@ export function createNeonDashStore(sql) {
     async listMemoryLog(userId, limit) { return sql('select id, channel, kind, preview, job_id, blob_id, created_at, forgotten_at from memory_log where user_id = $1 order by created_at desc limit $2', [userId, limit]); },
     async forgetMemory(userId, id) { const r = await sql('update memory_log set forgotten_at = now() where id = $1 and user_id = $2 and forgotten_at is null returning id', [id, userId]); return r.length > 0; },
     async listForgotten(userId) { return (await sql('select preview from memory_log where user_id = $1 and forgotten_at is not null', [userId])).map((r) => r.preview); },
+    async listAgentTokens(userId) { return sql('select id, label, roles, created_at, last_used_at, revoked_at from agent_tokens where user_id = $1 order by created_at desc', [userId]); },
+    async createAgentToken(userId, { hash, label, roles }) { const r = await sql('insert into agent_tokens(user_id, token_hash, label, roles) values ($1,$2,$3,$4) returning id', [userId, hash, label, roles]); return r[0]; },
+    async revokeAgentToken(userId, id) { if (!/^[0-9a-f-]{36}$/i.test(id)) return false; const r = await sql('update agent_tokens set revoked_at = now() where id = $1 and user_id = $2 and revoked_at is null returning id', [id, userId]); return r.length > 0; },
+    async agentTokenByHash(hash) { const r = await sql('select id, user_id, label, roles, revoked_at from agent_tokens where token_hash = $1', [hash]); return r[0] ?? null; },
+    async touchAgentToken(id) { await sql('update agent_tokens set last_used_at = now() where id = $1', [id]); },
+    async countAgentWrites(userId, label) { const r = await sql("select count(*)::int n from memory_log where user_id = $1 and channel = 'agent' and preview like $2 and created_at > now() - interval '1 hour'", [userId, `[agent:${label}]%`]); return r[0].n; },
     async setBlobId(id, blobId) { await sql('update memory_log set blob_id = $2 where id = $1 and blob_id is null', [id, blobId]); },
     async logMemory(userId, { channel, kind, preview, jobId, blobId }) { await sql('insert into memory_log(user_id, channel, kind, preview, job_id, blob_id) values ($1,$2,$3,$4,$5,$6)', [userId, channel, kind ?? 'chat', preview, jobId ?? null, blobId ?? null]); },
     async exportAll(userId) {

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Bell, Shield, Key, User, Plus, Trash2, MessageCircle, Hash, Monitor, Globe, Clock, AlertTriangle } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 import { api } from '../lib/api'
+import AgentTokens from '../components/AgentTokens'
 
 const ALL_TZ: string[] = Intl.supportedValuesOf ? Intl.supportedValuesOf('timeZone') : ['UTC']
 // Time zones grouped by region, labelled "(UTC+03:00) Tallinn · Europe/Tallinn" and sorted by the current offset, so UTC+1 and UTC+2 are distinguishable.
@@ -236,6 +237,11 @@ export default function SettingsPage() {
           <div className="flex justify-between"><span>Namespace</span><span className="font-mono">vow:mem:{user?.id.slice(0, 8)}…</span></div>
           <p>Every channel writes to the same namespace: one memory, one assistant. See the proof of each write on the History page.</p>
         </div>
+      </section>
+
+      <section className="p-5 rounded-xl" style={card}>
+        <div className="flex items-center gap-2 mb-4"><Key size={16} /><h2 className="text-sm font-semibold">AI agents</h2></div>
+        <AgentTokens />
       </section>
 
       <section className="p-5 rounded-xl" style={card}>
