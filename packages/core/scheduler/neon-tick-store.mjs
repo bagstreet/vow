@@ -1,5 +1,5 @@
 // Neon implementation of the tick store. Claims use compare-and-swap UPDATEs (no long transactions over HTTP SQL).
-import { computeNextFire, parseArr } from './time.mjs';
+import { computeNextFire, parseArr, tzOffsetMin } from './time.mjs';
 
 const toMs = (v) => (v == null ? null : new Date(v).getTime());
 const iso = (ms) => new Date(ms).toISOString();
@@ -37,8 +37,8 @@ export function createNeonTickStore(sql) {
         returning id, user_id, reminder_id, occurrence_id, step, attempts`, [iso(now), iso(now), limit]);
       const out = [];
       for (const r of rows) {
-        const m = await sql('select title, role from reminders where id = $1', [r.reminder_id]);
-        out.push({ id: r.id, userId: r.user_id, reminderId: r.reminder_id, occurrenceId: r.occurrence_id, step: r.step, attempts: r.attempts, label: m[0]?.title ?? 'your reminder', role: m[0]?.role });
+        const m = await sql('select title, role, channel_pref from reminders where id = $1', [r.reminder_id]);
+        out.push({ id: r.id, userId: r.user_id, reminderId: r.reminder_id, occurrenceId: r.occurrence_id, step: r.step, attempts: r.attempts, label: m[0]?.title ?? 'your reminder', role: m[0]?.role, channelPref: m[0]?.channel_pref ?? null });
       }
       return out;
     },
@@ -49,8 +49,8 @@ export function createNeonTickStore(sql) {
       return rows.map(r => ({ channel: r.channel, externalId: r.external_id, lastSeenAt: toMs(r.last_seen_at) ?? 0 }));
     },
     async userPrefs(userId) {
-      const r = (await sql('select tz, quiet_start, quiet_end, channel_priority from users where id = $1', [userId]))[0] ?? {};
-      return { tz: r.tz, quietStart: r.quiet_start ? String(r.quiet_start).slice(0, 5) : null, quietEnd: r.quiet_end ? String(r.quiet_end).slice(0, 5) : null, utcOffsetMin: 0, ackMin: 10, channelPriority: parseArr(r.channel_priority) };
+      const r = (await sql('select tz, quiet_start, quiet_end, channel_priority, ack_min from users where id = $1', [userId]))[0] ?? {};
+      return { tz: r.tz, quietStart: r.quiet_start ? String(r.quiet_start).slice(0, 5) : null, quietEnd: r.quiet_end ? String(r.quiet_end).slice(0, 5) : null, utcOffsetMin: tzOffsetMin(r.tz ?? 'UTC', Date.now()), ackMin: r.ack_min ?? 10, channelPriority: parseArr(r.channel_priority) };
     },
     async markSent(id, { channel, escalateAt }) { await sql("update outbox set status = 'sent', channel = $2, escalate_at = $3, last_error = null where id = $1", [id, channel, iso(escalateAt)]); },
     async markRetry(id, { sendAt, error, failed }) { await sql('update outbox set status = $2, send_at = $3, last_error = $4 where id = $1', [id, failed ? 'failed' : 'pending', iso(sendAt), error]); },

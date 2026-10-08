@@ -71,7 +71,10 @@ export async function handleInteraction(interaction, { store, webBase, llm, memo
 
   if (cmd === 'link') {
     const code = String(opt(interaction, 'code') ?? '').trim();
-    if (!code) return reply(user ? 'Already linked. Try /roles or /status.' : 'Open the dashboard, press "Connect Discord", then run /link code:CODE.');
+    if (!code) {
+      if (user) return reply('Already linked. Try /roles or /status.');
+      await store.signUp(CHANNEL, chat); return reply('Welcome to Vow! I created your account with the Fitness role. /roles to see roles, /login for the dashboard, /priority to choose where I reach you first. Add more channels from the dashboard: same memory everywhere.');
+    }
     if (!CODE_RE.test(code)) return reply('That code does not look right. Codes are 6-12 letters/digits.');
     const r = await store.consumeLinkCode(code.toUpperCase(), CHANNEL);
     if (!r) return reply('That code is invalid or expired. Create a new one in the dashboard.');
@@ -81,7 +84,7 @@ export async function handleInteraction(interaction, { store, webBase, llm, memo
       ? `Linked. I will remind you here. Welcome back — I already know you from ${priorChannels.join(', ')}. Same memory, one more place to reach me.`
       : 'Linked. I will remind you here. Use /roles to see who answers what.');
   }
-  if (!user) return reply('Not linked yet. Get a code in the dashboard, then /link code:CODE.');
+  if (!user) return reply('Run /link (no code) to create your account, or /link code:CODE to add this account to an existing one.');
 
   switch (cmd) {
     case 'help': return reply(HELP);
@@ -106,7 +109,7 @@ export async function handleInteraction(interaction, { store, webBase, llm, memo
       const enabled = await store.listRoles(user.id);
       const history = (await store.getHistory?.(user.id)) ?? [];
       const remembered = memory ? await memory.recall(user.id, text) : [];
-      const r = await chatReply({ text, enabled, def: user.default_role, llm, history, remembered });
+      const r = await chatReply({ text, enabled, def: user.default_role, llm, history, remembered, tone: user.tone });
       await store.setLastRole?.(user.id, r.role);
       await store.saveMessage?.(user.id, CHANNEL, 'in', text, r.role);
       await store.saveMessage?.(user.id, CHANNEL, 'out', r.text, r.role);

@@ -15,6 +15,7 @@ export function createMemoryStore() {
       return { userId: r.userId };
     },
     linkChannel: async (userId, channel, chat) => { s.chats.set(key(channel, chat), { id: userId }); },
+    signUp: async (channel, chat) => { const id = `u${s.chats.size + 1}`; s.chats.set(key(channel, chat), { id }); s.roles.set(id, ['fitness']); s.def.set(id, 'fitness'); return { id }; },
     userByChat: async (chat, channel = 'telegram') => s.chats.get(key(channel, chat)) ?? null,
     listRoles: async (u) => s.roles.get(u) ?? [],
     setDefaultRole: async (u, r) => { s.def.set(u, r); },

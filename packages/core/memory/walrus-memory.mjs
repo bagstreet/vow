@@ -49,3 +49,15 @@ export function createWalrusMemory(sdk) {
     },
   };
 }
+
+/** Wrap a memory so every accepted write is also recorded in memory_log (dashboard History shows it). Never throws. */
+export function withMemoryLog(memory, logFn, channel) {
+  return {
+    ...memory,
+    async remember(userId, text) {
+      const jobId = await memory.remember(userId, text);
+      try { await logFn(userId, { channel, kind: /check-in/i.test(text) ? 'check-in' : 'chat', preview: String(text).slice(0, 160), jobId }); } catch (e) { console.error('memory_log failed', e.message); }
+      return jobId;
+    },
+  };
+}

@@ -20,13 +20,16 @@ export function trimHistory(history, role) {
   return history.filter((h) => h && h.content && (h.appRole === undefined || h.appRole === null || h.appRole === role)).slice(-MAX_HISTORY_TURNS * 2);
 }
 
-export async function chatReply({ text, enabled, def, llm, history, remembered }) {
+// Tone only changes phrasing; it never overrides role scope or safety wording.
+export const TONE_HINT = { friendly: 'Tone: warm, encouraging, a little informal.', neutral: '', concise: 'Tone: shortest possible replies, no filler.', strict: 'Tone: direct accountability language, no fluff.' };
+
+export async function chatReply({ text, enabled, def, llm, history, remembered, tone }) {
   if (!enabled.length) return { text: 'No roles are enabled yet. Turn some on in the dashboard.', role: null };
   const { role, text: q } = pickRole(text, enabled, def);
   const memoryBlock = Array.isArray(remembered) && remembered.length
     ? `\nLong-term memory about this user (from past sessions/channels, most relevant first): ${remembered.map((m) => `"${m}"`).join('; ')}. Use it only if relevant; never invent memories that are not listed here.`
     : '';
-  const system = `${ROLES[role].prompt}\nContext: enabled roles: ${enabled.filter((r) => ROLE_IDS.includes(r)).join(', ')}. Active role: ${role}. If asked who you are or what you can do, briefly say you are Vow, a reminder and coaching assistant, and describe what the active role helps with (do not name the underlying model); then invite a question in scope. Politely decline only unrelated topics.${memoryBlock}`;
+  const system = `${ROLES[role].prompt}\nContext: enabled roles: ${enabled.filter((r) => ROLE_IDS.includes(r)).join(', ')}. Active role: ${role}. If asked who you are or what you can do, briefly say you are Vow, a reminder and coaching assistant, and describe what the active role helps with (do not name the underlying model); then invite a question in scope. Politely decline only unrelated topics.${TONE_HINT[tone] ? `\n${TONE_HINT[tone]} Safety and crisis wording are never changed by tone.` : ''}${memoryBlock}`;
   const prior = trimHistory(history, role).map((h) => ({ role: h.direction === 'out' ? 'assistant' : 'user', content: h.content }));
   const messages = [{ role: 'system', content: system }, ...prior, { role: 'user', content: q }];
   const out = await llm.complete({ task: 'chat', messages, maxTokens: 400 });

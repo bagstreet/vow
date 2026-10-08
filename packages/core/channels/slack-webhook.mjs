@@ -44,7 +44,10 @@ export async function handleEvent(body, { store, slack, webBase, llm, memory }) 
 
   if (cmd === 'link') {
     const code = arg.split(/\s+/)[0];
-    if (!code) { await send(user ? 'Already linked. Try /roles or /status.' : 'Open the dashboard, press "Connect Slack", then send me /link CODE.'); return { ok: true, cmd }; }
+    if (!code) {
+      if (user) { await send('Already linked. Try /roles or /status.'); return { ok: true, cmd }; }
+      await store.signUp(CHANNEL, chat); await send('Welcome to Vow! I created your account with the Fitness role. /roles to see roles, /login for the dashboard, /priority to choose where I reach you first. Add more channels from the dashboard: same memory everywhere.'); return { ok: true, cmd, signedUp: true };
+    }
     if (!CODE_RE.test(code)) { await send('That code does not look right. Codes are 6-12 letters/digits.'); return { ok: true, cmd, linked: false }; }
     const r = await store.consumeLinkCode(code.toUpperCase(), CHANNEL);
     if (!r) { await send('That code is invalid or expired. Create a new one in the dashboard.'); return { ok: true, cmd, linked: false }; }
@@ -54,7 +57,10 @@ export async function handleEvent(body, { store, slack, webBase, llm, memory }) 
     if (priorChannels.length) await send(`Welcome back — I already know you from ${priorChannels.join(', ')}. Same memory, one more place to reach me.`);
     return { ok: true, cmd, linked: true };
   }
-  if (!user) { await send('Not linked yet. Get a code in the dashboard, then /link CODE.'); return { ok: true, ignored: 'unlinked' }; }
+  if (!user) {
+    await store.signUp(CHANNEL, chat); await send('Welcome to Vow! I created your account with the Fitness role. /roles to see roles, /login for the dashboard, /priority to choose where I reach you first. Add more channels from the dashboard: same memory everywhere.');
+    return { ok: true, signedUp: true };
+  }
 
   switch (cmd) {
     case 'help': await send(HELP); break;
@@ -83,7 +89,7 @@ export async function handleEvent(body, { store, slack, webBase, llm, memory }) 
       const enabled = await store.listRoles(user.id);
       const history = (await store.getHistory?.(user.id)) ?? [];
       const remembered = memory ? await memory.recall(user.id, text) : [];
-      const r = await chatReply({ text, enabled, def: user.default_role, llm, history, remembered });
+      const r = await chatReply({ text, enabled, def: user.default_role, llm, history, remembered, tone: user.tone });
       await store.setLastRole?.(user.id, r.role);
       await store.saveMessage?.(user.id, CHANNEL, 'in', text, r.role);
       await store.saveMessage?.(user.id, CHANNEL, 'out', r.text, r.role);

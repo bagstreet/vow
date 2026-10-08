@@ -49,11 +49,12 @@ test('link flow: bad code, valid code, then chat works', async () => {
   assert.ok(sent.some((m) => m.text.includes('go lift something')));
 });
 
-test('unlinked channel is told to link first, no chat happens', async () => {
+test('first DM from an unknown Slack user creates the account (bot-first onboarding), no LLM chat', async () => {
   const { store, slack, sent } = setup();
   const llm = { complete: async () => ({ text: 'should not be called' }) };
   await handleEvent({ type: 'event_callback', event: { type: 'message', channel: 'C9', ts: '1', text: 'hello' } }, { store, slack, llm });
-  assert.ok(sent[0].text.includes('Not linked'));
+  assert.ok(sent[0].text.includes('Welcome to Vow'));
+  assert.ok(await store.userByChat('C9', 'slack'));
 });
 
 test('block_actions interaction acks the occurrence for a linked channel only', async () => {

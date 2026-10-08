@@ -39,7 +39,7 @@ export async function runTick({ store, senders, pickButtons = null, now = Date.n
     const prefs = await store.userPrefs(row.userId);
     const quiet = inQuietHours(now, { quietHours: prefs.quietStart && prefs.quietEnd ? { start: prefs.quietStart, end: prefs.quietEnd } : null, utcOffsetMin: prefs.utcOffsetMin ?? 0 });
     if (quiet) { await store.deferSend(row.id, now + 15 * 60000); out.deferred++; continue; }
-    const channels = orderChannels((await store.channelsFor(row.userId, row.occurrenceId)).filter(c => senders[c.channel]), prefs.channelPriority ?? []);
+    const channels = orderChannels((await store.channelsFor(row.userId, row.occurrenceId)).filter(c => senders[c.channel]), row.channelPref ? [row.channelPref, ...(prefs.channelPriority ?? []).filter(c => c !== row.channelPref)] : (prefs.channelPriority ?? []));
     const target = channels[0];
     if (!target) { await store.markRetry(row.id, { sendAt: now, error: 'no_channel', failed: true }); out.failed++; continue; }
     try {

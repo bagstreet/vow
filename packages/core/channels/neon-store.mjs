@@ -11,10 +11,18 @@ export function createNeonStore(sql) {
     // Channels already linked for this user BEFORE this call — used to detect "this is a returning
     // user adding another channel" so the bot can say it recognizes them, not just silently continue.
     async listChannels(userId) { return (await sql('select channel from channel_links where user_id = $1 and enabled', [userId])).map((x) => x.channel); },
-    async userByChat(chat, channel = 'telegram') { const r = await sql('select l.user_id, u.default_role, u.role_label, u.last_role from channel_links l join users u on u.id = l.user_id where l.channel = $2 and l.external_id = $1 and l.enabled', [chat, channel]); return r[0] ? { id: r[0].user_id, default_role: r[0].default_role, role_label: r[0].role_label, last_role: r[0].last_role } : null; },
+    async userByChat(chat, channel = 'telegram') { const r = await sql('select l.user_id, u.default_role, u.role_label, u.last_role, u.tone from channel_links l join users u on u.id = l.user_id where l.channel = $2 and l.external_id = $1 and l.enabled', [chat, channel]); return r[0] ? { id: r[0].user_id, default_role: r[0].default_role, role_label: r[0].role_label, last_role: r[0].last_role, tone: r[0].tone } : null; },
     async listRoles(u) { return (await sql('select role from user_roles where user_id = $1 and enabled order by role', [u])).map((x) => x.role); },
     async setLastRole(u, role) { await sql('update users set last_role = $2 where id = $1', [u, role]); },
     async setDefaultRole(u, role) { await sql('update users set default_role = $2 where id = $1', [u, role]); },
+    // Bot-first onboarding: the first message in any channel creates the account (default role: fitness) and links it.
+    async signUp(channel, chat, displayName) {
+      const u = await sql('insert into users(display_name, default_role) values ($1, $2) returning id', [displayName ?? null, 'fitness']);
+      await sql("insert into user_roles(user_id, role) values ($1,'fitness') on conflict do nothing", [u[0].id]);
+      await sql('insert into channel_links(user_id, channel, external_id, last_seen_at) values ($1,$2,$3,now()) on conflict (channel, external_id) do nothing', [u[0].id, channel, chat]);
+      return { id: u[0].id };
+    },
+    async logMemory(userId, { channel, kind, preview, jobId }) { await sql('insert into memory_log(user_id, channel, kind, preview, job_id) values ($1,$2,$3,$4,$5)', [userId, channel, kind ?? 'chat', preview, jobId ?? null]); },
     async touchChannel(chat, channel) { await sql('update channel_links set last_seen_at = now() where channel = $2 and external_id = $1', [chat, channel]); },
     async setChannelPriority(u, list) { await sql('update users set channel_priority = $2::text[] where id = $1', [u, list]); },
     async setQuiet(u, v) { const m = v?.match(/^(\d\d:\d\d)-(\d\d:\d\d)$/); await sql('update users set quiet_start = $2, quiet_end = $3 where id = $1', [u, m?.[1] ?? null, m?.[2] ?? null]); },

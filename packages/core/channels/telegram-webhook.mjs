@@ -5,6 +5,7 @@ import { parsePriority } from '../delivery/choose.mjs';
 import { chatReply, withRoleLabel } from './chat.mjs';
 
 const HELP = 'I am Vow. Commands: /link CODE, /login, /roles, /role <name>, /status, /quiet, /priority, /help.';
+const CHANNEL = 'telegram';
 const CODE_RE = /^[A-Z0-9]{6,12}$/i;
 
 export function verifySecret(headers, expected) {
@@ -40,7 +41,11 @@ export async function handleUpdate(update, { store, tg, webBase, llm, memory }) 
 
   if (cmd === 'start' || cmd === 'link') {
     const code = arg.split(/\s+/)[0];
-    if (!code) { await send(user ? 'Already linked. Try /roles or /status.' : 'Open the dashboard, press "Connect Telegram", then send me the code with /link CODE.'); return { ok: true, cmd }; }
+    if (!code) {
+      if (user) { await send('Already linked. Try /roles or /status.'); return { ok: true, cmd }; }
+      await store.signUp(CHANNEL, chat, msg.from?.first_name);
+      await send('Welcome to Vow! I created your account with the Fitness role. /roles to see roles, /login for the dashboard, /priority to choose where I reach you first. Add more channels from the dashboard: same memory everywhere.'); return { ok: true, cmd, signedUp: true };
+    }
     if (!CODE_RE.test(code)) { await send('That code does not look right. Codes are 6-12 letters/digits.'); return { ok: true, cmd, linked: false }; }
     const r = await store.consumeLinkCode(code.toUpperCase());
     if (!r) { await send('That code is invalid or expired. Create a new one in the dashboard.'); return { ok: true, cmd, linked: false }; }
@@ -50,7 +55,7 @@ export async function handleUpdate(update, { store, tg, webBase, llm, memory }) 
     if (priorChannels.length) await send(`Welcome back — I already know you from ${priorChannels.join(', ')}. Same memory, one more place to reach me.`);
     return { ok: true, cmd, linked: true };
   }
-  if (!user) { await send('Not linked yet. Get a code in the dashboard, then /link CODE.'); return { ok: true, ignored: 'unlinked' }; }
+  if (!user) { await send('Send /start to create your account, or /link CODE to add this chat to an existing one.'); return { ok: true, ignored: 'unlinked' }; }
 
   switch (cmd) {
     case 'help': await send(HELP); break;
@@ -74,7 +79,7 @@ export async function handleUpdate(update, { store, tg, webBase, llm, memory }) 
       const enabled = await store.listRoles(user.id);
       const history = (await store.getHistory?.(user.id)) ?? [];
       const remembered = memory ? await memory.recall(user.id, text) : [];
-      const r = await chatReply({ text, enabled, def: user.default_role, llm, history, remembered });
+      const r = await chatReply({ text, enabled, def: user.default_role, llm, history, remembered, tone: user.tone });
       await store.setLastRole?.(user.id, r.role);
       await store.saveMessage?.(user.id, 'telegram', 'in', text, r.role);
       await store.saveMessage?.(user.id, 'telegram', 'out', r.text, r.role);
@@ -94,6 +99,7 @@ export function createMemoryStore() {
     consumeLinkCode: async (c) => { const r = s.codes.get(c); if (!r || r.exp < Date.now()) return null; s.codes.delete(c); return { userId: r.userId }; },
     linkChannel: async (userId, _ch, chat) => { s.chats.set(chat, { id: userId }); },
     listChannels: async () => [],
+    signUp: async (_channel, chat) => { const id = 'u' + (s.chats.size + 1); s.chats.set(chat, { id }); s.roles.set(id, ['fitness']); return { id }; },
     userByChat: async (chat) => s.chats.get(chat) ?? null,
     listRoles: async (u) => s.roles.get(u) ?? [],
     setDefaultRole: async (u, r) => { s.def.set(u, r); },

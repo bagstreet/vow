@@ -24,7 +24,14 @@ test('link: valid code links, code is single-use, bad/expired rejected', async (
 });
 test('unlinked chats get no data commands', async () => {
   const { ctx, sent } = setup(); const r = await handleUpdate(msg(1, '/roles', 9), ctx);
-  assert.equal(r.ignored, 'unlinked'); assert.match(sent[0][1], /Not linked/);
+  assert.equal(r.ignored, 'unlinked'); assert.match(sent[0][1], /Send \/start/);
+});
+test('/start without a code creates the account and links the chat; second /start says already linked', async () => {
+  const { ctx, store, sent } = setup();
+  const r = await handleUpdate(msg(1, '/start', 9), ctx);
+  assert.equal(r.signedUp, true); assert.match(sent[0][1], /Welcome to Vow/);
+  assert.ok(await store.userByChat('9'));
+  await handleUpdate(msg(2, '/start', 9), ctx); assert.match(sent.at(-1)[1], /Already linked/);
 });
 test('roles/role: switch only to enabled role; login link one-time token', async () => {
   const { ctx, store, sent } = setup(); store._s.chats.set('1', { id: 'u1' }); store._s.roles.set('u1', ['fitness', 'nutrition']);

@@ -21,3 +21,11 @@ test('role label modes', () => {
   assert.equal(withRoleLabel('hi', 'study', 'on_change', 'study'), 'hi');
   assert.notEqual(withRoleLabel('hi', 'study', 'on_change', 'fitness'), 'hi');
 });
+
+test('tone is injected into the system prompt, neutral adds nothing', async () => {
+  const seen = [];
+  const llm = { complete: async ({ messages }) => { seen.push(messages[0].content); return { text: 'x' }; } };
+  await chatReply({ text: 'hi', enabled: ['fitness'], def: 'fitness', llm, tone: 'strict' });
+  await chatReply({ text: 'hi', enabled: ['fitness'], def: 'fitness', llm, tone: 'neutral' });
+  assert.match(seen[0], /accountability language/); assert.doesNotMatch(seen[1], /Tone:/);
+});
