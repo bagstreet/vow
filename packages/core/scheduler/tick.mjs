@@ -2,6 +2,7 @@
 // (compare-and-swap), so overlapping or repeated ticks (cron-job.org + GitHub Actions backup) never double-send.
 import { computeNextFire } from './time.mjs';
 import { inQuietHours } from '../delivery/escalation.mjs';
+import { orderChannels } from '../delivery/choose.mjs';
 import { selectButtons, buildReminder } from '../delivery/quickreply.mjs';
 
 export const MAX_STEPS = 2;          // at most 2 delivered sends per occurrence (global cap)
@@ -38,7 +39,7 @@ export async function runTick({ store, senders, pickButtons = null, now = Date.n
     const prefs = await store.userPrefs(row.userId);
     const quiet = inQuietHours(now, { quietHours: prefs.quietStart && prefs.quietEnd ? { start: prefs.quietStart, end: prefs.quietEnd } : null, utcOffsetMin: prefs.utcOffsetMin ?? 0 });
     if (quiet) { await store.deferSend(row.id, now + 15 * 60000); out.deferred++; continue; }
-    const channels = (await store.channelsFor(row.userId, row.occurrenceId)).filter(c => senders[c.channel]);
+    const channels = orderChannels((await store.channelsFor(row.userId, row.occurrenceId)).filter(c => senders[c.channel]), prefs.channelPriority ?? []);
     const target = channels[0];
     if (!target) { await store.markRetry(row.id, { sendAt: now, error: 'no_channel', failed: true }); out.failed++; continue; }
     try {
@@ -54,7 +55,7 @@ export async function runTick({ store, senders, pickButtons = null, now = Date.n
   }
 
   for (const e of await store.claimEscalations(now)) {
-    const next = e.step + 1 < MAX_STEPS ? (await store.channelsFor(e.userId, e.occurrenceId)).filter(c => senders[c.channel]) : [];
+    const next = e.step + 1 < MAX_STEPS ? (await store.channelsFor(e.userId, e.occurrenceId)).filter(c => senders[c.channel]) : []; // next channel is chosen at send time (same ranking)
     if (next.length) { await store.enqueue({ userId: e.userId, reminderId: e.reminderId, step: e.step + 1, sendAt: now, occurrenceId: e.occurrenceId, label: e.label, role: e.role }); out.escalated++; }
     else { await store.expire(e.id); out.expired++; }
   }

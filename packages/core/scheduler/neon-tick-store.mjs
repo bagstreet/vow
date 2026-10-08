@@ -43,14 +43,14 @@ export function createNeonTickStore(sql) {
       return out;
     },
     async channelsFor(userId, occurrenceId) {
-      const rows = await sql(`select channel, external_id from channel_links l where user_id = $1 and enabled and channel <> 'web'
+      const rows = await sql(`select channel, external_id, last_seen_at from channel_links l where user_id = $1 and enabled and channel <> 'web'
         and channel not in (select channel from outbox where occurrence_id = $2 and channel is not null)
-        order by last_seen_at desc nulls last`, [userId, occurrenceId ?? '00000000-0000-0000-0000-000000000000']);
-      return rows.map(r => ({ channel: r.channel, externalId: r.external_id }));
+        `, [userId, occurrenceId ?? '00000000-0000-0000-0000-000000000000']);
+      return rows.map(r => ({ channel: r.channel, externalId: r.external_id, lastSeenAt: toMs(r.last_seen_at) ?? 0 }));
     },
     async userPrefs(userId) {
-      const r = (await sql('select tz, quiet_start, quiet_end from users where id = $1', [userId]))[0] ?? {};
-      return { tz: r.tz, quietStart: r.quiet_start ? String(r.quiet_start).slice(0, 5) : null, quietEnd: r.quiet_end ? String(r.quiet_end).slice(0, 5) : null, utcOffsetMin: 0, ackMin: 10 };
+      const r = (await sql('select tz, quiet_start, quiet_end, channel_priority from users where id = $1', [userId]))[0] ?? {};
+      return { tz: r.tz, quietStart: r.quiet_start ? String(r.quiet_start).slice(0, 5) : null, quietEnd: r.quiet_end ? String(r.quiet_end).slice(0, 5) : null, utcOffsetMin: 0, ackMin: 10, channelPriority: parseArr(r.channel_priority) };
     },
     async markSent(id, { channel, escalateAt }) { await sql("update outbox set status = 'sent', channel = $2, escalate_at = $3, last_error = null where id = $1", [id, channel, iso(escalateAt)]); },
     async markRetry(id, { sendAt, error, failed }) { await sql('update outbox set status = $2, send_at = $3, last_error = $4 where id = $1', [id, failed ? 'failed' : 'pending', iso(sendAt), error]); },
