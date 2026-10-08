@@ -18,8 +18,15 @@ export function authorized(headers, secret) {
 
 // Only Slack exposes presence to bots (users.getPresence: active/away). Telegram and Discord bots cannot see it, so they fall back to last_seen_at.
 const slackPresence = (token) => async (c) => {
-  if (c.channel !== 'slack' || !/^[UW][A-Z0-9]+$/.test(c.externalId ?? '')) return null;
-  const r = await fetch(`https://slack.com/api/users.getPresence?user=${c.externalId}`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(2500) }).then((x) => x.json());
+  if (c.channel !== 'slack') return null;
+  const call = (method, init) => fetch(`https://slack.com/api/${method}`, { ...init, headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json; charset=utf-8' }, signal: AbortSignal.timeout(2500) }).then((x) => x.json());
+  let user = /^[UW][A-Z0-9]+$/.test(c.externalId ?? '') ? c.externalId : null;
+  if (!user && /^D[A-Z0-9]+$/.test(c.externalId ?? '')) { // channel_links stores the DM channel id; conversations.open(return_im) maps it back to the user (needs only im:write)
+    const o = await call('conversations.open', { method: 'POST', body: JSON.stringify({ channel: c.externalId, return_im: true }) });
+    user = o.ok ? o.channel?.user ?? null : null;
+  }
+  if (!user) return null;
+  const r = await call(`users.getPresence?user=${user}`, { method: 'GET' });
   return r.ok ? r.presence === 'active' : null;
 };
 
