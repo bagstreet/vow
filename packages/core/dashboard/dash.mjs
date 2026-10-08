@@ -2,7 +2,7 @@
 // One entry point: handleDash({ store, op, method, body, userId, deps }) -> { status, json, setCookie? }.
 // Every op except login/magic-* requires a resolved session userId (resolved by the Vercel function).
 import { ROLE_IDS } from '../../presets/roles/index.mjs';
-import { chatReply, withRoleLabel } from '../channels/chat.mjs';
+import { chatReply, withRoleLabel, shouldRemember } from '../channels/chat.mjs';
 import { hashToken, newToken } from './session.mjs';
 
 export const CHANNELS = ['telegram', 'slack', 'discord'];
@@ -159,11 +159,11 @@ export async function handleDash({ store, op, method, body = {}, userId, deps = 
     await store.saveMessage(userId, 'web', 'in', text, r.role); await store.saveMessage(userId, 'web', 'out', r.text, r.role);
     if (r.role) await store.setLastRole(userId, r.role);
     let jobId = null;
-    if (deps.memory && r.role) {
+    if (deps.memory && shouldRemember(text, r.role)) {
       jobId = await deps.memory.remember(userId, `[web/${r.role}] user: ${text}`);
       await store.logMemory(userId, { channel: 'web', kind: 'chat', preview: text.slice(0, 160), jobId });
     }
-    return ok({ reply, role: r.role, remembered: remembered.length, memoryJob: jobId });
+    return ok({ reply: r.text, labelled: reply, role: r.role, remembered: remembered.length, memoryJob: jobId });
   }
   if (op === 'export' && method === 'GET') return ok({ exportedAt: new Date(now).toISOString(), data: await store.exportAll(userId) });
   if (op === 'account' && method === 'DELETE') {

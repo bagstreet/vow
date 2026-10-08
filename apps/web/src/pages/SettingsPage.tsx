@@ -1,9 +1,31 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Bell, Shield, Key, User, Plus, Trash2, MessageCircle, Hash, Monitor, Globe, Clock, AlertTriangle } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 import { api } from '../lib/api'
 
-const TIMEZONES: string[] = Intl.supportedValuesOf ? Intl.supportedValuesOf('timeZone') : ['UTC']
+const ALL_TZ: string[] = Intl.supportedValuesOf ? Intl.supportedValuesOf('timeZone') : ['UTC']
+// Time zones grouped by region, labelled "(UTC+03:00) Tallinn · Europe/Tallinn" and sorted by the current offset, so UTC+1 and UTC+2 are distinguishable.
+function offsetMin(tz: string): number {
+  try {
+    const p = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'longOffset' }).formatToParts(new Date()).find(x => x.type === 'timeZoneName')?.value ?? 'GMT'
+    const m = /GMT([+-])(\d{1,2})(?::(\d{2}))?/.exec(p); if (!m) return 0
+    return (m[1] === '-' ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3] ?? 0))
+  } catch { return 0 }
+}
+const fmtOffset = (min: number) => `UTC${min < 0 ? '-' : '+'}${String(Math.floor(Math.abs(min) / 60)).padStart(2, '0')}:${String(Math.abs(min) % 60).padStart(2, '0')}`
+function buildTzGroups(extra: string) {
+  const list = ALL_TZ.includes(extra) ? ALL_TZ : [extra, ...ALL_TZ]
+  const groups = new Map<string, { id: string; label: string; off: number }[]>()
+  for (const id of list) {
+    const [region, ...rest] = id.split('/')
+    const g = rest.length ? region : 'Other'
+    const off = offsetMin(id)
+    const city = (rest.length ? rest.join(' / ') : id).replace(/_/g, ' ')
+    if (!groups.has(g)) groups.set(g, [])
+    groups.get(g)!.push({ id, label: `(${fmtOffset(off)}) ${city}`, off })
+  }
+  return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([g, items]) => [g, items.sort((x, y) => x.off - y.off || x.label.localeCompare(y.label))] as const)
+}
 const PRESETS = [
   { id: 'fitness', label: 'Health & Fitness', color: '#22c55e' },
   { id: 'medication', label: 'Medication Tracker', color: '#f59e0b' },
@@ -26,7 +48,9 @@ const card = { background: 'var(--surface)', border: '1px solid var(--border)' }
 const field = { background: 'var(--recessed)', color: 'var(--text)', border: '1px solid var(--border)' }
 
 export default function SettingsPage() {
-  const { user, profile, roles, refresh, logout } = useAuth()
+  const { user, profile, roles, refresh, patchLocal, logout } = useAuth()
+  const [saving, setSaving] = useState<string | null>(null) // id of the control whose save is in flight; it is locked meanwhile
+  const tzGroups = useMemo(() => buildTzGroups(profile?.tz || 'UTC'), [profile?.tz])
   const [name, setName] = useState(user?.name || '')
   const [timezone, setTimezone] = useState(profile?.tz || 'UTC')
   const [status, setStatus] = useState<string>('')
@@ -41,15 +65,26 @@ export default function SettingsPage() {
   useEffect(() => { void loadReminders() }, [])
 
   const flash = (m: string) => { setStatus(m); setTimeout(() => setStatus(''), 2500) }
-  const savePrefs = async (patch: Record<string, unknown>, okMsg = 'Saved') => {
+  const savePrefs = async (patch: Record<string, unknown>, okMsg = 'Saved', lock?: string) => {
+    if (lock) setSaving(lock)
+    // optimistic: the UI reflects the choice immediately; rolled back if the server refuses
+    const before = { profile: { ...profile } as Partial<typeof profile & object>, roles }
+    const local: Record<string, unknown> = {}
+    if ('tone' in patch) local.tone = patch.tone
+    if ('defaultRole' in patch) local.default_role = patch.defaultRole
+    if ('roleLabel' in patch) local.role_label = patch.roleLabel
+    if ('tz' in patch) local.tz = patch.tz
+    if ('displayName' in patch) local.display_name = patch.displayName
+    patchLocal(local as never, Array.isArray(patch.roles) ? (patch.roles as string[]) : undefined)
     const r = await api('prefs', 'PATCH', patch)
-    if (r.ok) { await refresh(); flash(okMsg) } else flash(`Could not save (${r.error ?? 'error'})`)
+    if (r.ok) { flash(okMsg); void refresh() } else { patchLocal(before.profile as never, before.roles); flash(`Could not save (${r.error ?? 'error'})`) }
+    setSaving(null)
     return r.ok
   }
 
   const toggleRole = (id: string) => {
     const next = roles.includes(id) ? roles.filter(x => x !== id) : [...roles, id]
-    if (next.length) void savePrefs({ roles: next })
+    if (next.length) void savePrefs({ roles: next }, 'Saved', `role:${id}`)
   }
 
   const patchReminder = async (id: string, patch: Record<string, unknown>) => {
@@ -91,13 +126,14 @@ export default function SettingsPage() {
             <input id="dn" value={name} onChange={e => setName(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={field} />
           </div>
           <div>
-            <label className="text-xs block mb-1" htmlFor="tz" style={{ color: 'var(--text-muted)' }}>Timezone (reminder times and quiet hours use it)</label>
+            <label className="text-xs block mb-1" htmlFor="tz" style={{ color: 'var(--text-muted)' }}>Time zone</label>
             <select id="tz" value={timezone} onChange={e => setTimezone(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none cursor-pointer" style={field}>
-              {(TIMEZONES.includes(timezone) ? TIMEZONES : [timezone, ...TIMEZONES]).map(tz => <option key={tz} value={tz}>{tz}</option>)}
+              {tzGroups.map(([g, items]) => <optgroup key={g} label={g}>{items.map(i => <option key={i.id} value={i.id} title={i.id}>{i.label}</option>)}</optgroup>)}
             </select>
           </div>
+          <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Used for reminder times and quiet hours. Offsets shift with daylight saving.</p>
           <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Email: {profile?.email ?? 'not set. Sign in with an email link to attach one.'}</p>
-          <button onClick={() => savePrefs({ displayName: name, tz: timezone })} className="px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer hover:brightness-110" style={{ background: '#0E9C86', color: '#000' }}>Save changes</button>
+          <button onClick={() => void savePrefs({ displayName: name, tz: timezone }, 'Saved', 'profile')} disabled={saving !== null} aria-busy={saving === 'profile'} className="px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer hover:brightness-110" style={{ background: '#0E9C86', color: '#000' }}>{saving === 'profile' ? 'Saving…' : 'Save changes'}</button>
         </div>
       </section>
 
@@ -107,7 +143,7 @@ export default function SettingsPage() {
           {PRESETS.map(p => {
             const on = roles.includes(p.id)
             return (
-              <button key={p.id} onClick={() => toggleRole(p.id)} aria-pressed={on} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left cursor-pointer transition-colors"
+              <button key={p.id} onClick={() => toggleRole(p.id)} aria-pressed={on} disabled={saving !== null} aria-busy={saving === `role:${p.id}`} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left cursor-pointer transition-colors"
                 style={{ background: on ? `${p.color}15` : 'var(--recessed)', border: `1px solid ${on ? p.color : 'var(--border)'}`, color: on ? p.color : 'var(--text-sec)' }}>
                 <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: p.color }} />{p.label}
                 {on && profile?.default_role === p.id && <span className="ml-auto text-[10px] opacity-70">default</span>}
@@ -118,11 +154,11 @@ export default function SettingsPage() {
         {roles.length > 1 && (
           <div className="mt-3 flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
             <label htmlFor="dr">Default role</label>
-            <select id="dr" value={profile?.default_role ?? roles[0]} onChange={e => savePrefs({ defaultRole: e.target.value })} className="px-2 py-1 rounded-lg outline-none cursor-pointer" style={field}>
+            <select id="dr" value={profile?.default_role ?? roles[0]} onChange={e => void savePrefs({ defaultRole: e.target.value }, 'Saved', 'dr')} disabled={saving !== null} className="px-2 py-1 rounded-lg outline-none cursor-pointer" style={field}>
               {roles.map(r => <option key={r} value={r}>{PRESETS.find(p => p.id === r)?.label ?? r}</option>)}
             </select>
             <label htmlFor="rl" className="ml-3">Role label</label>
-            <select id="rl" value={profile?.role_label ?? 'on_change'} onChange={e => savePrefs({ roleLabel: e.target.value })} className="px-2 py-1 rounded-lg outline-none cursor-pointer" style={field}>
+            <select id="rl" value={profile?.role_label ?? 'on_change'} onChange={e => void savePrefs({ roleLabel: e.target.value }, 'Saved', 'rl')} disabled={saving !== null} className="px-2 py-1 rounded-lg outline-none cursor-pointer" style={field}>
               {LABELS.map(l => <option key={l.v} value={l.v}>{l.t}</option>)}
             </select>
           </div>
@@ -134,7 +170,7 @@ export default function SettingsPage() {
         <p className="text-[11px] mb-4" style={{ color: 'var(--text-muted)' }}>How the bot phrases replies, in every channel. Crisis wording and dosage safety language are never changed by tone.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {TONES.map(t => (
-            <button key={t.id} onClick={() => savePrefs({ tone: t.id })} aria-pressed={profile?.tone === t.id} className="flex flex-col gap-0.5 px-3 py-2.5 rounded-lg text-sm text-left cursor-pointer transition-colors"
+            <button key={t.id} onClick={() => void savePrefs({ tone: t.id }, 'Saved', `tone:${t.id}`)} disabled={saving !== null} aria-busy={saving === `tone:${t.id}`} aria-pressed={profile?.tone === t.id} className="flex flex-col gap-0.5 px-3 py-2.5 rounded-lg text-sm text-left cursor-pointer transition-colors"
               style={{ background: profile?.tone === t.id ? '#0E9C8615' : 'var(--recessed)', border: `1px solid ${profile?.tone === t.id ? '#0E9C86' : 'var(--border)'}`, color: profile?.tone === t.id ? '#0E9C86' : 'var(--text-sec)' }}>
               <span className="font-medium">{t.label}</span><span className="text-[10px] opacity-70">{t.hint}</span>
             </button>

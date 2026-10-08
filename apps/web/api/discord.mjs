@@ -2,6 +2,7 @@
 import { createSql } from '../../../packages/db/neon.mjs';
 import { createNeonStore } from '../../../packages/core/channels/neon-store.mjs';
 import { buildLlmClient } from '../../../packages/core/llm/index.mjs';
+import { createSettler } from '../../../packages/core/delivery/handled.mjs'
 import { handleInteraction, verifyDiscordSignature } from '../../../packages/core/channels/discord-webhook.mjs';
 import { createWalrusMemory, withMemoryLog } from '../../../packages/core/memory/walrus-memory.mjs';
 import { buildMemwalSdk } from '../lib/walrus-memory-client.mjs';
@@ -14,6 +15,8 @@ async function readRawBody(req) {
   return Buffer.concat(chunks).toString('utf8');
 }
 
+const settle = createSettler({ telegram: process.env.TELEGRAM_BOT_TOKEN, slack: process.env.SLACK_BOT_TOKEN, discord: process.env.DISCORD_BOT_TOKEN })
+
 export default async function handler(req, res) {
   const dbStore = createNeonStore(createSql());
   if (req.method !== 'POST') return res.status(405).json({ ok: false });
@@ -24,7 +27,7 @@ export default async function handler(req, res) {
   try { body = JSON.parse(raw); } catch { return res.status(400).json({ ok: false }); }
 
   try {
-    const r = await handleInteraction(body, { store: dbStore, llm: buildLlmClient(), memory: withMemoryLog(createWalrusMemory(buildMemwalSdk()), (u, r) => dbStore.logMemory(u, r), 'discord'), webBase: process.env.WEB_BASE_URL ?? 'https://vow-livid.vercel.app' });
+    const r = await handleInteraction(body, { store: dbStore, llm: buildLlmClient(), memory: withMemoryLog(createWalrusMemory(buildMemwalSdk()), (u, r) => dbStore.logMemory(u, r), 'discord'), settle, webBase: process.env.WEB_BASE_URL ?? 'https://vow-livid.vercel.app' });
     return res.status(200).json(r);
   } catch (e) {
     console.error('discord webhook', e.message);

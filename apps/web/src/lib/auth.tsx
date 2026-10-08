@@ -16,10 +16,11 @@ interface AuthCtx {
   roles: string[]
   loading: boolean
   refresh: () => Promise<void>
+  patchLocal: (profile: Partial<Profile>, roles?: string[]) => void
   logout: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthCtx>({ user: null, profile: null, channels: [], roles: [], loading: true, refresh: async () => {}, logout: async () => {} })
+const AuthContext = createContext<AuthCtx>({ user: null, profile: null, channels: [], roles: [], loading: true, refresh: async () => {}, patchLocal: () => {}, logout: async () => {} })
 
 // The browser keeps NO identity of its own: who you are is decided by the server from the HttpOnly session cookie.
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -32,11 +33,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => { void refresh() }, [refresh])
 
+  const patchLocal = (pp: Partial<Profile>, roles?: string[]) => setState(st => ({ ...st, profile: st.profile ? { ...st.profile, ...pp } : st.profile, roles: roles ?? st.roles }))
   const logout = async () => { await api('logout', 'POST', {}); setState({ profile: null, channels: [], roles: [], loading: false }) }
   const p = state.profile
   const user: User | null = p ? { id: p.id, name: p.display_name || p.email || 'You', email: p.email } : null
 
-  return <AuthContext.Provider value={{ user, profile: p, channels: state.channels, roles: state.roles, loading: state.loading, refresh, logout }}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={{ user, profile: p, channels: state.channels, roles: state.roles, loading: state.loading, refresh, patchLocal, logout }}>{children}</AuthContext.Provider>
 }
 
 export const useAuth = () => useContext(AuthContext)

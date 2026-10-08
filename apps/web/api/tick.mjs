@@ -25,9 +25,9 @@ export default async function handler(req, res) {
   const dcToken = process.env.DISCORD_BOT_TOKEN;
   const slToken = process.env.SLACK_BOT_TOKEN;
   const senders = {
-    ...(tgToken ? { telegram: ({ externalId, text, buttons, outboxId }) => createTelegramAdapter({ token: tgToken, chatId: externalId }).send({ occurrenceId: outboxId, text, buttons }) } : {}),
-    ...(dcToken ? { discord: ({ externalId, text, buttons, outboxId }) => createDiscordAdapter({ token: dcToken, userId: externalId, dmChannelCache: discordDmCache }).send({ occurrenceId: outboxId, text, buttons }) } : {}),
-    ...(slToken ? { slack: ({ externalId, text, buttons, outboxId }) => createSlackAdapter({ token: slToken, channelId: externalId }).send({ occurrenceId: outboxId, text, buttons }) } : {}),
+    ...(tgToken ? { telegram: ({ externalId, text, buttons, outboxId }) => createTelegramAdapter({ token: tgToken, chatId: externalId }).send({ occurrenceId: outboxId, text, buttons }).then(r => ({ ref: `${externalId}:${r.message_id}` })) } : {}),
+    ...(dcToken ? { discord: ({ externalId, text, buttons, outboxId }) => createDiscordAdapter({ token: dcToken, userId: externalId, dmChannelCache: discordDmCache }).send({ occurrenceId: outboxId, text, buttons }).then(r => ({ ref: `${r.channel_id}:${r.id}` })) } : {}),
+    ...(slToken ? { slack: ({ externalId, text, buttons, outboxId }) => createSlackAdapter({ token: slToken, channelId: externalId }).send({ occurrenceId: outboxId, text, buttons }).then(r => ({ ref: `${r.channel}:${r.ts}` })) } : {}),
   };
   const llm = buildLlmClient();
   try {

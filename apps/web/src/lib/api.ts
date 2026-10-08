@@ -1,7 +1,12 @@
+import { trackBusy } from './busy'
 // Thin client for the dashboard API (one serverless router, /api/dash/<op>). Session lives in an HttpOnly cookie.
 export interface ApiResult<T = Record<string, unknown>> { ok: boolean; status: number; error?: string; data: T & { ok?: boolean; error?: string } }
 
 export async function api<T = Record<string, unknown>>(op: string, method: 'GET' | 'POST' | 'PATCH' | 'DELETE' = 'GET', body?: unknown): Promise<ApiResult<T>> {
+  return trackBusy(run<T>(op, method, body))
+}
+
+async function run<T>(op: string, method: string, body?: unknown): Promise<ApiResult<T>> {
   try {
     const qs = method === 'GET' && body ? '?' + new URLSearchParams(body as Record<string, string>).toString() : ''
     const r = await fetch(`/api/dash/${op}${qs}`, {

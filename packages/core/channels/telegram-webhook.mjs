@@ -2,7 +2,7 @@
 // Link: deep link t.me/<bot>?start=<code> or manual /link CODE. /login returns a one-time web link (login happens via the bot).
 import { ROLES, ROLE_IDS } from '../../presets/roles/index.mjs';
 import { parsePriority } from '../delivery/choose.mjs';
-import { chatReply, withRoleLabel } from './chat.mjs';
+import { chatReply, withRoleLabel, shouldRemember } from './chat.mjs';
 
 const HELP = 'I am Vow. Commands: /link CODE, /login, /roles, /role <name>, /status, /quiet, /priority, /help.';
 const CHANNEL = 'telegram';
@@ -13,7 +13,7 @@ export function verifySecret(headers, expected) {
   return Boolean(expected) && got === expected;
 }
 
-export async function handleUpdate(update, { store, tg, webBase, llm, memory }) {
+export async function handleUpdate(update, { store, tg, webBase, llm, memory, settle }) {
   if (!update || typeof update.update_id !== 'number') return { ok: false, reason: 'bad_update' };
   if (await store.seenUpdate(update.update_id)) return { ok: true, duplicate: true };
 
@@ -27,6 +27,7 @@ export async function handleUpdate(update, { store, tg, webBase, llm, memory }) 
     if (!cqUser) return { ok: true, ignored: 'unlinked_chat' };
     const status = data.slice(i + 1);
     const info = await store.ackOccurrence(data.slice(0, i), status);
+    if (info && settle) await settle({ ...info, status, via: 'telegram' });
     if (memory && info) await memory.remember(cqUser.id, `[check-in, telegram] "${info.title}" (${info.role}) -> ${status}`);
     return { ok: true, acked: data.slice(0, i) };
   }
@@ -84,7 +85,7 @@ export async function handleUpdate(update, { store, tg, webBase, llm, memory }) 
       await store.saveMessage?.(user.id, 'telegram', 'in', text, r.role);
       await store.saveMessage?.(user.id, 'telegram', 'out', r.text, r.role);
       await send(withRoleLabel(r.text, r.role, user.role_label ?? 'always', user.last_role ?? null));
-      if (memory) await memory.remember(user.id, `[telegram] ${text}`);
+      if (memory && shouldRemember(text, r.role)) await memory.remember(user.id, `[telegram] ${text}`);
       return { ok: true, cmd: 'chat', role: r.role };
     }
   }

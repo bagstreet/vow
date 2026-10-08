@@ -5,7 +5,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { ROLES, ROLE_IDS } from '../../presets/roles/index.mjs';
 import { parsePriority } from '../delivery/choose.mjs';
-import { chatReply, withRoleLabel } from './chat.mjs';
+import { chatReply, withRoleLabel, shouldRemember } from './chat.mjs';
 
 const HELP = 'I am Vow. Commands: /link CODE, /login, /roles, /role <name>, /status, /quiet, /priority, /help.';
 const CODE_RE = /^[A-Z0-9]{6,12}$/i;
@@ -93,7 +93,7 @@ export async function handleEvent(body, { store, slack, webBase, llm, memory }) 
       await store.setLastRole?.(user.id, r.role);
       await store.saveMessage?.(user.id, CHANNEL, 'in', text, r.role);
       await store.saveMessage?.(user.id, CHANNEL, 'out', r.text, r.role);
-      if (memory) await memory.remember(user.id, `[slack] ${text}`);
+      if (memory && shouldRemember(text, r.role)) await memory.remember(user.id, `[slack] ${text}`);
       await send(withRoleLabel(r.text, r.role, user.role_label ?? 'always', user.last_role ?? null));
       return { ok: true, cmd: 'chat', role: r.role };
     }
@@ -102,7 +102,7 @@ export async function handleEvent(body, { store, slack, webBase, llm, memory }) 
 }
 
 /** Interactivity entry point: block_actions payload, one button press. action_id = "<occurrenceId>:<reply>" (mirrors the Telegram callback_data shape; action_id has no byte limit on Slack but we keep it consistent). */
-export async function handleInteraction(payload, { store, memory }) {
+export async function handleInteraction(payload, { store, memory, settle }) {
   if (payload?.type !== 'block_actions') return { ok: true, ignored: 'not_block_actions' };
   const action = payload.actions?.[0];
   const data = String(action?.action_id ?? action?.value ?? '');
@@ -113,6 +113,7 @@ export async function handleInteraction(payload, { store, memory }) {
   const cqUser = await store.userByChat(chat, CHANNEL);
   const status = data.slice(i + 1);
   const info = await store.ackOccurrence(data.slice(0, i), status);
-  if (memory && info) await memory.remember(cqUser.id, `[check-in, slack] "${info.title}" (${info.role}) -> ${status}`);
+  if (info && settle) await settle({ ...info, status, via: 'slack' });
+    if (memory && info) await memory.remember(cqUser.id, `[check-in, slack] "${info.title}" (${info.role}) -> ${status}`);
   return { ok: true, acked: data.slice(0, i) };
 }

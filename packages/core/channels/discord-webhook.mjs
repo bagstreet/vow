@@ -6,7 +6,7 @@
 import { createPublicKey, verify as cryptoVerify } from 'node:crypto';
 import { ROLES, ROLE_IDS } from '../../presets/roles/index.mjs';
 import { parsePriority } from '../delivery/choose.mjs';
-import { chatReply, withRoleLabel } from './chat.mjs';
+import { chatReply, withRoleLabel, shouldRemember } from './chat.mjs';
 
 const HELP = 'I am Vow. Commands: /link code:CODE, /login, /roles, /role name:<role>, /status, /quiet hours:<HH:MM-HH:MM>, /priority order:<slack telegram discord>, /ask text:<question>, /help.';
 const CODE_RE = /^[A-Z0-9]{6,12}$/i;
@@ -41,7 +41,7 @@ function opt(interaction, name) {
 }
 
 /** Single entry point for every Discord interaction (PING, slash command, button press). */
-export async function handleInteraction(interaction, { store, webBase, llm, memory }) {
+export async function handleInteraction(interaction, { store, webBase, llm, memory, settle }) {
   if (interaction?.type === PING) return PONG;
 
   // Identity key for linking/storage: prefer the Discord *user* id (interaction.member.user in a guild,
@@ -58,6 +58,7 @@ export async function handleInteraction(interaction, { store, webBase, llm, memo
     if (!cqUser) return ackUpdate();
     const status = data.slice(i + 1);
     const info = await store.ackOccurrence(data.slice(0, i), status);
+    if (info && settle) await settle({ ...info, status, via: 'discord' });
     if (memory && info) await memory.remember(cqUser.id, `[check-in, discord] "${info.title}" (${info.role}) -> ${status}`);
     return ackUpdate();
   }
@@ -113,7 +114,7 @@ export async function handleInteraction(interaction, { store, webBase, llm, memo
       await store.setLastRole?.(user.id, r.role);
       await store.saveMessage?.(user.id, CHANNEL, 'in', text, r.role);
       await store.saveMessage?.(user.id, CHANNEL, 'out', r.text, r.role);
-      if (memory) await memory.remember(user.id, `[discord] ${text}`);
+      if (memory && shouldRemember(text, r.role)) await memory.remember(user.id, `[discord] ${text}`);
       return reply(withRoleLabel(r.text, r.role, user.role_label ?? 'always', user.last_role ?? null));
     }
     default: return reply('Unknown command. Try /help.');

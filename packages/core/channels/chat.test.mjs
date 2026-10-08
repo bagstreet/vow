@@ -29,3 +29,12 @@ test('tone is injected into the system prompt, neutral adds nothing', async () =
   await chatReply({ text: 'hi', enabled: ['fitness'], def: 'fitness', llm, tone: 'neutral' });
   assert.match(seen[0], /accountability language/); assert.doesNotMatch(seen[1], /Tone:/);
 });
+
+import { shouldRemember } from './chat.mjs';
+test('shouldRemember: skips noise, keeps facts', () => {
+  assert.equal(shouldRemember('ping', 'fitness'), false);
+  assert.equal(shouldRemember('привет!', 'fitness'), false);
+  assert.equal(shouldRemember('I take 5mg of X every morning', null), false);
+  assert.equal(shouldRemember('/start', 'fitness'), false);
+  assert.equal(shouldRemember('I take 5mg of X every morning', 'medication'), true);
+});

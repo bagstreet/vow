@@ -44,8 +44,8 @@ export async function runTick({ store, senders, pickButtons = null, now = Date.n
     if (!target) { await store.markRetry(row.id, { sendAt: now, error: 'no_channel', failed: true }); out.failed++; continue; }
     try {
       const msg = buildReminder({ id: row.id, label: row.label });
-      await senders[target.channel]({ externalId: target.externalId, text: msg.text, buttons: await choose(row, msg.text), outboxId: row.id });
-      await store.markSent(row.id, { channel: target.channel, escalateAt: now + (prefs.ackMin ?? DEFAULT_ACK_MIN) * 60000 });
+      const sent = await senders[target.channel]({ externalId: target.externalId, text: msg.text, buttons: await choose(row, msg.text), outboxId: row.id });
+      await store.markSent(row.id, { channel: target.channel, escalateAt: now + (prefs.ackMin ?? DEFAULT_ACK_MIN) * 60000, ref: sent?.ref ?? null });
       out.sent++;
     } catch (e) {
       const failed = row.attempts >= MAX_ATTEMPTS;

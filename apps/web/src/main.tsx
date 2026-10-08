@@ -10,6 +10,7 @@ import HistoryPage from './pages/HistoryPage'
 import SettingsPage from './pages/SettingsPage'
 import ExportPage from './pages/ExportPage'
 import LoginPage from './pages/LoginPage'
+import { BusyIndicator } from './lib/busy'
 import './index.css'
 
 // PWA (DASHBOARD_UX_AUDIT §A7): app-shell cache + offline page only, never caches /api/*.
@@ -36,6 +37,7 @@ createRoot(document.getElementById('root')!).render(
           </Route>
         </Routes>
       </BrowserRouter>
+      <BusyIndicator />
     </AuthProvider>
   </StrictMode>,
 )

@@ -35,10 +35,10 @@ export function createNeonStore(sql) {
          where o.occurrence_id = (select occurrence_id from outbox where id::text = $1)
            and o.status in ('pending','sent','escalated','expired')
            and rem.id = o.reminder_id
-         returning rem.title, rem.role`,
+         returning rem.title, rem.role, o.channel, o.msg_ref`,
         [id, reply],
       );
-      return r[0] ? { title: r[0].title, role: r[0].role } : null;
+      return r[0] ? { title: r[0].title, role: r[0].role, messages: r.filter(x => x.msg_ref).map(x => ({ channel: x.channel, ref: x.msg_ref })) } : null;
     },
     async createLoginToken(u) { const t = randomBytes(24).toString('base64url'); await sql("insert into login_tokens(token, user_id, expires_at) values ($1,$2, now() + interval '10 minutes')", [t, u]); return t; },
     async getHistory(u, limit = 12) {

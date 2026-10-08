@@ -41,3 +41,14 @@ export function withRoleLabel(text, role, mode = 'always', lastRole = null) {
   if (!role || mode === 'off' || (mode === 'on_change' && role === lastRole)) return text;
   return `${ROLES[role].emoji} ${ROLES[role].label}\n${text}`;
 }
+
+// Memory-write filter: only durable, on-topic facts go to Walrus (every blob costs gas and is immutable).
+const SMALL_TALK = /^(ping|test|hi|hello|hey|yo|ok|okay|thanks|thank you|thx|спасибо|привет|здравствуй(те)?|ок|хорошо|да|нет|yes|no|bye|пока|\?+|\.+)[\s!.?,]*$/i;
+export function shouldRemember(text, role) {
+  const t = String(text ?? '').trim();
+  if (!role) return false;            // off-topic / refused: no role matched
+  if (t.length < 8) return false;     // too short to carry a fact
+  if (t.startsWith('/')) return false; // commands
+  if (SMALL_TALK.test(t)) return false;
+  return true;
+}
