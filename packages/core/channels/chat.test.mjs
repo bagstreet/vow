@@ -50,3 +50,12 @@ test('shouldRemember skips greetings and filler', () => {
   for (const t of ['hello there', 'good morning!', 'how are you', 'добрый день', 'got it']) assert.equal(shouldRemember(t, 'fitness'), false, t);
   assert.equal(shouldRemember('I deadlift 100 kg on Mondays', 'fitness'), true);
 });
+
+import { splitMessage } from './chat.mjs';
+test('splitMessage keeps chunks within the limit and loses no text', () => {
+  const t = Array.from({ length: 300 }, (_, i) => `word${i}`).join(' ');
+  const parts = splitMessage(t, 200);
+  assert.ok(parts.length > 1 && parts.every((p) => p.length <= 200));
+  assert.equal(parts.join(' ').replace(/\s+/g, ' '), t);
+  assert.deepEqual(splitMessage('short', 200), ['short']);
+});

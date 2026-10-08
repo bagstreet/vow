@@ -6,7 +6,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { ROLES, ROLE_IDS } from '../../presets/roles/index.mjs';
 import { parsePriority } from '../delivery/choose.mjs';
 import { runIntent, loadSchedule } from './intent.mjs';
-import { chatReply, withRoleLabel, shouldRemember } from './chat.mjs';
+import { chatReply, withRoleLabel, shouldRemember, splitMessage, CHANNEL_LIMITS } from './chat.mjs';
 
 const HELP = 'I am Vow. Commands: /link CODE, /login, /roles, /role <name>, /status, /quiet, /priority, /help.';
 const CODE_RE = /^[A-Z0-9]{6,12}$/i;
@@ -37,7 +37,7 @@ export async function handleEvent(body, { store, slack, webBase, llm, memory, se
   const text = String(ev.text ?? '').trim();
   if (!text) return { ok: true, ignored: 'no_text' };
   const chat = String(ev.channel);
-  const send = (t) => slack.postMessage(chat, t);
+  const send = async (t) => { let r; for (const part of splitMessage(t, CHANNEL_LIMITS.slack)) r = await slack.postMessage(chat, part); return r; };
   const m = text.match(/^\/(\w+)(?:\s+(.*))?$/s);
   const cmd = m?.[1]?.toLowerCase(); const arg = (m?.[2] ?? '').trim();
   const user = await store.userByChat(chat, CHANNEL);

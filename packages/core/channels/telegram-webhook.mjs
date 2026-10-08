@@ -3,7 +3,7 @@
 import { ROLES, ROLE_IDS } from '../../presets/roles/index.mjs';
 import { parsePriority } from '../delivery/choose.mjs';
 import { runIntent, loadSchedule } from './intent.mjs';
-import { chatReply, withRoleLabel, shouldRemember } from './chat.mjs';
+import { chatReply, withRoleLabel, shouldRemember, splitMessage, CHANNEL_LIMITS } from './chat.mjs';
 
 const HELP = 'I am Vow. Commands: /link CODE, /login, /roles, /role <name>, /status, /quiet, /priority, /help.';
 const CHANNEL = 'telegram';
@@ -35,7 +35,7 @@ export async function handleUpdate(update, { store, tg, webBase, llm, memory, se
 
   const msg = update.message; const text = String(msg?.text ?? '').trim();
   if (!msg || !text) return { ok: true, ignored: 'no_text' };
-  const chat = String(msg.chat.id); const send = (t) => tg.sendMessage(chat, t);
+  const chat = String(msg.chat.id); const send = async (t) => { let r; for (const part of splitMessage(t, CHANNEL_LIMITS.telegram)) r = await tg.sendMessage(chat, part); return r; };
   const m = text.match(/^\/(\w+)(?:@\w+)?(?:\s+(.*))?$/s);
   const cmd = m?.[1]?.toLowerCase(); const arg = (m?.[2] ?? '').trim();
   const user = await store.userByChat(chat);

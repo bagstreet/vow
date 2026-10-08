@@ -7,7 +7,7 @@ import { createPublicKey, verify as cryptoVerify } from 'node:crypto';
 import { ROLES, ROLE_IDS } from '../../presets/roles/index.mjs';
 import { parsePriority } from '../delivery/choose.mjs';
 import { runIntent, loadSchedule } from './intent.mjs';
-import { chatReply, withRoleLabel, shouldRemember } from './chat.mjs';
+import { chatReply, withRoleLabel, shouldRemember, splitMessage, CHANNEL_LIMITS } from './chat.mjs';
 
 const HELP = 'I am Vow. Commands: /link code:CODE, /login, /roles, /role name:<role>, /status, /quiet hours:<HH:MM-HH:MM>, /priority order:<slack telegram discord>, /ask text:<question>, /help.';
 const CODE_RE = /^[A-Z0-9]{6,12}$/i;
@@ -17,7 +17,8 @@ const APPLICATION_COMMAND = 2;
 const MESSAGE_COMPONENT = 3;
 const PONG = { type: 1 };
 const EPHEMERAL = 64; // visible only to the invoking user — commands here carry link codes/login tokens, never post them to the whole channel
-const reply = (content, extra) => ({ type: 4, data: { content, flags: EPHEMERAL, ...extra } });
+const reply = (content, extra) => ({ type: 4, data: { content: clip(content), flags: EPHEMERAL, ...extra } });
+const clip = (t) => (String(t).length > CHANNEL_LIMITS.discord ? `${String(t).slice(0, CHANNEL_LIMITS.discord - 1)}…` : t);
 const ackUpdate = () => ({ type: 6 }); // DEFERRED_UPDATE_MESSAGE-style silent ack for button presses
 
 /** Discord Ed25519 request signing (discord.com/developers/docs/interactions/overview#setting-up-an-endpoint). */

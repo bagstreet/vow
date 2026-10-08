@@ -52,3 +52,19 @@ export function shouldRemember(text, role) {
   if (SMALL_TALK.test(t)) return false;
   return true;
 }
+
+/** Per-channel outbound limits (characters): Telegram 4096, Discord 2000, Slack ~4000 per message. */
+export const CHANNEL_LIMITS = { telegram: 4096, discord: 2000, slack: 3900, web: 8000 };
+
+/** Split a long reply into chunks within `max`, preferring paragraph, then line, then word boundaries. */
+export function splitMessage(text, max = 4000) {
+  const out = []; let rest = String(text ?? '');
+  while (rest.length > max) {
+    const win = rest.slice(0, max);
+    let cut = Math.max(win.lastIndexOf('\n\n'), win.lastIndexOf('\n'), win.lastIndexOf(' '));
+    if (cut < max * 0.5) cut = max;
+    out.push(rest.slice(0, cut).trimEnd()); rest = rest.slice(cut).trimStart();
+  }
+  if (rest || !out.length) out.push(rest);
+  return out;
+}
