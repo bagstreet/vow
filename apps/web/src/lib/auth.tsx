@@ -4,7 +4,7 @@ import { api } from './api'
 export interface Profile {
   id: string; display_name: string | null; email: string | null; tz: string; tone: string
   role_label: 'always' | 'on_change' | 'off'; default_role: string | null
-  quiet_start: string | null; quiet_end: string | null; ack_min: number; channel_priority: string[]
+  quiet_start: string | null; quiet_end: string | null; ack_min: number; channel_priority: string[]; isAdmin?: boolean
 }
 export interface ChannelLink { id: string; channel: 'telegram' | 'slack' | 'discord'; lastSeenAt: string | null; linkedAt: string }
 export interface User { id: string; name: string; email: string | null }

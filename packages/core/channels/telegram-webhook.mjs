@@ -39,6 +39,7 @@ export async function handleUpdate(update, { store, tg, webBase, llm, memory, se
   const m = text.match(/^\/(\w+)(?:@\w+)?(?:\s+(.*))?$/s);
   const cmd = m?.[1]?.toLowerCase(); const arg = (m?.[2] ?? '').trim();
   const user = await store.userByChat(chat);
+  if (user?.blocked) return { ok: true, ignored: 'blocked' };
   if (user) await store.touchChannel?.(chat, 'telegram'); // activity feeds delivery ranking
 
   if (cmd === 'start' || cmd === 'link') {

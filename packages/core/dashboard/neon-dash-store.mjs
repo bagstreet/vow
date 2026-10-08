@@ -43,7 +43,7 @@ export function createNeonDashStore(sql) {
       return { id: c[0].id };
     },
     async getProfile(userId) {
-      const r = await sql('select id, display_name, email, tz, tone, role_label, default_role, last_role, quiet_start, quiet_end, ack_min, channel_priority from users where id = $1', [userId]);
+      const r = await sql('select id, blocked_at, display_name, email, tz, tone, role_label, default_role, last_role, quiet_start, quiet_end, ack_min, channel_priority from users where id = $1', [userId]);
       const u = r[0]; if (!u) return null;
       return { ...u, quiet_start: u.quiet_start ? String(u.quiet_start).slice(0, 5) : null, quiet_end: u.quiet_end ? String(u.quiet_end).slice(0, 5) : null, channel_priority: parseTextArr(u.channel_priority) };
     },
@@ -96,6 +96,13 @@ export function createNeonDashStore(sql) {
       const [profile, channels, roles, reminders, messages, memory] = await Promise.all([this.getProfile(userId), this.listChannels(userId), this.listRoles(userId), this.listReminders(userId), this.listMessages(userId, 5000), this.listMemoryLog(userId, 5000)]);
       return { profile, channels, roles, reminders, messages, memory };
     },
+    async adminListUsers() {
+      return (await sql(`select u.id, u.display_name, u.email, u.created_at, u.blocked_at is not null as blocked,
+        (select array_agg(channel) from channel_links l where l.user_id = u.id and l.enabled) as channels,
+        (select count(*)::int from memory_log m where m.user_id = u.id) as blobs,
+        (select count(*)::int from messages g where g.user_id = u.id) as messages from users u order by u.created_at desc limit 200`)).map((r) => ({ ...r, channels: parseTextArr(r.channels) }));
+    },
+    async setBlocked(id, blocked) { await sql('update users set blocked_at = case when $2 then now() else null end where id = $1', [id, !!blocked]); if (blocked) { await sql('delete from sessions where user_id = $1', [id]); await sql('update agent_tokens set revoked_at = now() where user_id = $1 and revoked_at is null', [id]); } },
     async deleteAccount(userId) { await sql('delete from users where id = $1', [userId]); },
   };
 }

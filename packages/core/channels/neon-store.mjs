@@ -1,7 +1,9 @@
 // Store for telegram-webhook.mjs on Neon. Same interface as createMemoryStore.
 import { randomBytes } from 'node:crypto';
+import { createAdminStore } from '../admin/admin-store.mjs';
 export function createNeonStore(sql) {
   return {
+    ...createAdminStore(sql),
     async seenUpdate(id) { const r = await sql('insert into idempotency(key) values ($1) on conflict do nothing returning key', [`tg:${id}`]); return r.length === 0; },
     async consumeLinkCode(code, channel = 'telegram') {
       const r = await sql('update link_codes set used_at = now() where code = $1 and used_at is null and expires_at > now() and channel = $2 returning user_id', [code, channel]);
@@ -11,7 +13,7 @@ export function createNeonStore(sql) {
     // Channels already linked for this user BEFORE this call — used to detect "this is a returning
     // user adding another channel" so the bot can say it recognizes them, not just silently continue.
     async listChannels(userId) { return (await sql('select channel from channel_links where user_id = $1 and enabled', [userId])).map((x) => x.channel); },
-    async userByChat(chat, channel = 'telegram') { const r = await sql('select l.user_id, u.default_role, u.role_label, u.last_role, u.tone from channel_links l join users u on u.id = l.user_id where l.channel = $2 and l.external_id = $1 and l.enabled', [chat, channel]); return r[0] ? { id: r[0].user_id, default_role: r[0].default_role, role_label: r[0].role_label, last_role: r[0].last_role, tone: r[0].tone } : null; },
+    async userByChat(chat, channel = 'telegram') { const r = await sql('select l.user_id, u.default_role, u.role_label, u.last_role, u.tone, u.blocked_at from channel_links l join users u on u.id = l.user_id where l.channel = $2 and l.external_id = $1 and l.enabled', [chat, channel]); return r[0] ? { id: r[0].user_id, default_role: r[0].default_role, role_label: r[0].role_label, last_role: r[0].last_role, tone: r[0].tone, blocked: !!r[0].blocked_at } : null; },
     async listRoles(u) { return (await sql('select role from user_roles where user_id = $1 and enabled order by role', [u])).map((x) => x.role); },
     async setLastRole(u, role) { await sql('update users set last_role = $2 where id = $1', [u, role]); },
     async setDefaultRole(u, role) { await sql('update users set default_role = $2 where id = $1', [u, role]); },

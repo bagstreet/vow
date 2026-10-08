@@ -5,6 +5,7 @@ import { buildLlmClient } from '../../../packages/core/llm/index.mjs';
 import { createSettler } from '../../../packages/core/delivery/handled.mjs'
 import { handleInteraction, verifyDiscordSignature } from '../../../packages/core/channels/discord-webhook.mjs';
 import { createWalrusMemory, withMemoryLog, withForgetFilter } from '../../../packages/core/memory/walrus-memory.mjs';
+import { buildMemory } from '../lib/memory-stack.mjs';
 import { buildMemwalSdk } from '../lib/walrus-memory-client.mjs';
 
 export const config = { api: { bodyParser: false }, maxDuration: 30 }; // need the raw body for Ed25519 signature verification
@@ -27,7 +28,7 @@ export default async function handler(req, res) {
   try { body = JSON.parse(raw); } catch { return res.status(400).json({ ok: false }); }
 
   try {
-    const r = await handleInteraction(body, { store: dbStore, llm: buildLlmClient(), memory: withMemoryLog(withForgetFilter(createWalrusMemory(buildMemwalSdk()), (u) => dbStore.listForgotten(u)), (u, r) => dbStore.logMemory(u, r), 'discord'), settle, webBase: process.env.WEB_BASE_URL ?? 'https://vow-livid.vercel.app' });
+    const r = await handleInteraction(body, { store: dbStore, llm: buildLlmClient(), memory: buildMemory(dbStore, 'discord'), settle, webBase: process.env.WEB_BASE_URL ?? 'https://vow-livid.vercel.app' });
     return res.status(200).json(r);
   } catch (e) {
     console.error('discord webhook', e.message);

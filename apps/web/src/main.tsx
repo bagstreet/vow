@@ -6,6 +6,7 @@ import { AuthProvider } from './lib/auth'
 import App from './App'
 import DashboardLayout from './components/DashboardLayout'
 import ChatPage from './pages/ChatPage'
+import AdminPage from './pages/AdminPage'
 import HistoryPage from './pages/HistoryPage'
 import SettingsPage from './pages/SettingsPage'
 import ExportPage from './pages/ExportPage'
@@ -33,6 +34,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="channels" element={<ChannelsPage />} />
             <Route path="history" element={<HistoryPage />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="admin" element={<AdminPage />} />
             <Route path="export" element={<ExportPage />} />
           </Route>
         </Routes>

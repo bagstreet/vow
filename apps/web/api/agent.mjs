@@ -3,6 +3,7 @@
 import { createSql } from '../../../packages/db/neon.mjs';
 import { createNeonDashStore } from '../../../packages/core/dashboard/neon-dash-store.mjs';
 import { createWalrusMemory, withMemoryLog, withForgetFilter } from '../../../packages/core/memory/walrus-memory.mjs';
+import { buildMemory } from '../lib/memory-stack.mjs';
 import { buildMemwalSdk } from '../lib/walrus-memory-client.mjs';
 import { handleAgent } from '../../../packages/core/agent/agent.mjs';
 
@@ -11,7 +12,7 @@ export default async function handler(req, res) {
     const store = createNeonDashStore(createSql());
     const bearer = String(req.headers.authorization ?? '').replace(/^Bearer\s+/i, '');
     const body = req.method === 'GET' ? { ...req.query } : (typeof req.body === 'object' && req.body ? req.body : {});
-    const memory = withMemoryLog(withForgetFilter(createWalrusMemory(buildMemwalSdk()), (u) => store.listForgotten(u)), (u, r) => store.logMemory(u, r), 'agent');
+    const memory = buildMemory(store, 'agent');
     const r = await handleAgent({ store, memory, action: String(req.query?.action ?? ''), method: req.method, body, bearer });
     res.setHeader('Cache-Control', 'no-store');
     return res.status(r.status).json(r.json);

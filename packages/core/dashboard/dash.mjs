@@ -5,6 +5,7 @@ import { ROLE_IDS } from '../../presets/roles/index.mjs';
 import { chatReply, withRoleLabel, shouldRemember } from '../channels/chat.mjs';
 import { hashToken, newToken } from './session.mjs';
 import { manageTokens } from '../agent/agent.mjs';
+import { handleAdmin, isAdmin } from '../admin/admin.mjs';
 
 export const CHANNELS = ['telegram', 'slack', 'discord'];
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -98,6 +99,8 @@ export async function handleDash({ store, op, method, body = {}, userId, deps = 
 
   if (op === 'me' && method === 'GET') {
     const p = await store.getProfile(userId); if (!p) return err(401, 'unauthorized');
+    if (p.blocked_at) return err(403, 'blocked');
+    p.isAdmin = isAdmin(p, deps.env);
     const [channels, roles] = await Promise.all([store.listChannels(userId), store.listRoles(userId)]);
     return ok({ profile: p, channels, roles });
   }
@@ -181,7 +184,10 @@ export async function handleDash({ store, op, method, body = {}, userId, deps = 
     catch { return err(502, 'stt_failed'); }
   }
   if (op === 'export' && method === 'GET') return ok({ exportedAt: new Date(now).toISOString(), data: await store.exportAll(userId) });
+  if (op === 'memory-flush' && method === 'POST') { const r = await deps.memory?.flush?.(userId); return ok({ flushed: !!r }); }
+  if (op.startsWith('admin-')) return handleAdmin({ store, op, method, body, profile: await store.getProfile(userId), env: deps.env, memory: deps.memory });
   if (op === 'account' && method === 'DELETE') {
+    if (isAdmin(await store.getProfile(userId), deps.env)) return err(403, 'admin_cannot_delete');
     if (body.confirm !== 'DELETE') return err(400, 'confirm_required');
     await store.deleteAccount(userId);
     return ok({}, { clearSession: true });

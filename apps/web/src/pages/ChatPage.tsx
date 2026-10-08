@@ -96,6 +96,7 @@ export default function ChatPage() {
         <div ref={endRef} />
       </div>
       {(voiceErr || rec !== 'idle') && <div role="status" className="px-4 pb-1 text-[11px]" style={{ background: 'var(--shell)', color: voiceErr ? '#ef4444' : 'var(--text-muted)' }}>{voiceErr || (rec === 'recording' ? 'Recording… tap the square to stop (max 60 s)' : 'Transcribing…')}</div>}
+      {input.length >= 1600 && <div role="status" className="px-4 pb-1 text-[11px] text-right" style={{ background: 'var(--shell)', color: input.length >= 2000 ? '#ef4444' : 'var(--text-muted)' }}>{input.length}/2000{input.length >= 2000 ? ' · limit reached' : ''}</div>}
       <div className="px-4 py-3 border-t flex items-center gap-2" style={{ borderColor: 'var(--border)', background: 'var(--shell)', paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
         <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && void send(input)} maxLength={2000} aria-label="Message"
           placeholder="Type a message…" className="flex-1 px-4 py-2.5 rounded-xl text-sm outline-none" style={{ background: 'var(--recessed)', color: 'var(--text)', border: '1px solid var(--border)' }} />

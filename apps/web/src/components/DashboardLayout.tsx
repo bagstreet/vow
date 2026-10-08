@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { MessageCircle, Clock, Settings, Download, Radio, LogOut, Menu, X, ChevronLeft, ChevronsLeft, ChevronsRight, HelpCircle } from 'lucide-react'
+import { MessageCircle, Clock, Settings, Download, Radio, LogOut, Menu, X, ChevronLeft, ChevronsLeft, ChevronsRight, HelpCircle, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 import OnboardingTour, { useTourAutostart } from './OnboardingTour'
 
-const NAV = [
+const BASE_NAV = [
   { to: '/dashboard', icon: MessageCircle, label: 'Chat', end: true },
   { to: '/dashboard/channels', icon: Radio, label: 'Channels' },
   { to: '/dashboard/history', icon: Clock, label: 'History' },
@@ -13,7 +13,8 @@ const NAV = [
 ]
 
 export default function DashboardLayout() {
-  const { user, logout, loading } = useAuth()
+  const { user, logout, loading, profile } = useAuth()
+  const NAV = profile?.isAdmin ? [...BASE_NAV, { to: '/dashboard/admin', icon: ShieldCheck, label: 'Admin' }] : BASE_NAV
   const navigate = useNavigate()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)

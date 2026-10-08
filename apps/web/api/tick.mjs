@@ -3,6 +3,8 @@
 import { timingSafeEqual } from 'node:crypto';
 import { createSql } from '../../../packages/db/neon.mjs';
 import { createNeonTickStore } from '../../../packages/core/scheduler/neon-tick-store.mjs';
+import { createNeonDashStore } from '../../../packages/core/dashboard/neon-dash-store.mjs';
+import { buildMemory } from '../lib/memory-stack.mjs';
 import { runTick } from '../../../packages/core/scheduler/tick.mjs';
 import { buildLlmClient } from '../../../packages/core/llm/index.mjs';
 import { pickButtons } from '../../../packages/core/channels/buttons.mjs';
@@ -46,7 +48,9 @@ export default async function handler(req, res) {
   const llm = buildLlmClient();
   try {
     const result = await runTick({ store: createNeonTickStore(createSql()), senders, pickButtons: (a) => pickButtons({ ...a, llm }), presence: slToken ? slackPresence(slToken) : null });
-    return res.status(200).json({ ok: true, ...result });
+    let digests = 0;
+    try { const ds = createNeonDashStore(createSql()); digests = await buildMemory(ds, 'digest').flushDue?.() ?? 0; } catch (e) { console.error('digest flush', e.message); }
+    return res.status(200).json({ ok: true, ...result, digests });
   } catch (e) {
     console.error('tick', e.message);
     return res.status(500).json({ ok: false });
