@@ -1131,10 +1131,10 @@ function SignIn() {
   const [email, setEmail] = useState('')
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [msg, setMsg] = useState('')
-  const providers: { name: string; href: string; color: string; icon: typeof Globe; hint: string }[] = [
+  const providers: { name: string; href: string; color: string; icon: typeof Globe; hint: string; oauth?: boolean }[] = [
     { name: 'Telegram', href: BOT_LINKS.telegram, color: '#229ED9', icon: MessageCircle, hint: 'Press Start' },
-    { name: 'Discord', href: BOT_LINKS.discord, color: '#5865F2', icon: Hash, hint: 'Add the app, run /link' },
-    { name: 'Slack', href: BOT_LINKS.slack, color: '#611f69', icon: Monitor, hint: 'Open the app, say hi' },
+    { name: 'Discord', href: '/api/dash/oauth-start?provider=discord', color: '#5865F2', icon: Hash, hint: 'Authorize, you land in the dashboard', oauth: true },
+    { name: 'Slack', href: '/api/dash/oauth-start?provider=slack', color: '#611f69', icon: Monitor, hint: 'Authorize, you land in the dashboard', oauth: true },
   ]
   const sendLink = async (e: React.FormEvent) => {
     e.preventDefault(); setState('sending')
@@ -1148,19 +1148,19 @@ function SignIn() {
         <FadeIn>
           <div className="text-center mb-8">
             <h2 className="text-2xl sm:text-3xl font-bold mb-2" style={{color:T.text}}>Start in the messenger you already use</h2>
-            <p style={{color:T.textMuted}}>Your account is created by your first message to Vow. Then send <code>/login</code> and tap the link to open the dashboard.</p>
+            <p style={{color:T.textMuted}}>Sign in with Discord or Slack, or press Start in Telegram and send <code>/login</code>. Same account and memory everywhere.</p>
           </div>
         </FadeIn>
         <FadeIn delay={100}>
           <div className="space-y-3">
             {providers.map((p, i) => (
-              <a key={i} href={p.href} target="_blank" rel="noreferrer"
+              <a key={i} href={p.href} {...(p.oauth ? {} : { target: '_blank', rel: 'noreferrer' })}
                 className="w-full flex items-center gap-3 px-5 py-3.5 rounded-xl cursor-pointer transition-all hover:scale-[1.02] hover:brightness-110"
                 style={{background:T.surface, border:`1px solid ${T.border}`}}>
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:`${p.color}15`}}>
                   <p.icon size={20} style={{color:p.color}} />
                 </div>
-                <span className="font-semibold text-sm" style={{color:T.text}}>Open in {p.name}</span>
+                <span className="font-semibold text-sm" style={{color:T.text}}>{p.oauth ? `Sign in with ${p.name}` : `Open in ${p.name}`}</span>
                 <span className="text-[11px] ml-2" style={{color:T.textMuted}}>{p.hint}</span>
                 <ChevronRight size={16} className="ml-auto" style={{color:T.textMuted}} />
               </a>

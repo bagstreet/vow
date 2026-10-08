@@ -27,6 +27,14 @@ export function createNeonDashStore(sql) {
     async countRecentMagic(email) { return Number((await sql("select count(*)::int n from magic_tokens where email = $1 and expires_at > now() - interval '50 minutes'", [email]))[0].n); },
     async createMagic(email, hash) { await sql("insert into magic_tokens(token_hash, email, expires_at) values ($1,$2, now() + interval '10 minutes')", [hash, email]); },
     async consumeMagic(hash) { return (await sql('update magic_tokens set used_at = now() where token_hash = $1 and used_at is null and expires_at > now() returning email', [hash]))[0]?.email ?? null; },
+    async userByChat(chat, channel) { const r = await sql('select user_id from channel_links where channel = $2 and external_id = $1 and enabled', [chat, channel]); return r[0] ? { id: r[0].user_id } : null; },
+    async signUp(channel, chat, displayName) {
+      const u = await sql('insert into users(display_name, default_role) values ($1, $2) returning id', [displayName ?? null, 'fitness']);
+      await sql("insert into user_roles(user_id, role) values ($1,'fitness') on conflict do nothing", [u[0].id]);
+      await sql('insert into channel_links(user_id, channel, external_id, last_seen_at) values ($1,$2,$3,now()) on conflict (channel, external_id) do nothing', [u[0].id, channel, chat]);
+      return { id: u[0].id };
+    },
+    async touchChannel(chat, channel) { await sql('update channel_links set last_seen_at = now() where channel = $2 and external_id = $1', [chat, channel]); },
     async findOrCreateByEmail(email) {
       const f = await sql('select id from users where lower(email) = $1', [email]); if (f[0]) return { id: f[0].id };
       const c = await sql('insert into users(display_name, email) values ($1,$2) returning id', [email.split('@')[0], email]);
