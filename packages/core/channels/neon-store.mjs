@@ -40,6 +40,18 @@ export function createNeonStore(sql) {
       );
       return r[0] ? { title: r[0].title, role: r[0].role, messages: r.filter(x => x.msg_ref).map(x => ({ channel: x.channel, ref: x.msg_ref })) } : null;
     },
+    // Chat-side reminder management (same rows the dashboard edits) and "what is the user answering?" lookup.
+    async latestOpenOccurrence(u) {
+      const r = await sql("select o.id, rem.title, rem.role, o.status from outbox o join reminders rem on rem.id = o.reminder_id where o.user_id = $1 and o.status in ('sent','escalated','expired') and o.send_at > now() - interval '24 hours' order by o.send_at desc limit 1", [u]);
+      return r[0] ?? null;
+    },
+    async lastReminderSent(u) {
+      const r = await sql("select rem.title, rem.role, o.status from outbox o join reminders rem on rem.id = o.reminder_id where o.user_id = $1 and o.status <> 'pending' order by o.send_at desc limit 1", [u]);
+      return r[0] ?? null;
+    },
+    async listUserReminders(u) { return (await sql('select id, title, role, time_local, days, enabled from reminders where user_id = $1 order by time_local, created_at', [u])).map((x) => ({ id: x.id, title: x.title, role: x.role, time: String(x.time_local).slice(0, 5), days: x.days, enabled: x.enabled })); },
+    async addUserReminder(u, v) { await sql('insert into reminders(user_id, role, title, time_local, days) values ($1,$2,$3,$4,$5::smallint[])', [u, v.role, v.title, v.time, v.days]); },
+    async removeUserReminder(u, id) { await sql('delete from reminders where id = $1 and user_id = $2', [id, u]); },
     async createLoginToken(u) { const t = randomBytes(24).toString('base64url'); await sql("insert into login_tokens(token, user_id, expires_at) values ($1,$2, now() + interval '10 minutes')", [t, u]); return t; },
     async getHistory(u, limit = 12) {
       const r = await sql('select direction, role, content from chat_messages where user_id = $1 order by created_at desc limit $2', [u, limit]);

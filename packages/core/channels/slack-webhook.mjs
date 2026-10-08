@@ -5,6 +5,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { ROLES, ROLE_IDS } from '../../presets/roles/index.mjs';
 import { parsePriority } from '../delivery/choose.mjs';
+import { runIntent, loadSchedule } from './intent.mjs';
 import { chatReply, withRoleLabel, shouldRemember } from './chat.mjs';
 
 const HELP = 'I am Vow. Commands: /link CODE, /login, /roles, /role <name>, /status, /quiet, /priority, /help.';
@@ -25,7 +26,7 @@ export function verifySlackSignature(headers, rawBody, signingSecret, nowSec = M
 }
 
 /** Events API entry point. Handles the one-time url_verification handshake and DM messages. */
-export async function handleEvent(body, { store, slack, webBase, llm, memory }) {
+export async function handleEvent(body, { store, slack, webBase, llm, memory, settle }) {
   if (body?.type === 'url_verification') return { ok: true, challenge: body.challenge };
   if (body?.type !== 'event_callback') return { ok: true, ignored: 'not_event' };
 
@@ -87,9 +88,17 @@ export async function handleEvent(body, { store, slack, webBase, llm, memory }) 
     default: {
       if (cmd || !llm) return { ok: true, cmd: cmd ?? 'chat', route: 'router' };
       const enabled = await store.listRoles(user.id);
+      const act = await runIntent({ text, user, store, memory, settle, channel: CHANNEL, enabled });
+      if (act) {
+        await store.saveMessage?.(user.id, CHANNEL, 'in', text, act.role ?? null);
+        await store.saveMessage?.(user.id, CHANNEL, 'out', act.text, act.role ?? null);
+        await send(act.text);
+        return { ok: true, cmd: 'intent', role: act.role ?? null };
+      }
+      const schedule = await loadSchedule(store, user.id);
       const history = (await store.getHistory?.(user.id)) ?? [];
       const remembered = memory ? await memory.recall(user.id, text) : [];
-      const r = await chatReply({ text, enabled, def: user.default_role, llm, history, remembered, tone: user.tone });
+      const r = await chatReply({ text, enabled, def: user.default_role, llm, history, remembered, tone: user.tone, schedule });
       await store.setLastRole?.(user.id, r.role);
       await store.saveMessage?.(user.id, CHANNEL, 'in', text, r.role);
       await store.saveMessage?.(user.id, CHANNEL, 'out', r.text, r.role);
