@@ -9,6 +9,11 @@ const BOTS: { id: Bot; name: string; icon: typeof Hash; note: string; cmd: strin
   { id: 'slack', name: 'Slack', icon: Monitor, note: 'DM the app. Vow also checks whether you are active in Slack right now.', cmd: '/link CODE' },
   { id: 'discord', name: 'Discord', icon: Hash, note: 'Add the app to your account, then run the command anywhere or in DM.', cmd: '/link code:CODE' },
 ]
+const OPEN: Record<Bot, { label: string; url: (code: string) => string; hint: string }> = {
+  telegram: { label: 'Open in Telegram', url: (c) => `https://t.me/VoW_rebot?start=${c}`, hint: 'Press Start in the chat: the code is sent for you.' },
+  slack: { label: 'Open in Slack', url: () => 'https://slack.com/app_redirect?app=A0C6WKX1SNB&team=T0BA1NY055L', hint: 'Slack cannot pre-fill the message: paste the command below.' },
+  discord: { label: 'Add Vow to Discord', url: () => 'https://discord.com/oauth2/authorize?client_id=1557286978905571428&scope=bot+applications.commands&permissions=412317240384', hint: 'Add the app, then run the command in any channel or DM.' },
+}
 const PLANNED = [
   { name: 'Desktop helper', icon: Laptop, note: 'Fastest channel: native notification with buttons. Planned.' },
   { name: 'Mobile push', icon: Smartphone, note: 'Planned.' },
@@ -79,8 +84,9 @@ export default function ChannelsPage() {
                     <div className="flex items-center gap-2">
                       <code className="px-2 py-1 rounded font-mono text-sm tracking-wider" style={card}>{link.code}</code>
                       <button onClick={() => { void navigator.clipboard?.writeText(link.code); setCopied(true); setTimeout(() => setCopied(false), 1500) }} className="p-1.5 rounded cursor-pointer hover:bg-white/10" aria-label="Copy code" style={{ color: 'var(--text-muted)' }}>{copied ? <Check size={14} /> : <Copy size={14} />}</button>
-                      {link.deepLink && <a href={link.deepLink} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: '#0E9C86', color: '#000' }}>Open bot</a>}
+                      <a href={link.deepLink ?? OPEN[b.id].url(link.code)} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: '#0E9C86', color: '#000' }}>{OPEN[b.id].label}</a>
                     </div>
+                    <div style={{ color: 'var(--text-muted)' }}>{OPEN[b.id].hint}</div>
                     <div style={{ color: 'var(--text-muted)' }}>Waiting for confirmation…</div>
                   </div>
                 )}
