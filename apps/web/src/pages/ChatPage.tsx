@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Send } from 'lucide-react'
+import { Send, Mic, Square } from 'lucide-react'
 import { RoleAvatar } from '../components/RoleAvatar'
 import { useAuth } from '../lib/auth'
 import { api } from '../lib/api'
@@ -16,6 +16,33 @@ export default function ChatPage() {
   const [busy, setBusy] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
   const enabled = roles as RoleId[]
+  // Voice input: MediaRecorder -> /api/dash/transcribe (Groq Whisper) -> text lands in the input box for review before sending.
+  const [rec, setRec] = useState<'idle' | 'recording' | 'transcribing'>('idle')
+  const [voiceErr, setVoiceErr] = useState('')
+  const recorder = useRef<MediaRecorder | null>(null)
+  const chunks = useRef<Blob[]>([])
+  const canVoice = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined'
+  const toggleVoice = async () => {
+    setVoiceErr('')
+    if (rec === 'recording') { recorder.current?.stop(); return }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mr = new MediaRecorder(stream); chunks.current = []
+      mr.ondataavailable = e => { if (e.data.size) chunks.current.push(e.data) }
+      mr.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop())
+        setRec('transcribing')
+        const blob = new Blob(chunks.current, { type: mr.mimeType || 'audio/webm' })
+        const b64 = await new Promise<string>(res => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1] ?? ''); fr.readAsDataURL(blob) })
+        const r = await api<{ text: string }>('transcribe', 'POST', { audio: b64, mime: blob.type })
+        if (r.ok) setInput(p => (p ? p + ' ' : '') + r.data.text)
+        else setVoiceErr(r.error === 'no_speech' ? 'Could not hear anything. Try again.' : r.error === 'too_long' ? 'Recording is too long.' : 'Voice input is unavailable right now.')
+        setRec('idle')
+      }
+      recorder.current = mr; mr.start(); setRec('recording')
+      setTimeout(() => { if (mr.state === 'recording') mr.stop() }, 60_000) // hard cap: 60 s
+    } catch { setVoiceErr('Microphone access was denied.'); setRec('idle') }
+  }
 
   useEffect(() => {
     api<{ messages: HistoryRow[] }>('history').then(r => {
@@ -68,9 +95,13 @@ export default function ChatPage() {
         ))}
         <div ref={endRef} />
       </div>
+      {(voiceErr || rec !== 'idle') && <div role="status" className="px-4 pb-1 text-[11px]" style={{ background: 'var(--shell)', color: voiceErr ? '#ef4444' : 'var(--text-muted)' }}>{voiceErr || (rec === 'recording' ? 'Recording… tap the square to stop (max 60 s)' : 'Transcribing…')}</div>}
       <div className="px-4 py-3 border-t flex items-center gap-2" style={{ borderColor: 'var(--border)', background: 'var(--shell)', paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
         <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && void send(input)} maxLength={2000} aria-label="Message"
           placeholder="Type a message…" className="flex-1 px-4 py-2.5 rounded-xl text-sm outline-none" style={{ background: 'var(--recessed)', color: 'var(--text)', border: '1px solid var(--border)' }} />
+        {canVoice && <button onClick={() => void toggleVoice()} disabled={rec === 'transcribing' || busy} aria-busy={rec === 'transcribing'} aria-label={rec === 'recording' ? 'Stop recording' : 'Voice input'} title={rec === 'recording' ? 'Stop recording' : 'Voice input'}
+          className="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer" style={{ background: rec === 'recording' ? '#ef4444' : 'var(--recessed)', color: rec === 'recording' ? '#fff' : 'var(--text-sec)', border: '1px solid var(--border)' }}>
+          {rec === 'transcribing' ? <span className="vow-spinner" aria-hidden="true" /> : rec === 'recording' ? <Square size={14} /> : <Mic size={16} />}</button>}
         <button onClick={() => void send(input)} disabled={!input.trim() || busy} aria-label="Send" className="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer transition-opacity disabled:opacity-30" style={{ background: '#0E9C86', color: '#000' }}><Send size={16} /></button>
       </div>
     </div>

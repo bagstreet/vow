@@ -7,6 +7,7 @@ import { hashToken, readCookie, cookieHeader, clearCookieHeader } from '../../..
 import { buildLlmClient } from '../../../packages/core/llm/index.mjs';
 import { createWalrusMemory } from '../../../packages/core/memory/walrus-memory.mjs';
 import { buildMemwalSdk } from '../lib/walrus-memory-client.mjs';
+import { transcribeAudio } from '../lib/transcribe.mjs';
 import { sendMagicMail } from '../lib/mail.mjs';
 
 let botCache;
@@ -28,7 +29,7 @@ export default async function handler(req, res) {
     const userId = sid ? await store.sessionUser(hashToken(sid)) : null;
     // CSRF: state-changing calls must come from our own origin (SameSite=Lax cookie is the second layer).
     if (req.method !== 'GET' && req.headers.origin && new URL(req.headers.origin).host !== req.headers.host) return res.status(403).json({ ok: false, error: 'bad_origin' });
-    const deps = op === 'link-code' ? { telegramBot } : op === 'chat' ? { llm: buildLlmClient(), memory: createWalrusMemory(buildMemwalSdk()) } : { sendMagic: (email, token) => sendMagicMail(email, token, process.env.WEB_BASE_URL ?? 'https://vow-livid.vercel.app') };
+    const deps = op === 'link-code' ? { telegramBot } : op === 'transcribe' ? { transcribe: transcribeAudio } : op === 'chat' ? { llm: buildLlmClient(), memory: createWalrusMemory(buildMemwalSdk()) } : { sendMagic: (email, token) => sendMagicMail(email, token, process.env.WEB_BASE_URL ?? 'https://vow-livid.vercel.app') };
     const r = await handleDash({ store, op, method: req.method, body, userId, deps });
     if (r.setSession) res.setHeader('Set-Cookie', cookieHeader(r.setSession));
     if (r.clearSession) { if (sid) await store.deleteSession(hashToken(sid)); res.setHeader('Set-Cookie', clearCookieHeader()); }

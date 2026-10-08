@@ -144,3 +144,13 @@ test('export returns the user data; account delete requires confirmation and wip
 test('cleanPrefs ignores unknown keys (no mass assignment)', () => {
   assert.deepEqual(cleanPrefs({ isAdmin: true, email: 'x@y.z' }).value, {});
 });
+
+test('transcribe: auth, validation, success, failure', async () => {
+  const { handleDash } = await import('./dash.mjs');
+  const mk = (extra) => ({ store: { sessionUser: async () => 'u' }, op: 'transcribe', method: 'POST', userId: 'u', ...extra });
+  assert.equal((await handleDash(mk({ body: {}, deps: {} }))).status, 400);
+  assert.equal((await handleDash(mk({ body: { audio: 'QQ==' }, deps: {} }))).status, 501);
+  assert.equal((await handleDash(mk({ body: { audio: 'QQ==' }, deps: { transcribe: async () => 'hello' } }))).json.text, 'hello');
+  assert.equal((await handleDash(mk({ body: { audio: 'QQ==' }, deps: { transcribe: async () => { throw new Error('x'); } } }))).status, 502);
+  assert.equal((await handleDash(mk({ userId: null, body: { audio: 'QQ==' }, deps: { transcribe: async () => 'x' } }))).status, 401);
+});

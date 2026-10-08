@@ -165,6 +165,13 @@ export async function handleDash({ store, op, method, body = {}, userId, deps = 
     }
     return ok({ reply: r.text, labelled: reply, role: r.role, remembered: remembered.length, memoryJob: jobId });
   }
+  if (op === 'transcribe' && method === 'POST') {
+    const audio = String(body.audio ?? ''); if (!audio) return err(400, 'empty');
+    if (audio.length > 4_000_000) return err(413, 'too_long');
+    if (!deps.transcribe) return err(501, 'stt_unavailable');
+    try { const text = await deps.transcribe(audio, String(body.mime ?? 'audio/webm')); return text ? ok({ text }) : err(422, 'no_speech'); }
+    catch { return err(502, 'stt_failed'); }
+  }
   if (op === 'export' && method === 'GET') return ok({ exportedAt: new Date(now).toISOString(), data: await store.exportAll(userId) });
   if (op === 'account' && method === 'DELETE') {
     if (body.confirm !== 'DELETE') return err(400, 'confirm_required');
