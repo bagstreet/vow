@@ -26,6 +26,7 @@ createRoot(document.getElementById('root')!).render(
         <Routes>
           <Route path="/" element={<App />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/magic" element={<LoginPage kind="magic" />} />
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<ChatPage />} />
             <Route path="channels" element={<ChannelsPage />} />

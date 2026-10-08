@@ -1,86 +1,42 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { api } from './api'
 
-export interface User {
-  id: string
-  name: string
-  provider: 'telegram' | 'discord' | 'slack' | 'web'
-  avatar?: string
-  preset?: string
-  createdAt: string
+export interface Profile {
+  id: string; display_name: string | null; email: string | null; tz: string; tone: string
+  role_label: 'always' | 'on_change' | 'off'; default_role: string | null
+  quiet_start: string | null; quiet_end: string | null; ack_min: number; channel_priority: string[]
 }
+export interface ChannelLink { id: string; channel: 'telegram' | 'slack' | 'discord'; lastSeenAt: string | null; linkedAt: string }
+export interface User { id: string; name: string; email: string | null }
 
 interface AuthCtx {
   user: User | null
-  login: (provider: User['provider']) => void
-  loginWithUserId: (id: string, provider: User['provider'], name?: string) => void
-  logout: () => void
-  updateUser: (patch: Partial<User>) => void
+  profile: Profile | null
+  channels: ChannelLink[]
+  roles: string[]
+  loading: boolean
+  refresh: () => Promise<void>
+  logout: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthCtx>({
-  user: null,
-  login: () => {},
-  loginWithUserId: () => {},
-  logout: () => {},
-  updateUser: () => {},
-})
+const AuthContext = createContext<AuthCtx>({ user: null, profile: null, channels: [], roles: [], loading: true, refresh: async () => {}, logout: async () => {} })
 
-const STORAGE_KEY = 'vow_user'
-
-// Demo user names per provider
-const DEMO_NAMES: Record<string, string> = {
-  telegram: 'Telegram User',
-  discord: 'Discord User',
-  slack: 'Slack User',
-  web: 'Web User',
-}
-
+// The browser keeps NO identity of its own: who you are is decided by the server from the HttpOnly session cookie.
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      return stored ? JSON.parse(stored) : null
-    } catch { return null }
-  })
+  const [state, setState] = useState<{ profile: Profile | null; channels: ChannelLink[]; roles: string[]; loading: boolean }>({ profile: null, channels: [], roles: [], loading: true })
 
-  useEffect(() => {
-    if (user) localStorage.setItem(STORAGE_KEY, JSON.stringify(user))
-    else localStorage.removeItem(STORAGE_KEY)
-  }, [user])
+  const refresh = useCallback(async () => {
+    const r = await api<{ profile: Profile; channels: ChannelLink[]; roles: string[] }>('me')
+    setState(r.ok ? { profile: r.data.profile, channels: r.data.channels, roles: r.data.roles, loading: false } : { profile: null, channels: [], roles: [], loading: false })
+  }, [])
 
-  const login = (provider: User['provider']) => {
-    const newUser: User = {
-      id: `user_${Date.now().toString(36)}`,
-      name: DEMO_NAMES[provider] || 'User',
-      provider,
-      createdAt: new Date().toISOString(),
-    }
-    setUser(newUser)
-    // Best-effort: replace the client-only id with a real backend account (T54) so channel-linking has
-    // something real to attach to. Falls back silently to the local-only id (e.g. no API in local dev).
-    fetch('/api/account', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ displayName: newUser.name }) })
-      .then(r => (r.ok ? r.json() : null))
-      .then(data => { if (data?.ok && data.userId) setUser(prev => (prev ? { ...prev, id: data.userId } : prev)) })
-      .catch(() => { /* stays on the local-only id */ })
-  }
+  useEffect(() => { void refresh() }, [refresh])
 
-  const logout = () => setUser(null)
+  const logout = async () => { await api('logout', 'POST', {}); setState({ profile: null, channels: [], roles: [], loading: false }) }
+  const p = state.profile
+  const user: User | null = p ? { id: p.id, name: p.display_name || p.email || 'You', email: p.email } : null
 
-  // Used by the /login page (T54 reverse path): the bot already proved who this is via a one-time
-  // token, so we trust the returned userId directly instead of calling /api/account again.
-  const loginWithUserId = (id: string, provider: User['provider'], name?: string) => {
-    setUser({ id, name: name || DEMO_NAMES[provider] || 'User', provider, createdAt: new Date().toISOString() })
-  }
-
-  const updateUser = (patch: Partial<User>) => {
-    setUser(prev => prev ? { ...prev, ...patch } : null)
-  }
-
-  return (
-    <AuthContext.Provider value={{ user, login, loginWithUserId, logout, updateUser }}>
-      {children}
-    </AuthContext.Provider>
-  )
+  return <AuthContext.Provider value={{ user, profile: p, channels: state.channels, roles: state.roles, loading: state.loading, refresh, logout }}>{children}</AuthContext.Provider>
 }
 
 export const useAuth = () => useContext(AuthContext)

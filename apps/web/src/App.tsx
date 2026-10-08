@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Dumbbell, Pill, Apple, Heart, BookOpen, Shield, Link2, Key, FileCheck, RotateCcw, Settings, ChevronDown, Send, Mic, Bell, MessageCircle, Smartphone, Monitor, Copy, Check, ArrowUp, X, ChevronRight, Globe, Hash } from 'lucide-react'
-import { useAuth } from './lib/auth'
+import { api } from './lib/api'
 /* TODO #14-16: Record 10+ mainnet blobs, add "Verify on Walruscan" button with real blob ID, before/after evidence */
 /* TODO #19: Add tool-calling visualization (how bot decides remember vs recall) when LLM backend is connected */
 
@@ -1122,45 +1121,65 @@ function CTA() {
   )
 }
 
-/* ═══ Sign In (one button, connects via messenger account) ═══ */
+/* ═══ Sign In: bot-first (account is created by the first message to any bot), or an emailed one-time link ═══ */
+const BOT_LINKS = {
+  telegram: 'https://t.me/VoW_rebot',
+  discord: 'https://discord.com/oauth2/authorize?client_id=1557286978905571428&integration_type=1&scope=applications.commands',
+  slack: 'https://slack.com/app_redirect?app=A0C6WKX1SNB',
+}
 function SignIn() {
-  const navigate = useNavigate()
-  const { login } = useAuth()
-  const providers: { name: string; key: 'telegram' | 'discord' | 'slack' | 'web'; color: string; icon: typeof Globe }[] = [
-    { name: 'Telegram', key: 'telegram', color: '#229ED9', icon: MessageCircle },
-    { name: 'Discord', key: 'discord', color: '#5865F2', icon: Hash },
-    { name: 'Slack', key: 'slack', color: '#611f69', icon: Monitor },
-    { name: 'Web App', key: 'web', color: T.accentHex, icon: Globe },
+  const [email, setEmail] = useState('')
+  const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [msg, setMsg] = useState('')
+  const providers: { name: string; href: string; color: string; icon: typeof Globe; hint: string }[] = [
+    { name: 'Telegram', href: BOT_LINKS.telegram, color: '#229ED9', icon: MessageCircle, hint: 'Press Start' },
+    { name: 'Discord', href: BOT_LINKS.discord, color: '#5865F2', icon: Hash, hint: 'Add the app, run /link' },
+    { name: 'Slack', href: BOT_LINKS.slack, color: '#611f69', icon: Monitor, hint: 'Open the app, say hi' },
   ]
-  const handleLogin = (key: 'telegram' | 'discord' | 'slack' | 'web') => {
-    login(key)
-    navigate('/dashboard')
+  const sendLink = async (e: React.FormEvent) => {
+    e.preventDefault(); setState('sending')
+    const r = await api('magic-request', 'POST', { email })
+    if (r.ok) setState('sent')
+    else { setState('error'); setMsg(r.error === 'too_many_requests' ? 'Too many requests, try again in a while.' : r.error === 'bad_email' ? 'That email does not look right.' : 'Could not send the link. Try again.') }
   }
   return (
     <section id="signin" className="py-20 px-6">
       <div className="max-w-md mx-auto">
         <FadeIn>
           <div className="text-center mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-2" style={{color:T.text}}>Connect in one tap</h2>
-            <p style={{color:T.textMuted}}>Sign in with the messenger you already use. No new account needed.</p>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2" style={{color:T.text}}>Start in the messenger you already use</h2>
+            <p style={{color:T.textMuted}}>Your account is created by your first message to Vow. Then send <code>/login</code> and tap the link to open the dashboard.</p>
           </div>
         </FadeIn>
         <FadeIn delay={100}>
           <div className="space-y-3">
             {providers.map((p, i) => (
-              <button key={i} onClick={() => handleLogin(p.key)}
+              <a key={i} href={p.href} target="_blank" rel="noreferrer"
                 className="w-full flex items-center gap-3 px-5 py-3.5 rounded-xl cursor-pointer transition-all hover:scale-[1.02] hover:brightness-110"
                 style={{background:T.surface, border:`1px solid ${T.border}`}}>
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:`${p.color}15`}}>
                   <p.icon size={20} style={{color:p.color}} />
                 </div>
-                <span className="font-semibold text-sm" style={{color:T.text}}>Continue with {p.name}</span>
+                <span className="font-semibold text-sm" style={{color:T.text}}>Open in {p.name}</span>
+                <span className="text-[11px] ml-2" style={{color:T.textMuted}}>{p.hint}</span>
                 <ChevronRight size={16} className="ml-auto" style={{color:T.textMuted}} />
-              </button>
+              </a>
             ))}
           </div>
+          <form onSubmit={sendLink} className="mt-5 p-4 rounded-xl" style={{background:T.surface, border:`1px solid ${T.border}`}}>
+            <p className="text-xs font-semibold mb-2" style={{color:T.text}}>Or sign in with email, no password</p>
+            <div className="flex gap-2">
+              <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" aria-label="Email"
+                className="flex-1 min-w-0 px-3 py-2 rounded-lg text-sm outline-none" style={{background:'transparent', color:T.text, border:`1px solid ${T.border}`}} />
+              <button type="submit" disabled={state==='sending'} className="px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer" style={{background:T.accentHex, color:'#000'}}>
+                {state==='sending' ? 'Sending…' : 'Email me a link'}
+              </button>
+            </div>
+            {state==='sent' && <p className="text-[11px] mt-2" style={{color:T.accentHex}}>If that address can receive mail, a one-time link is on its way (valid 10 minutes).</p>}
+            {state==='error' && <p className="text-[11px] mt-2" style={{color:'#ef4444'}}>{msg}</p>}
+          </form>
           <p className="text-center text-[11px] mt-4" style={{color:T.textMuted}}>
-            Your data is encrypted with keys you control. We never see your health records.
+            One memory and one assistant across all channels. Your notes are stored as encrypted blobs on Walrus.
           </p>
         </FadeIn>
       </div>

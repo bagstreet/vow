@@ -1,211 +1,77 @@
-import { useState, useRef, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Send } from 'lucide-react'
-import { useAuth } from '../lib/auth'
 import { RoleAvatar } from '../components/RoleAvatar'
-import { ROLES, ROLE_IDS, COLORS, routeText, shouldShowRoleLabel, loadPref, savePref, type RoleId, type LabelMode } from '../lib/roles'
+import { useAuth } from '../lib/auth'
+import { api } from '../lib/api'
+import { ROLES, COLORS, type RoleId } from '../lib/roles'
 
-interface Message {
-  id: string
-  from: 'user' | 'bot'
-  text: string
-  timestamp: Date
-  receipt?: string
-  buttons?: string[]
-  roleTag?: string
-  role?: RoleId
-}
+interface Message { id: string; from: 'user' | 'bot'; text: string; at: Date; role?: RoleId | null; memory?: string; error?: boolean }
+interface HistoryRow { direction: 'in' | 'out'; role: RoleId | null; content: string; created_at: string }
 
-// Simulated bot responses (will be replaced with real Groq API)
-const BOT_RESPONSES: Record<string, { text: string; receipt?: string; buttons?: string[] }> = {
-  default: {
-    text: "I hear you! Let me log that check-in. Your commitment is being sealed on Walrus right now.",
-    receipt: "vow_0x" + Math.random().toString(16).slice(2, 10) + "..." + Math.random().toString(16).slice(2, 6),
-    buttons: ['View receipt', 'Next check-in', 'My streak'],
-  },
-  '/streak': {
-    text: "Your current streak: 3 days. All entries verified on-chain. Keep it up!",
-    buttons: ['View chain', 'Export history'],
-  },
-  '/help': {
-    text: "Available commands:\n/checkin - Log a check-in\n/streak - View your streak\n/correct - Add an honest correction\n/export - Export your data\n/settings - Adjust reminders",
-  },
-}
-
-function getReply(input: string): { text: string; receipt?: string; buttons?: string[] } {
-  const cmd = input.trim().toLowerCase()
-  if (BOT_RESPONSES[cmd]) return BOT_RESPONSES[cmd]
-  if (cmd.includes('streak')) return BOT_RESPONSES['/streak']
-  if (cmd.includes('help')) return BOT_RESPONSES['/help']
-  return {
-    ...BOT_RESPONSES.default,
-    receipt: "vow_0x" + Math.random().toString(16).slice(2, 10) + "..." + Math.random().toString(16).slice(2, 6),
-  }
-}
-
+// Real chat: the same brain as the Telegram/Slack/Discord bots (roles, short-term history, Walrus recall + remember).
 export default function ChatPage() {
-  const { user } = useAuth()
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '0',
-      from: 'bot',
-      text: `Welcome${user?.name ? ', ' + user.name : ''}! I'm your Vow companion. Tell me what you're tracking today, or turn roles on and off above. Address one directly with @medication, @study and so on.\n\nType /help to see available commands.`,
-      timestamp: new Date(),
-      buttons: ['Start tracking', 'What can you do?', '/help'],
-    },
-  ])
+  const { roles } = useAuth()
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
-  const [typing, setTyping] = useState(false)
-  const [enabled, setEnabled] = useState<RoleId[]>(() => loadPref<RoleId[]>('roles', ROLE_IDS))
-  const labelMode = loadPref<LabelMode>('labelMode', 'change')
-  const lastRole = useRef<RoleId | null>(null)
-  const toggle = (id: RoleId) => setEnabled(prev => {
-    const next = prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]
-    if (next.length === 0) return prev
-    savePref('roles', next); return next
-  })
+  const [busy, setBusy] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const enabled = roles as RoleId[]
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, typing])
+  useEffect(() => {
+    api<{ messages: HistoryRow[] }>('history').then(r => {
+      if (!r.ok) return
+      setMessages(r.data.messages.slice(-30).map((m, i) => ({ id: `h${i}`, from: m.direction === 'in' ? 'user' : 'bot', text: m.content, at: new Date(m.created_at), role: m.role })))
+    })
+  }, [])
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, busy])
 
-  const send = (text: string) => {
-    if (!text.trim()) return
-    const userMsg: Message = { id: Date.now().toString(), from: 'user', text: text.trim(), timestamp: new Date() }
-    setMessages(prev => [...prev, userMsg])
-    setInput('')
-    setTyping(true)
-
-    // Simulate bot thinking (replace with real Groq API call)
-    setTimeout(() => {
-      const reply = { ...getReply(text) }
-      const r = routeText(text, enabled)
-      let tag: string | undefined
-      let msgRole: RoleId | undefined
-      if (r.primary) {
-        const meta = ROLES[r.primary]
-        if (shouldShowRoleLabel(labelMode, r.primary, lastRole.current)) tag = meta.emoji + ' ' + meta.label
-        lastRole.current = r.primary
-        msgRole = r.primary
-      } else if (r.outOfScope) {
-        reply.text = 'That is outside what I can help with here. I can help with ' + enabled.map(x => ROLES[x].label).join(', ') + '.'
-        reply.buttons = undefined
-      }
-      if (r.crisis) reply.text = "I'm really sorry you're going through this. Please contact local emergency services or a crisis line right now. I can stay here with you."
-      const botMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        from: 'bot',
-        text: reply.text,
-        timestamp: new Date(),
-        receipt: reply.receipt,
-        buttons: reply.buttons,
-        roleTag: tag,
-        role: msgRole,
-      }
-      setMessages(prev => [...prev, botMsg])
-      setTyping(false)
-    }, 800 + Math.random() * 1200)
+  const send = async (text: string) => {
+    const t = text.trim(); if (!t || busy) return
+    setInput(''); setBusy(true)
+    setMessages(p => [...p, { id: crypto.randomUUID(), from: 'user', text: t, at: new Date() }])
+    const r = await api<{ reply: string; role: RoleId | null; remembered: number; memoryJob: string | null }>('chat', 'POST', { text: t })
+    setBusy(false)
+    if (!r.ok) {
+      const why = r.error === 'unauthorized' ? 'Your session expired. Sign in again.' : r.status === 0 ? 'No connection.' : 'Something went wrong. Try again.'
+      setMessages(p => [...p, { id: crypto.randomUUID(), from: 'bot', text: why, at: new Date(), error: true }]); return
+    }
+    const mem = r.data.memoryJob ? `Saved to Walrus memory · job ${r.data.memoryJob.slice(0, 8)}` : r.data.remembered ? `Used ${r.data.remembered} memories` : undefined
+    setMessages(p => [...p, { id: crypto.randomUUID(), from: 'bot', text: r.data.reply, at: new Date(), role: r.data.role, memory: mem }])
   }
-
-  const handleButton = (label: string) => send(label)
 
   return (
     <div className="flex flex-col h-full">
-      {/* Chat header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
         <RoleAvatar roles={enabled} size={32} />
         <div>
-          <div className="text-sm font-semibold">Vow Bot</div>
-          <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-            {typing ? 'typing...' : 'online'}
-          </div>
-        </div>
-        <div className="ml-auto text-[10px] px-2 py-0.5 rounded-full" style={{ background: '#0E9C8615', color: '#0E9C86' }}>
-          Preview: mock replies, real router
+          <div className="text-sm font-semibold">Vow</div>
+          <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{busy ? 'typing…' : 'same memory as your Telegram, Slack and Discord'}</div>
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-1.5 px-4 py-2 border-b text-[11px]" style={{ borderColor: 'var(--border)' }}>
-        <span style={{ color: 'var(--text-muted)' }}>Active roles:</span>
-        {ROLE_IDS.map(id => (
-          <button key={id} onClick={() => toggle(id)} className="px-2 py-0.5 rounded-full cursor-pointer"
-            style={{ border: '1px solid ' + COLORS[id] + '66', background: enabled.includes(id) ? COLORS[id] + '26' : 'transparent', color: enabled.includes(id) ? COLORS[id] : 'var(--text-muted)' }}>
-            {ROLES[id].emoji} {ROLES[id].label}
-          </button>
-        ))}
-        <span className="ml-auto" style={{ color: 'var(--text-muted)' }}>Address a role: @study ...</span>
+        <span style={{ color: 'var(--text-muted)' }}>Roles:</span>
+        {enabled.map(id => <span key={id} className="px-2 py-0.5 rounded-full" style={{ border: `1px solid ${COLORS[id]}66`, background: `${COLORS[id]}26`, color: COLORS[id] }}>{ROLES[id].emoji} {ROLES[id].label}</span>)}
+        <span className="ml-auto" style={{ color: 'var(--text-muted)' }}>Address a role: “study: …”. Change roles in Settings.</span>
       </div>
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3" aria-live="polite">
+        {messages.length === 0 && <p className="text-sm text-center mt-10" style={{ color: 'var(--text-muted)' }}>Say hello. What you tell Vow here is remembered in every channel.</p>}
         {messages.map(m => (
-          <div key={m.id}>
-            <div className={`flex gap-2 ${m.from === 'user' ? 'justify-end' : 'justify-start'}`}>
-              {m.from === 'bot' && <RoleAvatar roles={m.role ? [m.role] : []} size={28} />}
-              <div className="max-w-[80%] sm:max-w-[60%]">
-                <div className="px-3 py-2.5 rounded-2xl text-sm whitespace-pre-line"
-                  style={{
-                    background: m.from === 'user' ? '#0E9C86' : 'var(--surface)',
-                    color: m.from === 'user' ? '#000' : 'var(--text-sec)',
-                    border: m.from === 'bot' ? '1px solid var(--border)' : 'none',
-                    borderRadius: m.from === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                  }}>
-                  {m.text}
-                </div>
-                {m.receipt && (
-                  <div className="mt-1 px-2 py-1 rounded-lg inline-flex items-center gap-1.5 text-[10px] font-mono" style={{ background: '#0E9C8610', color: '#0E9C86' }}>
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#0E9C86' }} />
-                    Receipt: {m.receipt}
-                  </div>
-                )}
-                {m.roleTag && <div className="text-[10px] italic px-1 mt-0.5" style={{ color: 'var(--text-muted)' }}>{m.roleTag}</div>}
-                <div className="text-[9px] mt-1 px-1" style={{ color: 'var(--text-muted)' }}>
-                  {m.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </div>
-              </div>
+          <div key={m.id} className={`flex gap-2 ${m.from === 'user' ? 'justify-end' : 'justify-start'}`}>
+            {m.from === 'bot' && <RoleAvatar roles={m.role ? [m.role] : []} size={28} />}
+            <div className="max-w-[80%] sm:max-w-[60%]">
+              <div className="px-3 py-2.5 rounded-2xl text-sm whitespace-pre-line"
+                style={{ background: m.from === 'user' ? '#0E9C86' : 'var(--surface)', color: m.error ? '#ef4444' : m.from === 'user' ? '#000' : 'var(--text-sec)', border: m.from === 'bot' ? '1px solid var(--border)' : 'none' }}>{m.text}</div>
+              {m.memory && <div className="mt-1 px-2 py-1 rounded-lg inline-flex items-center gap-1.5 text-[10px] font-mono" style={{ background: '#0E9C8610', color: '#0E9C86' }}><span className="w-1.5 h-1.5 rounded-full" style={{ background: '#0E9C86' }} />{m.memory}</div>}
+              <div className="text-[9px] mt-1 px-1" style={{ color: 'var(--text-muted)' }}>{m.at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
             </div>
-            {m.buttons && (
-              <div className={`flex flex-wrap gap-1.5 mt-1.5 ${m.from === 'user' ? 'justify-end' : 'justify-start'}`}>
-                {m.buttons.map((b, i) => (
-                  <button key={i} onClick={() => handleButton(b)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:brightness-110"
-                    style={{ background: '#0E9C8618', color: '#0E9C86', border: '1px solid #0E9C8633' }}>
-                    {b}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         ))}
-
-        {typing && (
-          <div className="flex justify-start">
-            <div className="px-4 py-3 rounded-2xl rounded-bl-sm" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-              <span className="flex gap-1">
-                {[0, 150, 300].map(d => (
-                  <span key={d} className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: 'var(--text-muted)', animationDelay: `${d}ms` }} />
-                ))}
-              </span>
-            </div>
-          </div>
-        )}
         <div ref={endRef} />
       </div>
-
-      {/* Input */}
       <div className="px-4 py-3 border-t flex items-center gap-2" style={{ borderColor: 'var(--border)', background: 'var(--shell)', paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
-        {/* Voice input: hidden until built (DASHBOARD_UX_AUDIT §A2). Re-enable via browser SpeechRecognition, web-only, feature-detected. */}
-        <input ref={inputRef} value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && send(input)}
-          placeholder="Type a message, /command or @role ..."
-          className="flex-1 px-4 py-2.5 rounded-xl text-sm outline-none"
-          style={{ background: 'var(--recessed)', color: 'var(--text)', border: '1px solid var(--border)' }}
-        />
-        <button onClick={() => send(input)}
-          disabled={!input.trim()}
-          className="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer transition-opacity disabled:opacity-30"
-          style={{ background: '#0E9C86', color: '#000' }}>
-          <Send size={16} />
-        </button>
+        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && void send(input)} maxLength={2000} aria-label="Message"
+          placeholder="Type a message…" className="flex-1 px-4 py-2.5 rounded-xl text-sm outline-none" style={{ background: 'var(--recessed)', color: 'var(--text)', border: '1px solid var(--border)' }} />
+        <button onClick={() => void send(input)} disabled={!input.trim() || busy} aria-label="Send" className="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer transition-opacity disabled:opacity-30" style={{ background: '#0E9C86', color: '#000' }}><Send size={16} /></button>
       </div>
     </div>
   )

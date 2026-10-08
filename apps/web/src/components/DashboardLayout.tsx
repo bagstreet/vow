@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { MessageCircle, Clock, Settings, Download, Radio, LogOut, Menu, X, ChevronLeft, ChevronsLeft, ChevronsRight, HelpCircle } from 'lucide-react'
 import { useAuth } from '../lib/auth'
@@ -13,15 +13,16 @@ const NAV = [
 ]
 
 export default function DashboardLayout() {
-  const { user, logout } = useAuth()
+  const { user, logout, loading } = useAuth()
   const navigate = useNavigate()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const tour = useTourAutostart()
 
-  const handleLogout = () => { logout(); navigate('/') }
+  const handleLogout = async () => { await logout(); navigate('/') }
+  useEffect(() => { if (!loading && !user) navigate('/') }, [loading, user, navigate])
 
-  if (!user) { navigate('/'); return null }
+  if (loading || !user) return <div className="flex h-screen items-center justify-center text-sm" style={{ background: 'var(--bg)', color: 'var(--text-muted)' }}>Loading…</div>
 
   const sidebarW = collapsed ? 'w-16' : 'w-56'
 
@@ -72,7 +73,7 @@ export default function DashboardLayout() {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="text-xs font-medium truncate">{user.name}</div>
-                <div className="text-[10px] opacity-50">{user.provider}</div>
+                <div className="text-[10px] opacity-50">{user.email ?? "bot account"}</div>
               </div>
             </NavLink>
           )}
@@ -142,7 +143,7 @@ export default function DashboardLayout() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-xs font-medium truncate">{user.name}</div>
-                    <div className="text-[10px] opacity-50">{user.provider}</div>
+                    <div className="text-[10px] opacity-50">{user.email ?? "bot account"}</div>
                   </div>
                 </NavLink>
                 <button onClick={() => { tour.setOpen(true); setMobileOpen(false) }} className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-xs cursor-pointer hover:bg-white/5" style={{ color: 'var(--text-muted)' }}>

@@ -1,186 +1,132 @@
 import { useEffect, useRef, useState } from 'react'
-import { MessageCircle, Hash, Monitor, Globe, Smartphone, Laptop, ArrowDown, ArrowUp, Copy, Check } from 'lucide-react'
-import { loadPref, savePref, type LabelMode } from '../lib/roles'
+import { MessageCircle, Hash, Monitor, Laptop, Smartphone, ArrowDown, ArrowUp, Copy, Check } from 'lucide-react'
 import { useAuth } from '../lib/auth'
+import { api } from '../lib/api'
 
-type ChanId = 'web' | 'telegram' | 'slack' | 'discord' | 'desktop' | 'push'
-interface Chan { id: ChanId; name: string; icon: typeof Globe; connected: boolean; note: string; how: string }
-
-const DEFAULTS: Chan[] = [
-  { id: 'web', name: 'Web app', icon: Globe, connected: true, note: 'Always available. Chat and history live here.', how: 'Built in' },
-  { id: 'telegram', name: 'Telegram', icon: MessageCircle, connected: false, note: 'Open the bot and press Start. Quick-reply buttons work. No online status is available, so last activity is used.', how: 'Sign in with Telegram, then press Start in the bot' },
-  { id: 'slack', name: 'Slack', icon: Monitor, connected: false, note: 'Install the app to your workspace, DM it, press Connect here, then send the code it gives you.', how: 'Install to Slack, then send the bot /link CODE' },
-  { id: 'discord', name: 'Discord', icon: Hash, connected: false, note: 'Invite the bot to a server you share with it, press Connect here, then run the code it gives you.', how: 'Invite the bot, then run /link code:CODE' },
-  { id: 'desktop', name: 'Desktop helper', icon: Laptop, connected: false, note: 'Fastest channel: native notification with buttons. Planned.', how: 'Planned (T47)' },
-  { id: 'push', name: 'Mobile push', icon: Smartphone, connected: false, note: 'Planned.', how: 'Planned' },
+type Bot = 'telegram' | 'slack' | 'discord'
+const BOTS: { id: Bot; name: string; icon: typeof Hash; note: string; cmd: string }[] = [
+  { id: 'telegram', name: 'Telegram', icon: MessageCircle, note: 'Quick-reply buttons work. Telegram bots cannot see your online status, so last activity is used.', cmd: '/link CODE' },
+  { id: 'slack', name: 'Slack', icon: Monitor, note: 'DM the app. Vow also checks whether you are active in Slack right now.', cmd: '/link CODE' },
+  { id: 'discord', name: 'Discord', icon: Hash, note: 'Add the app to your account, then run the command anywhere or in DM.', cmd: '/link code:CODE' },
 ]
-const LABELS: { v: LabelMode; t: string }[] = [{ v: 'always', t: 'Always' }, { v: 'change', t: 'On change' }, { v: 'off', t: 'Off' }]
+const PLANNED = [
+  { name: 'Desktop helper', icon: Laptop, note: 'Fastest channel: native notification with buttons. Planned.' },
+  { name: 'Mobile push', icon: Smartphone, note: 'Planned.' },
+]
+const ago = (iso: string | null) => { if (!iso) return 'never'; const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000); return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago` }
+const card = { background: 'var(--surface)', border: '1px solid var(--border)' }
+const field = { background: 'var(--recessed)', border: '1px solid var(--border)' }
 
 export default function ChannelsPage() {
-  const { user } = useAuth()
-  const [chans, setChans] = useState<Chan[]>(() => {
-    const saved = loadPref<{ id: ChanId; connected: boolean }[]>('channels', [])
-    return DEFAULTS.map(c => ({ ...c, connected: saved.find(s => s.id === c.id)?.connected ?? c.connected }))
-  })
-  const [order, setOrder] = useState<ChanId[]>(() => loadPref<ChanId[]>('order', ['desktop', 'telegram', 'slack', 'discord', 'web']))
-  const [wait, setWait] = useState(() => loadPref<number>('waitMin', 10))
-  const [mode, setMode] = useState<LabelMode>(() => loadPref<LabelMode>('labelMode', 'change'))
-  const [quiet, setQuiet] = useState(() => loadPref('quiet', { from: '22:00', to: '07:00' }))
-
-  // Real link-code flow against the live backend (T54), for every bot channel (telegram/slack/discord —
-  // they all run through the same /api/link-code + /api/link-status pair, see account.mjs CHANNELS).
-  // Only the deep-link button is Telegram-specific; Slack/Discord show the code and the exact command to run.
-  const LINKABLE: ChanId[] = ['telegram', 'slack', 'discord']
-  const [linkChan, setLinkChan] = useState<ChanId | null>(null)
-  const [linkState, setLinkState] = useState<{ code: string; deepLink?: string; expiresAt: string } | null>(null)
-  const [linkError, setLinkError] = useState<string | null>(null)
+  const { profile, channels, refresh } = useAuth()
+  const [link, setLink] = useState<{ bot: Bot; code: string; deepLink?: string } | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [note, setNote] = useState('')
+  const poll = useRef<ReturnType<typeof setInterval> | null>(null)
+  useEffect(() => () => { if (poll.current) clearInterval(poll.current) }, [])
 
-  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current) }, [])
+  const connected = (b: Bot) => channels.find(c => c.channel === b)
+  const flash = (m: string) => { setNote(m); setTimeout(() => setNote(''), 2500) }
+  const save = async (patch: Record<string, unknown>) => { const r = await api('prefs', 'PATCH', patch); if (r.ok) { await refresh(); flash('Saved') } else flash(`Could not save (${r.error ?? 'error'})`) }
 
-  const startLink = async (channel: ChanId) => {
-    setLinkError(null)
-    setLinkChan(channel)
-    if (!user) { setLinkError('Sign in first.'); return }
-    try {
-      const r = await fetch('/api/link-code', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, channel }),
-      }).then(x => x.json())
-      if (!r.ok) { setLinkError(r.error === 'user_not_found' ? 'Account not ready yet — reload and try again.' : 'Could not create a link code.'); return }
-      setLinkState({ code: r.code, deepLink: r.deepLink, expiresAt: r.expiresAt })
-      if (pollRef.current) clearInterval(pollRef.current)
-      pollRef.current = setInterval(async () => {
-        try {
-          const s = await fetch(`/api/link-status?userId=${encodeURIComponent(user.id)}&channel=${channel}`).then(x => x.json())
-          if (s?.ok && s.linked) {
-            if (pollRef.current) clearInterval(pollRef.current)
-            setLinkState(null); setLinkChan(null)
-            toggle(channel, true)
-          }
-        } catch { /* keep polling, transient network errors are expected */ }
-      }, 3000)
-    } catch {
-      setLinkError('Network error reaching the backend — is it deployed?')
-    }
+  const startLink = async (bot: Bot) => {
+    setError(null)
+    const r = await api<{ code: string; deepLink?: string }>('link-code', 'POST', { channel: bot })
+    if (!r.ok) { setError('Could not create a link code. Try again.'); return }
+    setLink({ bot, code: r.data.code, deepLink: r.data.deepLink })
+    if (poll.current) clearInterval(poll.current)
+    poll.current = setInterval(async () => {
+      const s = await api<{ linked: boolean }>('link-status', 'GET', { channel: bot })
+      if (s.ok && s.data.linked) { if (poll.current) clearInterval(poll.current); setLink(null); await refresh(); flash(`${bot} connected`) }
+    }, 3000)
+  }
+  const unlink = async (bot: Bot) => {
+    const c = connected(bot); if (!c) return
+    const r = await api('channels', 'DELETE', { id: c.id })
+    if (r.ok) { await refresh(); flash('Disconnected') }
+    else setError(r.error === 'last_login_method' ? 'This is your only sign-in method. Add another channel or sign in with an email link first, otherwise you would lose access.' : 'Could not disconnect.')
   }
 
-  const planned = (id: ChanId) => id === 'desktop' || id === 'push'
-  const toggle = (id: ChanId, forceConnect = false) => {
-    if (planned(id)) return
-    const next = chans.map(c => (c.id === id ? { ...c, connected: id === 'web' ? true : (forceConnect ? true : !c.connected) } : c))
-    setChans(next); savePref('channels', next.map(c => ({ id: c.id, connected: c.connected })))
-  }
-  const onConnectClick = (id: ChanId) => {
-    if (LINKABLE.includes(id) && !byIdSafe(id)?.connected) { startLink(id); return }
-    toggle(id)
-  }
-  const LINK_CMD: Record<string, string> = { telegram: '/link CODE', slack: '/link CODE', discord: '/link code:CODE' }
-  const byIdSafe = (id: ChanId) => chans.find(c => c.id === id)
-  const move = (id: ChanId, d: -1 | 1) => {
-    const i = order.indexOf(id), j = i + d
-    if (i < 0 || j < 0 || j >= order.length) return
-    const n = [...order]; [n[i], n[j]] = [n[j], n[i]]; setOrder(n); savePref('order', n)
-  }
-  const byId = (id: ChanId) => chans.find(c => c.id === id)!
-  const live = order.filter(id => byId(id).connected)
+  const prio = (profile?.channel_priority ?? []).filter(p => connected(p as Bot))
+  const auto = prio.length === 0
+  const live = channels.map(c => c.channel)
+  const order = auto ? live : [...prio, ...live.filter(l => !prio.includes(l))]
+  const move = (id: string, d: -1 | 1) => { const i = order.indexOf(id as Bot), j = i + d; if (j < 0 || j >= order.length) return; const n = [...order]; [n[i], n[j]] = [n[j], n[i]]; void save({ priority: n }) }
 
   return (
     <div className="p-4 sm:p-6 max-w-3xl mx-auto space-y-6 overflow-y-auto h-full">
-      <div className="text-[11px] px-3 py-2 rounded-lg" style={{ background: '#0E9C8618', color: '#0E9C86' }}>
-        Every bot channel (Telegram, Slack, Discord) links the same way: press Connect, get a one-time code, run it as a command in the bot.
-      </div>
       <section>
-        <h1 className="text-lg font-semibold mb-1">Channels</h1>
-        <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>Connect any channel, disconnect it any time. Sign-in works through any connected channel; a Sui wallet is optional.</p>
+        <div className="flex items-center justify-between"><h1 className="text-lg font-semibold mb-1">Channels</h1><span role="status" className="text-xs" style={{ color: '#0E9C86' }}>{note}</span></div>
+        <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>One account, one memory, one assistant across all channels. Connect as many as you like. Press Connect, then run the one-time code in the bot.</p>
         <div className="grid gap-2">
-          {chans.map(c => (
-            <div key={c.id}>
-              <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-                <c.icon size={18} style={{ color: c.connected ? '#0E9C86' : 'var(--text-muted)' }} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium">{c.name} <span className="text-[10px] ml-1" style={{ color: c.connected ? '#0E9C86' : 'var(--text-muted)' }}>{planned(c.id) ? 'planned' : c.connected ? 'connected' : 'not connected'}</span></div>
-                  <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{c.note}</div>
-                  {!c.connected && !planned(c.id) && <div className="text-[10px] mt-1 opacity-70">How: {c.how}</div>}
+          {BOTS.map(b => {
+            const c = connected(b.id)
+            return (
+              <div key={b.id}>
+                <div className="flex items-start gap-3 p-3 rounded-xl" style={card}>
+                  <b.icon size={18} style={{ color: c ? '#0E9C86' : 'var(--text-muted)' }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium">{b.name} <span className="text-[10px] ml-1" style={{ color: c ? '#0E9C86' : 'var(--text-muted)' }}>{c ? `connected · active ${ago(c.lastSeenAt)}` : 'not connected'}</span></div>
+                    <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{b.note}</div>
+                  </div>
+                  <button onClick={() => (c ? void unlink(b.id) : void startLink(b.id))} className="px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer"
+                    style={{ background: c ? 'transparent' : '#0E9C86', color: c ? 'var(--text)' : '#000', border: '1px solid var(--border)' }}>{c ? 'Disconnect' : 'Connect'}</button>
                 </div>
-                <button disabled={planned(c.id) || c.id === 'web'} onClick={() => onConnectClick(c.id)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer disabled:opacity-30"
-                  style={{ background: c.connected ? 'transparent' : '#0E9C86', color: c.connected ? 'var(--text)' : '#000', border: '1px solid var(--border)' }}>
-                  {c.connected ? 'Disconnect' : LINKABLE.includes(c.id) ? 'Get link code' : 'Connect'}
-                </button>
+                {link?.bot === b.id && (
+                  <div className="mt-1 p-3 rounded-xl text-xs space-y-2" style={{ background: 'var(--recessed)', border: '1px solid #0E9C8633' }}>
+                    <div style={{ color: 'var(--text-muted)' }}>In {b.name} send <code className="font-mono">{b.cmd.replace('CODE', link.code)}</code> (valid 10 minutes, one use).</div>
+                    <div className="flex items-center gap-2">
+                      <code className="px-2 py-1 rounded font-mono text-sm tracking-wider" style={card}>{link.code}</code>
+                      <button onClick={() => { void navigator.clipboard?.writeText(link.code); setCopied(true); setTimeout(() => setCopied(false), 1500) }} className="p-1.5 rounded cursor-pointer hover:bg-white/10" aria-label="Copy code" style={{ color: 'var(--text-muted)' }}>{copied ? <Check size={14} /> : <Copy size={14} />}</button>
+                      {link.deepLink && <a href={link.deepLink} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: '#0E9C86', color: '#000' }}>Open bot</a>}
+                    </div>
+                    <div style={{ color: 'var(--text-muted)' }}>Waiting for confirmation…</div>
+                  </div>
+                )}
               </div>
-
-              {c.id === linkChan && linkState && (
-                <div className="mt-1 p-3 rounded-xl text-xs space-y-2" style={{ background: 'var(--recessed)', border: '1px solid #0E9C8633' }}>
-                  <div style={{ color: 'var(--text-muted)' }}>
-                    {c.id === 'telegram' ? <>Open the bot and tap Start, or send <code className="font-mono">/link {linkState.code}</code> manually.</> : <>In the bot, run <code className="font-mono">{LINK_CMD[c.id].replace('CODE', linkState.code)}</code>.</>} Expires in 10 minutes, one use.
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <code className="px-2 py-1 rounded font-mono text-sm tracking-wider" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>{linkState.code}</code>
-                    <button onClick={() => { navigator.clipboard?.writeText(linkState.code); setCopied(true); setTimeout(() => setCopied(false), 1500) }}
-                      className="p-1.5 rounded cursor-pointer hover:bg-white/10" aria-label="Copy code" style={{ color: 'var(--text-muted)' }}>
-                      {copied ? <Check size={14} /> : <Copy size={14} />}
-                    </button>
-                    {linkState.deepLink && (
-                      <a href={linkState.deepLink} target="_blank" rel="noopener" className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: '#0E9C86', color: '#000' }}>
-                        Open bot
-                      </a>
-                    )}
-                  </div>
-                  <div style={{ color: 'var(--text-muted)' }}>Waiting for confirmation…</div>
-                </div>
-              )}
-              {c.id === linkChan && linkError && (
-                <div className="mt-1 p-2 rounded-lg text-[11px]" style={{ background: '#ef444415', color: '#ef4444', border: '1px solid #ef444433' }}>{linkError}</div>
-              )}
-            </div>
+            )
+          })}
+          {PLANNED.map(p => (
+            <div key={p.name} className="flex items-start gap-3 p-3 rounded-xl opacity-60" style={card}><p.icon size={18} style={{ color: 'var(--text-muted)' }} /><div><div className="text-sm font-medium">{p.name} <span className="text-[10px] ml-1">planned</span></div><div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{p.note}</div></div></div>
           ))}
         </div>
+        {error && <div role="alert" className="mt-2 p-2 rounded-lg text-[11px]" style={{ background: '#ef444415', color: '#ef4444', border: '1px solid #ef444433' }}>{error}</div>}
       </section>
 
       <section>
-        <h2 className="text-sm font-semibold mb-1">Delivery order</h2>
-        <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>A reminder goes to the first connected channel. If you do not react within the wait time, it moves to the next one, so you are not spammed everywhere.</p>
-        <ol className="space-y-1">
-          {order.map((id, i) => (
-            <li key={id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" style={{ background: 'var(--surface)', border: '1px solid var(--border)', opacity: byId(id).connected ? 1 : 0.4 }}>
-              <span className="w-4 opacity-60">{i + 1}</span><span className="flex-1">{byId(id).name}{!byId(id).connected && ' (not connected, skipped)'}</span>
-              <button onClick={() => move(id, -1)} className="cursor-pointer"><ArrowUp size={13} /></button>
-              <button onClick={() => move(id, 1)} className="cursor-pointer"><ArrowDown size={13} /></button>
-            </li>
-          ))}
-        </ol>
+        <h2 className="text-sm font-semibold mb-1">Where Vow reaches you first</h2>
+        <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>Vow sends a reminder to one channel, then escalates to the next if you do not react within the wait time. Once you react, the other copies are edited to “handled”. Auto picks Slack when you are active there, otherwise the channel you used most recently.</p>
+        <label className="flex items-center gap-2 text-xs mb-2 cursor-pointer"><input type="checkbox" checked={auto} onChange={e => void save({ priority: e.target.checked ? [] : live })} /> Auto (recommended)</label>
+        {!auto && (
+          <ol className="space-y-1">
+            {order.map((id, i) => (
+              <li key={id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" style={card}>
+                <span className="w-4 opacity-60">{i + 1}</span><span className="flex-1 capitalize">{id}</span>
+                <button onClick={() => move(id, -1)} aria-label={`Move ${id} up`} className="cursor-pointer"><ArrowUp size={13} /></button>
+                <button onClick={() => move(id, 1)} aria-label={`Move ${id} down`} className="cursor-pointer"><ArrowDown size={13} /></button>
+              </li>
+            ))}
+          </ol>
+        )}
         <div className="flex items-center gap-2 mt-3 text-xs">
-          <label>Wait before next channel</label>
-          <input type="number" min={1} max={120} value={wait} onChange={e => { const v = Math.max(1, Math.min(120, Number(e.target.value) || 1)); setWait(v); savePref('waitMin', v) }}
-            className="w-16 px-2 py-1 rounded-lg" style={{ background: 'var(--recessed)', border: '1px solid var(--border)' }} />
-          <span style={{ color: 'var(--text-muted)' }}>minutes (default 10)</span>
+          <label htmlFor="ack">Wait before next channel</label>
+          <input id="ack" type="number" min={1} max={120} defaultValue={profile?.ack_min ?? 10} key={profile?.ack_min}
+            onBlur={e => { const v = Number(e.target.value); if (v >= 1 && v <= 120 && v !== profile?.ack_min) void save({ ackMin: v }) }} className="w-16 px-2 py-1 rounded-lg" style={field} />
+          <span style={{ color: 'var(--text-muted)' }}>minutes</span>
         </div>
-        <div className="text-[11px] mt-2" style={{ color: 'var(--text-muted)' }}>Current path: {live.length ? live.map(id => byId(id).name).join(' → ') : 'nothing connected'}</div>
       </section>
 
       <section>
         <h2 className="text-sm font-semibold mb-1">Quiet hours</h2>
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex items-center gap-2 text-xs flex-wrap">
           {(['from', 'to'] as const).map(k => (
-            <input key={k} type="time" value={quiet[k]} onChange={e => { const q = { ...quiet, [k]: e.target.value }; setQuiet(q); savePref('quiet', q) }}
-              className="px-2 py-1 rounded-lg" style={{ background: 'var(--recessed)', border: '1px solid var(--border)' }} />
+            <input key={k} type="time" aria-label={`Quiet ${k}`} value={(k === 'from' ? profile?.quiet_start : profile?.quiet_end) ?? ''}
+              onChange={e => { const v = e.target.value; if (!v) return; const cur = { from: profile?.quiet_start ?? '22:00', to: profile?.quiet_end ?? '07:00' }; void save({ quiet: { ...cur, [k]: v } }) }} className="px-2 py-1 rounded-lg" style={field} />
           ))}
-          <span style={{ color: 'var(--text-muted)' }}>no reminders in this window</span>
+          <span style={{ color: 'var(--text-muted)' }}>{profile?.quiet_start ? `no reminders ${profile.quiet_start}–${profile.quiet_end} (${profile.tz})` : 'off'}</span>
+          {profile?.quiet_start && <button onClick={() => void save({ quiet: null })} className="px-2 py-1 rounded-lg cursor-pointer" style={{ border: '1px solid var(--border)' }}>Turn off</button>}
         </div>
-      </section>
-
-      <section>
-        <h2 className="text-sm font-semibold mb-1">Role label</h2>
-        <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>Shows which role is answering under the message. “On change” shows it only when the role switches.</p>
-        <div className="inline-flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-          {LABELS.map(l => (
-            <button key={l.v} onClick={() => { setMode(l.v); savePref('labelMode', l.v) }} className="px-3 py-1.5 text-xs cursor-pointer"
-              style={{ background: mode === l.v ? '#0E9C86' : 'transparent', color: mode === l.v ? '#000' : 'var(--text)' }}>{l.t}</button>
-          ))}
-        </div>
-        <div className="text-[11px] mt-2" style={{ color: 'var(--text-muted)' }}>In chat apps address a role with /study or “study: …”. “@” works only in the web chat.</div>
       </section>
     </div>
   )
