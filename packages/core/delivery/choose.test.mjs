@@ -44,3 +44,9 @@ test('tick: user priority picks slack first although telegram was seen more rece
   await runTick({ store, senders, now: T + 12 * 60000 });
   assert.deepEqual(sent, ['slack', 'telegram']);
 });
+
+test('orderChannels: an active channel (Slack presence) beats recency but not explicit priority', () => {
+  const list = [ch('telegram', 9), { ...ch('slack', 1), active: true }, ch('discord', 5)];
+  assert.deepEqual(orderChannels(list).map(c => c.channel), ['slack', 'telegram', 'discord']);
+  assert.deepEqual(orderChannels(list, ['discord']).map(c => c.channel), ['discord', 'slack', 'telegram']);
+});

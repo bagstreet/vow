@@ -146,7 +146,9 @@ export async function handleDash({ store, op, method, body = {}, userId, deps = 
     if (method === 'DELETE') return (await store.deleteReminder(userId, String(body.id))) ? ok({}) : err(404, 'not_found');
   }
   if (op === 'history' && method === 'GET') {
-    return ok({ messages: await store.listMessages(userId, 100), memory: await store.listMemoryLog(userId, 100) });
+    const memory = await store.listMemoryLog(userId, 100);
+    await resolveBlobIds(memory, store, deps.memory);
+    return ok({ messages: await store.listMessages(userId, 100), memory });
   }
   if (op === 'chat' && method === 'POST') {
     const text = String(body.text ?? '').trim();
@@ -179,4 +181,14 @@ export async function handleDash({ store, op, method, body = {}, userId, deps = 
     return ok({}, { clearSession: true });
   }
   return err(404, 'unknown_op');
+}
+
+/** Fill in blob_id for recent writes whose Walrus upload has finished (MemWal's remember only returns a job_id). Best effort, bounded. */
+export async function resolveBlobIds(rows, store, memory, max = 8) {
+  if (!memory?.jobStatus || !store.setBlobId) return;
+  const pending = rows.filter((m) => m.job_id && !m.blob_id).slice(0, max);
+  await Promise.all(pending.map(async (m) => {
+    const { blobId } = await memory.jobStatus(m.job_id);
+    if (blobId) { m.blob_id = blobId; try { await store.setBlobId(m.id, blobId); } catch (e) { console.error('setBlobId failed', e.message); } }
+  }));
 }

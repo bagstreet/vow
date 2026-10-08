@@ -1,5 +1,6 @@
 // Delivery channel choice (T47 wired into the tick). The bot picks the channel, the user does not have to.
-// Order: explicit user priority list (if set) > most recent activity (last_seen_at) > DEFAULT_ORDER.
+// Order: explicit user priority list (if set) > channel where the user is online right now (`active`, e.g. Slack presence) >
+// most recent activity (last_seen_at) > DEFAULT_ORDER.
 // Channels already tried for this occurrence are excluded by the store, so escalation always moves to the next one.
 import { DEFAULT_ORDER } from './registry.mjs';
 
@@ -9,6 +10,7 @@ export const KNOWN_CHANNELS = ['telegram', 'discord', 'slack'];
 export function orderChannels(channels, priority = []) {
   return [...channels].sort((a, b) =>
     idx(priority, a.channel) - idx(priority, b.channel) ||
+    (b.active ? 1 : 0) - (a.active ? 1 : 0) ||
     (Number(b.lastSeenAt) || 0) - (Number(a.lastSeenAt) || 0) ||
     idx(DEFAULT_ORDER, a.channel) - idx(DEFAULT_ORDER, b.channel));
 }

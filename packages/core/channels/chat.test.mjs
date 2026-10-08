@@ -38,3 +38,10 @@ test('shouldRemember: skips noise, keeps facts', () => {
   assert.equal(shouldRemember('/start', 'fitness'), false);
   assert.equal(shouldRemember('I take 5mg of X every morning', 'medication'), true);
 });
+
+test('contradiction guard: prompt tells the model to name both versions and ask when memory conflicts', async () => {
+  let req; const llm = { complete: async (r) => { req = r; return { text: 'ok' }; } };
+  await chatReply({ text: 'I take 20 mg', enabled: ['medication'], def: 'medication', llm, remembered: ['[telegram] I take 10 mg'] });
+  const sys = req.messages[0].content;
+  assert.match(sys, /I take 10 mg/); assert.match(sys, /conflicts with a remembered fact/); assert.match(sys, /ask which is correct/);
+});

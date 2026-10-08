@@ -16,6 +16,13 @@ export function authorized(headers, secret) {
   return timingSafeEqual(Buffer.from(got), Buffer.from(secret));
 }
 
+// Only Slack exposes presence to bots (users.getPresence: active/away). Telegram and Discord bots cannot see it, so they fall back to last_seen_at.
+const slackPresence = (token) => async (c) => {
+  if (c.channel !== 'slack' || !/^[UW][A-Z0-9]+$/.test(c.externalId ?? '')) return null;
+  const r = await fetch(`https://slack.com/api/users.getPresence?user=${c.externalId}`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(2500) }).then((x) => x.json());
+  return r.ok ? r.presence === 'active' : null;
+};
+
 const discordDmCache = new Map(); // survives across ticks on a warm lambda; keyed by Discord user id, see adapters/discord.mjs
 
 export default async function handler(req, res) {
@@ -31,7 +38,7 @@ export default async function handler(req, res) {
   };
   const llm = buildLlmClient();
   try {
-    const result = await runTick({ store: createNeonTickStore(createSql()), senders, pickButtons: (a) => pickButtons({ ...a, llm }) });
+    const result = await runTick({ store: createNeonTickStore(createSql()), senders, pickButtons: (a) => pickButtons({ ...a, llm }), presence: slToken ? slackPresence(slToken) : null });
     return res.status(200).json({ ok: true, ...result });
   } catch (e) {
     console.error('tick', e.message);

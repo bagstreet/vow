@@ -27,7 +27,7 @@ export async function chatReply({ text, enabled, def, llm, history, remembered, 
   if (!enabled.length) return { text: 'No roles are enabled yet. Turn some on in the dashboard.', role: null };
   const { role, text: q } = pickRole(text, enabled, def);
   const memoryBlock = Array.isArray(remembered) && remembered.length
-    ? `\nLong-term memory about this user (from past sessions/channels, most relevant first): ${remembered.map((m) => `"${m}"`).join('; ')}. Use it only if relevant; never invent memories that are not listed here.`
+    ? `\nLong-term memory about this user (from past sessions/channels, most relevant first): ${remembered.map((m) => `"${m}"`).join('; ')}. Use it only if relevant; never invent memories that are not listed here. If what the user now says conflicts with a remembered fact (for example a different dose, weight, diet or allergy), do NOT silently pick one: name both versions, say which is newer if known, and ask which is correct before treating either as final.`
     : '';
   const system = `${ROLES[role].prompt}\nContext: enabled roles: ${enabled.filter((r) => ROLE_IDS.includes(r)).join(', ')}. Active role: ${role}. If asked who you are or what you can do, briefly say you are Vow, a reminder and coaching assistant, and describe what the active role helps with (do not name the underlying model); then invite a question in scope. Politely decline only unrelated topics.${TONE_HINT[tone] ? `\n${TONE_HINT[tone]} Safety and crisis wording are never changed by tone.` : ''}${memoryBlock}`;
   const prior = trimHistory(history, role).map((h) => ({ role: h.direction === 'out' ? 'assistant' : 'user', content: h.content }));

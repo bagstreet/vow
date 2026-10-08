@@ -17,7 +17,7 @@ export const SNOOZE_MIN = { snooze: 10, snooze_1h: 60 };
  *        claimEscalations(now), expire(id), claimSnoozes(now), userPrefs(userId) -> {tz,quietStart,quietEnd,ackMin}
  * senders: { telegram: async ({externalId,text,buttons,outboxId}) => void }
  */
-export async function runTick({ store, senders, pickButtons = null, now = Date.now(), batch = 50 }) {
+export async function runTick({ store, senders, pickButtons = null, presence = null, now = Date.now(), batch = 50 }) {
   const out = { initialized: 0, fired: 0, sent: 0, deferred: 0, retried: 0, failed: 0, escalated: 0, expired: 0, snoozed: 0 };
 
   const choose = async (row, text) => { try { return pickButtons ? await pickButtons({ role: row.role, reminderText: text }) : selectButtons(null); } catch { return selectButtons(null); } };
@@ -39,7 +39,8 @@ export async function runTick({ store, senders, pickButtons = null, now = Date.n
     const prefs = await store.userPrefs(row.userId);
     const quiet = inQuietHours(now, { quietHours: prefs.quietStart && prefs.quietEnd ? { start: prefs.quietStart, end: prefs.quietEnd } : null, utcOffsetMin: prefs.utcOffsetMin ?? 0 });
     if (quiet) { await store.deferSend(row.id, now + 15 * 60000); out.deferred++; continue; }
-    const channels = orderChannels((await store.channelsFor(row.userId, row.occurrenceId)).filter(c => senders[c.channel]), row.channelPref ? [row.channelPref, ...(prefs.channelPriority ?? []).filter(c => c !== row.channelPref)] : (prefs.channelPriority ?? []));
+    const withPresence = async (list) => presence ? Promise.all(list.map(async (c) => { try { return { ...c, active: (await presence(c)) === true }; } catch { return c; } })) : list;
+    const channels = orderChannels(await withPresence((await store.channelsFor(row.userId, row.occurrenceId)).filter(c => senders[c.channel])), row.channelPref ? [row.channelPref, ...(prefs.channelPriority ?? []).filter(c => c !== row.channelPref)] : (prefs.channelPriority ?? []));
     const target = channels[0];
     if (!target) { await store.markRetry(row.id, { sendAt: now, error: 'no_channel', failed: true }); out.failed++; continue; }
     try {

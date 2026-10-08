@@ -36,6 +36,17 @@ export function createWalrusMemory(sdk) {
         return null;
       }
     },
+    /** One-shot job lookup -> { status, blobId } (blobId set once the relayer finished the Walrus upload). Never throws. */
+    async jobStatus(jobId) {
+      if (!sdk?.getRememberStatus || !jobId) return { status: 'unknown', blobId: null };
+      try {
+        const r = await sdk.getRememberStatus(jobId);
+        return { status: r?.status ?? 'unknown', blobId: r?.blob_id ?? null };
+      } catch (e) {
+        console.error('memwal job status failed', e.message);
+        return { status: 'unknown', blobId: null };
+      }
+    },
     /** Read-only semantic recall. Returns plain text snippets; [] on any failure. */
     async recall(userId, query, { limit = 4 } = {}) {
       if (!sdk) return [];
@@ -54,6 +65,7 @@ export function createWalrusMemory(sdk) {
 export function withMemoryLog(memory, logFn, channel) {
   return {
     ...memory,
+    async jobStatus(jobId) { return memory.jobStatus ? memory.jobStatus(jobId) : { status: 'unknown', blobId: null }; },
     async remember(userId, text) {
       const jobId = await memory.remember(userId, text);
       try { await logFn(userId, { channel, kind: /check-in/i.test(text) ? 'check-in' : 'chat', preview: String(text).slice(0, 160), jobId }); } catch (e) { console.error('memory_log failed', e.message); }
