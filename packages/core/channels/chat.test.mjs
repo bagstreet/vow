@@ -45,3 +45,8 @@ test('contradiction guard: prompt tells the model to name both versions and ask 
   const sys = req.messages[0].content;
   assert.match(sys, /I take 10 mg/); assert.match(sys, /conflicts with a remembered fact/); assert.match(sys, /ask which is correct/);
 });
+
+test('shouldRemember skips greetings and filler', () => {
+  for (const t of ['hello there', 'good morning!', 'how are you', 'добрый день', 'got it']) assert.equal(shouldRemember(t, 'fitness'), false, t);
+  assert.equal(shouldRemember('I deadlift 100 kg on Mondays', 'fitness'), true);
+});

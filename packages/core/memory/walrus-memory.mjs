@@ -73,3 +73,19 @@ export function withMemoryLog(memory, logFn, channel) {
     },
   };
 }
+
+/**
+ * Tombstone filter: Walrus blobs are immutable, so "forget" hides a memory from recall instead of deleting it.
+ * forgottenFn(userId) returns the preview strings the user chose to forget; recall drops any snippet that starts with one.
+ */
+export function withForgetFilter(memory, forgottenFn) {
+  return {
+    ...memory,
+    async recall(userId, query, opts) {
+      const [hits, gone] = await Promise.all([memory.recall(userId, query, opts), Promise.resolve(forgottenFn(userId)).catch(() => [])]);
+      if (!gone?.length) return hits;
+      const keys = gone.map((g) => String(g).trim()).filter(Boolean);
+      return hits.filter((h) => !keys.some((k) => String(h).includes(k) || k.includes(String(h).trim())));
+    },
+  };
+}

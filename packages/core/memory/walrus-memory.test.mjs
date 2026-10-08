@@ -24,3 +24,12 @@ test('resolveBlobIds fills and persists blob ids only for rows without one', asy
   assert.deepEqual(rows.map(r => r.blob_id), ['B1', 'KEEP', null]);
   assert.deepEqual(saved, [[1, 'B1']]);
 });
+
+import { withForgetFilter } from './walrus-memory.mjs';
+test('withForgetFilter hides forgotten memories from recall', async () => {
+  const base = { recall: async () => ['[telegram] I take 5mg melatonin', 'likes rowing'], remember: async () => 'j' };
+  const m = withForgetFilter(base, async () => ['[telegram] I take 5mg melatonin']);
+  assert.deepEqual(await m.recall('u', 'q'), ['likes rowing']);
+  assert.deepEqual(await withForgetFilter(base, async () => []).recall('u', 'q'), ['[telegram] I take 5mg melatonin', 'likes rowing']);
+  assert.deepEqual(await withForgetFilter(base, async () => { throw new Error('db'); }).recall('u', 'q'), ['[telegram] I take 5mg melatonin', 'likes rowing']);
+});

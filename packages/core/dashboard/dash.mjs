@@ -150,6 +150,10 @@ export async function handleDash({ store, op, method, body = {}, userId, deps = 
     await resolveBlobIds(memory, store, deps.memory);
     return ok({ messages: await store.listMessages(userId, 100), memory });
   }
+  if (op === 'memory-forget' && method === 'POST') {
+    const id = String(body.id ?? ''); if (!id) return err(400, 'id_required');
+    return (await store.forgetMemory(userId, id)) ? ok({ forgotten: true, note: 'Hidden from future answers. The Walrus blob is immutable and stays on the network.' }) : err(404, 'not_found');
+  }
   if (op === 'chat' && method === 'POST') {
     const text = String(body.text ?? '').trim();
     if (!text) return err(400, 'empty'); if (text.length > 2000) return err(400, 'too_long');

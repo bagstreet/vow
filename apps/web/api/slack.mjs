@@ -3,7 +3,7 @@
 import { createSql } from '../../../packages/db/neon.mjs';
 import { createNeonStore } from '../../../packages/core/channels/neon-store.mjs';
 import { buildLlmClient } from '../../../packages/core/llm/index.mjs';
-import { createWalrusMemory, withMemoryLog } from '../../../packages/core/memory/walrus-memory.mjs';
+import { createWalrusMemory, withMemoryLog, withForgetFilter } from '../../../packages/core/memory/walrus-memory.mjs';
 import { buildMemwalSdk } from '../lib/walrus-memory-client.mjs';
 import { createSettler } from '../../../packages/core/delivery/handled.mjs'
 import { handleEvent, handleInteraction, verifySlackSignature } from '../../../packages/core/channels/slack-webhook.mjs';
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
 
   const token = process.env.SLACK_BOT_TOKEN;
   const slack = { postMessage: (channel, text) => fetch('https://slack.com/api/chat.postMessage', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify({ channel, text }) }) };
-  const ctx = { store: dbStore, slack, llm: buildLlmClient(), memory: withMemoryLog(createWalrusMemory(buildMemwalSdk()), (u, r) => dbStore.logMemory(u, r), 'slack'), settle, webBase: process.env.WEB_BASE_URL ?? 'https://vow-livid.vercel.app' };
+  const ctx = { store: dbStore, slack, llm: buildLlmClient(), memory: withMemoryLog(withForgetFilter(createWalrusMemory(buildMemwalSdk()), (u) => dbStore.listForgotten(u)), (u, r) => dbStore.logMemory(u, r), 'slack'), settle, webBase: process.env.WEB_BASE_URL ?? 'https://vow-livid.vercel.app' };
 
   try {
     if (body.type === 'block_actions') { await handleInteraction(body, ctx); return res.status(200).json({ ok: true }); }

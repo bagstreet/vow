@@ -22,7 +22,8 @@ function makeStore() {
     listMessages: async (id) => s.msgs.filter((m) => m.u === id), listMemoryLog: async (id) => s.mem.filter((m) => m.u === id),
     getHistory: async (id) => s.msgs.filter((m) => m.u === id).map((m) => ({ direction: m.direction, appRole: m.role, content: m.content })),
     saveMessage: async (u, channel, direction, content, role) => { s.msgs.push({ u, channel, direction, content, role }); },
-    logMemory: async (u, v) => { s.mem.push({ u, ...v }); },
+    logMemory: async (u, v) => { s.mem.push({ u, id: 'm' + s.mem.length, ...v }); },
+    forgetMemory: async (u, id) => { const m = s.mem.find((x) => x.u === u && x.id === id && !x.forgotten_at); if (!m) return false; m.forgotten_at = 1; return true; },
     exportAll: async (id) => ({ profile: s.users.get(id), reminders: s.rem.filter((r) => r.userId === id) }),
     deleteAccount: async (id) => { s.users.delete(id); s.rem = s.rem.filter((r) => r.userId !== id); s.chans = s.chans.filter((c) => c.userId !== id); },
     createLinkCode: async () => ({ code: 'ABCD2345', expiresAt: 'x', ttlMinutes: 10 }), isChannelLinked: async ({ userId, channel }) => s.chans.some((c) => c.userId === userId && c.channel === channel),
@@ -153,4 +154,15 @@ test('transcribe: auth, validation, success, failure', async () => {
   assert.equal((await handleDash(mk({ body: { audio: 'QQ==' }, deps: { transcribe: async () => 'hello' } }))).json.text, 'hello');
   assert.equal((await handleDash(mk({ body: { audio: 'QQ==' }, deps: { transcribe: async () => { throw new Error('x'); } } }))).status, 502);
   assert.equal((await handleDash(mk({ userId: null, body: { audio: 'QQ==' }, deps: { transcribe: async () => 'x' } }))).status, 401);
+});
+
+test('memory-forget: hides own memory once, 404 for others/unknown, 401 anonymous', async () => {
+  const st = makeStore();
+  await st.logMemory('u1', { channel: 'telegram', preview: 'x' });
+  assert.equal((await call(st, 'memory-forget', 'POST', { id: 'm0' }, 'u1', {})).json.forgotten, true);
+  assert.equal((await call(st, 'memory-forget', 'POST', { id: 'm0' }, 'u1', {})).status, 404);
+  await st.logMemory('u1', { channel: 'slack', preview: 'y' });
+  assert.equal((await call(st, 'memory-forget', 'POST', { id: 'm1' }, 'u2', {})).status, 404);
+  assert.equal((await call(st, 'memory-forget', 'POST', {}, 'u1', {})).status, 400);
+  assert.equal((await call(st, 'memory-forget', 'POST', { id: 'm1' }, null, {})).status, 401);
 });

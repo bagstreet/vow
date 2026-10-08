@@ -81,7 +81,9 @@ export function createNeonDashStore(sql) {
     },
     async deleteReminder(userId, id) { if (!/^[0-9a-f-]{36}$/i.test(id)) return false; return (await sql('delete from reminders where id = $1 and user_id = $2 returning id', [id, userId])).length > 0; },
     async listMessages(userId, limit) { return (await sql('select channel, direction, role, content, created_at from chat_messages where user_id = $1 order by created_at desc limit $2', [userId, limit])).reverse(); },
-    async listMemoryLog(userId, limit) { return sql('select id, channel, kind, preview, job_id, blob_id, created_at from memory_log where user_id = $1 order by created_at desc limit $2', [userId, limit]); },
+    async listMemoryLog(userId, limit) { return sql('select id, channel, kind, preview, job_id, blob_id, created_at, forgotten_at from memory_log where user_id = $1 order by created_at desc limit $2', [userId, limit]); },
+    async forgetMemory(userId, id) { const r = await sql('update memory_log set forgotten_at = now() where id = $1 and user_id = $2 and forgotten_at is null returning id', [id, userId]); return r.length > 0; },
+    async listForgotten(userId) { return (await sql('select preview from memory_log where user_id = $1 and forgotten_at is not null', [userId])).map((r) => r.preview); },
     async setBlobId(id, blobId) { await sql('update memory_log set blob_id = $2 where id = $1 and blob_id is null', [id, blobId]); },
     async logMemory(userId, { channel, kind, preview, jobId, blobId }) { await sql('insert into memory_log(user_id, channel, kind, preview, job_id, blob_id) values ($1,$2,$3,$4,$5,$6)', [userId, channel, kind ?? 'chat', preview, jobId ?? null, blobId ?? null]); },
     async exportAll(userId) {

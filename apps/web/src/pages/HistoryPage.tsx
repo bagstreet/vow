@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Clock, ExternalLink } from 'lucide-react'
 import { api } from '../lib/api'
 
-interface Mem { id: string; channel: string; kind: string; preview: string; job_id: string | null; blob_id: string | null; created_at: string }
+interface Mem { id: string; channel: string; kind: string; preview: string; job_id: string | null; blob_id: string | null; created_at: string; forgotten_at?: string | null }
 interface Msg { channel: string; direction: 'in' | 'out'; role: string | null; content: string; created_at: string }
 const SCAN = 'https://walruscan.com/mainnet/blob/'
 
@@ -10,6 +10,14 @@ export default function HistoryPage() {
   const [mem, setMem] = useState<Mem[]>([]); const [msgs, setMsgs] = useState<Msg[]>([])
   const [loading, setLoading] = useState(true); const [channel, setChannel] = useState('all')
   useEffect(() => { api<{ memory: Mem[]; messages: Msg[] }>('history').then(r => { if (r.ok) { setMem(r.data.memory); setMsgs(r.data.messages) } setLoading(false) }) }, [])
+  const [busy, setBusy] = useState<string | null>(null)
+  const forget = async (id: string) => {
+    if (busy || !window.confirm('Hide this memory from future answers? The Walrus blob is immutable and stays on the network.')) return
+    setBusy(id)
+    const r = await api('memory-forget', 'POST', { id })
+    if (r.ok) setMem(list => list.map(x => x.id === id ? { ...x, forgotten_at: new Date().toISOString() } : x))
+    setBusy(null)
+  }
   const channels = ['all', ...new Set(mem.map(m => m.channel))]
   const shown = mem.filter(m => channel === 'all' || m.channel === channel)
 
@@ -25,11 +33,14 @@ export default function HistoryPage() {
             <div className="flex items-center gap-2 text-[10px] mb-1" style={{ color: 'var(--text-muted)' }}>
               <Clock size={10} />{new Date(m.created_at).toLocaleString()}<span className="px-1.5 rounded" style={{ border: '1px solid var(--border)' }}>{m.channel}</span><span>{m.kind}</span>
             </div>
-            <div className="text-sm">{m.preview}</div>
+            <div className="text-sm" style={m.forgotten_at ? { textDecoration: 'line-through', opacity: 0.55 } : undefined}>{m.preview}</div>
             <div className="mt-1.5 text-[10px] font-mono" style={{ color: '#0E9C86' }}>
               {m.blob_id ? <a href={SCAN + encodeURIComponent(m.blob_id)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 ">blob {m.blob_id.slice(0, 14)}… <ExternalLink size={10} /> Walruscan</a>
                 : m.job_id ? <span>job {m.job_id.slice(0, 12)}… (writing to Walrus)</span> : <span style={{ color: 'var(--text-muted)' }}>not stored (memory unavailable)</span>}
             </div>
+            <div className="mt-1.5">{m.forgotten_at
+              ? <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Forgotten: hidden from answers (blob stays on Walrus)</span>
+              : <button onClick={() => forget(m.id)} disabled={busy === m.id} className="text-[10px] px-2 py-0.5 rounded cursor-pointer disabled:opacity-50 hover:opacity-80 focus-visible:outline-2" style={{ border: '1px solid var(--border)', color: 'var(--text-muted)' }}>{busy === m.id ? 'Forgetting…' : 'Forget'}</button>}</div>
           </div>
         ))}
       </div>

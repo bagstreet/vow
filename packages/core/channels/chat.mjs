@@ -43,7 +43,7 @@ export function withRoleLabel(text, role, mode = 'always', lastRole = null) {
 }
 
 // Memory-write filter: only durable, on-topic facts go to Walrus (every blob costs gas and is immutable).
-const SMALL_TALK = /^(ping|test|hi|hello|hey|yo|ok|okay|thanks|thank you|thx|спасибо|привет|здравствуй(те)?|ок|хорошо|да|нет|yes|no|bye|пока|\?+|\.+)[\s!.?,]*$/i;
+const SMALL_TALK = /^(ping|test|hi|hello|hey|yo|hello there|hi there|hey there|good (morning|evening|night|day)|how are you|what'?s up|got it|cool|nice|great|lol|ok thanks|thanks a lot|добрый (день|вечер|утро)|доброе утро|как дела|понял|ясно|круто|отлично|ok|okay|thanks|thank you|thx|спасибо|привет|здравствуй(те)?|ок|хорошо|да|нет|yes|no|bye|пока|\?+|\.+)[\s!.?,]*$/i;
 export function shouldRemember(text, role) {
   const t = String(text ?? '').trim();
   if (!role) return false;            // off-topic / refused: no role matched
