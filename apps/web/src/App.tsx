@@ -1134,7 +1134,7 @@ function SignIn() {
   const providers: { name: string; href: string; color: string; icon: typeof Globe; hint: string; oauth?: boolean }[] = [
     { name: 'Telegram', href: BOT_LINKS.telegram, color: '#229ED9', icon: MessageCircle, hint: 'Press Start' },
     { name: 'Discord', href: '/api/dash/oauth-start?provider=discord', color: '#5865F2', icon: Hash, hint: 'Authorize, you land in the dashboard', oauth: true },
-    { name: 'Slack', href: '/api/dash/oauth-start?provider=slack', color: '#611f69', icon: Monitor, hint: 'Authorize, you land in the dashboard', oauth: true },
+    { name: 'Slack', href: '/api/dash/oauth-start?provider=slack', color: '#611f69', icon: Monitor, hint: 'Demo workspace only', oauth: true },
   ]
   const sendLink = async (e: React.FormEvent) => {
     e.preventDefault(); setState('sending')
