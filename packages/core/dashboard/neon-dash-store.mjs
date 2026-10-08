@@ -107,6 +107,28 @@ export function createNeonDashStore(sql) {
         (select count(*)::int from memory_log m where m.user_id = u.id) as blobs,
         (select count(*)::int from chat_messages g where g.user_id = u.id) as messages from users u order by u.created_at desc limit 200`)).map((r) => ({ ...r, email: maskEmail(r.email), channels: parseTextArr(r.channels) }));
     },
+    async listAliases(userId) { return (await sql('select alias_id from user_aliases where user_id = $1', [userId])).map((r) => r.alias_id); },
+    async createMergeCode(userId) {
+      const code = 'M' + Math.random().toString(36).slice(2, 8).toUpperCase();
+      await sql("insert into link_codes(code, user_id, channel, expires_at) values ($1,$2,'merge', now() + interval '10 minutes')", [code, userId]);
+      return { code, ttlMinutes: 10 };
+    },
+    /** One-use: returns the source account id or null. */
+    async consumeMergeCode(code) { const r = await sql("update link_codes set used_at = now() where code = $1 and channel = 'merge' and used_at is null and expires_at > now() returning user_id", [String(code)]); return r[0]?.user_id ?? null; },
+    /** Move everything from source into target (rules in docs/design/ACCOUNT_MERGE.md), then delete source. Steps are ordered so a retry is safe. */
+    async mergeAccounts(targetId, sourceId) {
+      const src = (await sql('select email from users where id = $1', [sourceId]))[0]; if (!src) return { error: 'source_missing' };
+      await sql('update channel_links set user_id = $1 where user_id = $2', [targetId, sourceId]);
+      await sql('insert into user_roles(user_id, role, enabled) select $1, role, enabled from user_roles where user_id = $2 on conflict (user_id, role) do update set enabled = user_roles.enabled or excluded.enabled', [targetId, sourceId]);
+      await sql('delete from reminders r using reminders t where r.user_id = $2 and t.user_id = $1 and r.role is not distinct from t.role and r.time_local = t.time_local and r.days = t.days and r.title is not distinct from t.title', [targetId, sourceId]);
+      await sql("update reminders set user_id = $1, title = case when title is null or title = '' then title else title end where user_id = $2", [targetId, sourceId]);
+      for (const t of ['memory_log', 'chat_messages', 'memory_buffer', 'outbox', 'agent_tokens']) await sql(`update ${t} set user_id = $1 where user_id = $2`, [targetId, sourceId]);
+      await sql('insert into user_aliases(alias_id, user_id) values ($2, $1) on conflict do nothing', [targetId, sourceId]);
+      await sql('update user_aliases set user_id = $1 where user_id = $2', [targetId, sourceId]);
+      if (src.email) { await sql('update users set email = null where id = $1', [sourceId]); await sql('update users set email = coalesce(email, $2) where id = $1', [targetId, src.email]); }
+      await sql('delete from users where id = $1', [sourceId]);
+      return { ok: true };
+    },
     async setBlocked(id, blocked) { await sql('update users set blocked_at = case when $2 then now() else null end where id = $1', [id, !!blocked]); if (blocked) { await sql('delete from sessions where user_id = $1', [id]); await sql('update agent_tokens set revoked_at = now() where user_id = $1 and revoked_at is null', [id]); } },
     async deleteAccount(userId) { await sql('delete from users where id = $1', [userId]); },
   };

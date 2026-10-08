@@ -127,6 +127,13 @@ export async function handleDash({ store, op, method, body = {}, userId, deps = 
     await store.clearEmail(userId); // admin rights derived from the email vanish on the next request
     return ok({});
   }
+  if (op === 'merge-code' && method === 'POST') return ok(await store.createMergeCode(userId)); // run while signed in to the account that will be absorbed
+  if (op === 'merge' && method === 'POST') { // run while signed in to the account that stays (the target)
+    const sourceId = await store.consumeMergeCode(body.code); if (!sourceId) return err(400, 'invalid_or_expired_code');
+    if (sourceId === userId) return err(400, 'same_account');
+    const r = await store.mergeAccounts(userId, sourceId); if (r.error) return err(409, r.error);
+    return ok({ merged: true, profile: await store.getProfile(userId), channels: await store.listChannels(userId), roles: await store.listRoles(userId) });
+  }
   if (op === 'link-code' && method === 'POST') {
     if (!CHANNELS.includes(body.channel)) return err(400, 'bad_channel');
     const c = await store.createLinkCode({ userId, channel: body.channel });

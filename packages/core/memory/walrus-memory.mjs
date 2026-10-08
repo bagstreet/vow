@@ -89,3 +89,16 @@ export function withForgetFilter(memory, forgottenFn) {
     },
   };
 }
+
+/** After an account merge the absorbed account's namespace stays readable: recall over the user and every alias, de-duplicated. */
+export function withAliasRecall(memory, aliasesFn) {
+  return {
+    ...memory,
+    async recall(userId, query, opts = {}) {
+      const ids = await Promise.resolve(aliasesFn(userId)).catch(() => []);
+      if (!ids?.length) return memory.recall(userId, query, opts);
+      const all = await Promise.all([userId, ...ids].map((u) => memory.recall(u, query, opts)));
+      return [...new Set(all.flat())].slice(0, opts.limit ?? 4);
+    },
+  };
+}

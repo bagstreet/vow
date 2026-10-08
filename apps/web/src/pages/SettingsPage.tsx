@@ -81,6 +81,35 @@ function EmailBox({ email, onChanged, flash }: { email: string | null; onChanged
   )
 }
 
+function MergeBox({ onChanged, flash }: { onChanged: () => void; flash: (m: string) => void }) {
+  const [busy, setBusy] = useState(false)
+  const [code, setCode] = useState<string | null>(null)
+  const [val, setVal] = useState('')
+  const field = { background: 'var(--bg-input, rgba(255,255,255,0.04))', border: '1px solid var(--border, rgba(255,255,255,0.1))', color: 'inherit' }
+  const msgs: Record<string, string> = { invalid_or_expired_code: 'Code is invalid or expired (valid 10 minutes, one use).', same_account: 'That code belongs to this account.' }
+  const make = async () => { setBusy(true); const r = await api<{ code: string }>('merge-code', 'POST', {}); setBusy(false); if (r.ok) setCode(r.data.code); else flash('Could not create a code') }
+  const merge = async () => {
+    if (!window.confirm('Merge that account into this one? Its channels, reminders, roles and memory move here; its own settings are discarded. The other account is deleted. This cannot be undone.')) return
+    setBusy(true); const r = await api('merge', 'POST', { code: val.trim().toUpperCase() }); setBusy(false)
+    if (r.ok) { flash('Accounts merged'); setVal(''); onChanged() } else flash(msgs[r.error ?? ''] ?? `Could not merge (${r.error ?? 'error'})`)
+  }
+  const btn = 'px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer hover:brightness-110 disabled:opacity-50'
+  return (
+    <div className="space-y-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+      <p className="text-xs">Merge another Vow account into this one</p>
+      <p>1. Sign in to the other account and create a code. 2. Sign in here and enter it. The account you are signed in to when you merge is the one that stays.</p>
+      <div className="flex gap-2 items-center">
+        <button type="button" onClick={() => void make()} disabled={busy} className={btn} style={field}>Create merge code</button>
+        {code && <code className="px-2 py-1 rounded" style={field}>{code}</code>}
+      </div>
+      <div className="flex gap-2">
+        <input value={val} onChange={e => setVal(e.target.value)} placeholder="Code from the other account" aria-label="Merge code" className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={field} />
+        <button type="button" onClick={() => void merge()} disabled={busy || !val} aria-busy={busy} className={btn} style={{ background: '#0E9C86', color: '#000' }}>{busy ? 'Working…' : 'Merge here'}</button>
+      </div>
+    </div>
+  )
+}
+
 export default function SettingsPage() {
   const { user, profile, roles, refresh, patchLocal, logout } = useAuth()
   const [saving, setSaving] = useState<string | null>(null) // id of the control whose save is in flight; it is locked meanwhile
@@ -167,6 +196,7 @@ export default function SettingsPage() {
           </div>
           <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Used for reminder times and quiet hours. Offsets shift with daylight saving.</p>
           <EmailBox email={profile?.email ?? null} onChanged={() => void refresh()} flash={flash} />
+          <MergeBox onChanged={() => void refresh()} flash={flash} />
           <button onClick={() => void savePrefs({ displayName: name, tz: timezone }, 'Saved', 'profile')} disabled={saving !== null} aria-busy={saving === 'profile'} className="px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer hover:brightness-110" style={{ background: '#0E9C86', color: '#000' }}>{saving === 'profile' ? 'Saving…' : 'Save changes'}</button>
         </div>
       </section>

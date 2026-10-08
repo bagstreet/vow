@@ -33,3 +33,10 @@ test('withForgetFilter hides forgotten memories from recall', async () => {
   assert.deepEqual(await withForgetFilter(base, async () => []).recall('u', 'q'), ['[telegram] I take 5mg melatonin', 'likes rowing']);
   assert.deepEqual(await withForgetFilter(base, async () => { throw new Error('db'); }).recall('u', 'q'), ['[telegram] I take 5mg melatonin', 'likes rowing']);
 });
+
+import { withAliasRecall } from './walrus-memory.mjs';
+test('alias recall reads the absorbed namespace and de-duplicates', async () => {
+  const mem = { recall: async (u) => (u === 'new' ? ['a', 'b'] : ['b', 'c']) };
+  assert.deepEqual(await withAliasRecall(mem, () => ['old']).recall('new', 'q', { limit: 4 }), ['a', 'b', 'c']);
+  assert.deepEqual(await withAliasRecall(mem, () => []).recall('new', 'q'), ['a', 'b']);
+});

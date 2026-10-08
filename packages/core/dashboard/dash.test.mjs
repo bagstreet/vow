@@ -199,3 +199,16 @@ test('email link: attach, conflict, daily limit, removal guard, admin rights fol
   b.email = 'race@x.io';
   assert.equal((await call(st2, 'magic-verify', 'POST', { token: got[0] }, null, {})).json.error, 'email_in_use');
 });
+
+test('merge: code from source, run by target; same account and bad code rejected', async () => {
+  const st = makeStore(); const a = st.mkUser(), b = st.mkUser(); const codes = new Map(); const merged = [];
+  st.createMergeCode = async (u) => { codes.set('M1', u); return { code: 'M1', ttlMinutes: 10 }; };
+  st.consumeMergeCode = async (c) => { const u = codes.get(c); codes.delete(c); return u ?? null; };
+  st.mergeAccounts = async (t, s) => { merged.push([t, s]); return { ok: true }; };
+  assert.equal((await call(st, 'merge', 'POST', { code: 'nope' }, a.id)).status, 400);
+  await call(st, 'merge-code', 'POST', {}, a.id);
+  assert.equal((await call(st, 'merge', 'POST', { code: 'M1' }, a.id)).status, 400); // own code
+  await call(st, 'merge-code', 'POST', {}, b.id);
+  const r = await call(st, 'merge', 'POST', { code: 'M1' }, a.id);
+  assert.equal(r.status, 200); assert.deepEqual(merged, [[a.id, b.id]]);
+});
