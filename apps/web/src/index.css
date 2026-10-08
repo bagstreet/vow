@@ -199,7 +199,8 @@ button:not(:disabled):hover, [role="button"]:hover { filter: brightness(1.18); }
 button:not(:disabled):active, [role="button"]:active { transform: scale(.97); filter: brightness(.92); }
 button:disabled, button[aria-busy="true"] { cursor: not-allowed; opacity: .55; }
 button[aria-busy="true"] { cursor: progress; }
-a:not(.no-underline-hover):hover { filter: brightness(1.25); text-decoration: underline; text-underline-offset: 3px; }
+a:hover { filter: brightness(1.25); }
+a.underline-hover:hover { text-decoration: underline; text-underline-offset: 3px; }
 a:active { filter: brightness(.9); }
 select:not(:disabled):hover, input:not(:disabled):hover { border-color: var(--border-vis) !important; }
 input:focus, select:focus, textarea:focus { border-color: var(--accent) !important; box-shadow: 0 0 0 3px rgba(14,156,134,.25); }

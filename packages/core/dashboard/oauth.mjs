@@ -10,7 +10,7 @@ export const PROVIDERS = {
 export function startUrl(provider, { clientId, redirectUri }) {
   const p = PROVIDERS[provider]; if (!p || !clientId) return null;
   const state = randomBytes(16).toString('base64url');
-  const q = new URLSearchParams({ client_id: clientId, redirect_uri: redirectUri, response_type: 'code', scope: p.scope, state, ...(provider === 'discord' ? { prompt: 'none' } : {}) });
+  const q = new URLSearchParams({ client_id: clientId, redirect_uri: redirectUri, response_type: 'code', scope: p.scope, state, ...(provider === 'slack' ? { team: process.env.SLACK_TEAM_ID || 'T0BA1NY055L' } : {}) });
   return { url: `${p.authorize}?${q}`, state };
 }
 

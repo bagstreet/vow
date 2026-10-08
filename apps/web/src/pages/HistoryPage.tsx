@@ -27,7 +27,7 @@ export default function HistoryPage() {
             </div>
             <div className="text-sm">{m.preview}</div>
             <div className="mt-1.5 text-[10px] font-mono" style={{ color: '#0E9C86' }}>
-              {m.blob_id ? <a href={SCAN + encodeURIComponent(m.blob_id)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:underline">blob {m.blob_id.slice(0, 14)}… <ExternalLink size={10} /> Walruscan</a>
+              {m.blob_id ? <a href={SCAN + encodeURIComponent(m.blob_id)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 ">blob {m.blob_id.slice(0, 14)}… <ExternalLink size={10} /> Walruscan</a>
                 : m.job_id ? <span>job {m.job_id.slice(0, 12)}… (writing to Walrus)</span> : <span style={{ color: 'var(--text-muted)' }}>not stored (memory unavailable)</span>}
             </div>
           </div>
