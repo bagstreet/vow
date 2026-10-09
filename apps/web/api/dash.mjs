@@ -43,6 +43,8 @@ async function oauth(op, req, res) {
     return res.redirect(302, st.url);
   }
   // callback
+  // Discord bot install redirect (guild_id, no login state cookie): send the user back to the channels page.
+  if (req.query.guild_id && !readState(req.headers.cookie)) return res.redirect(302, '/dashboard/channels?discord=added');
   const [provider, state] = String(readState(req.headers.cookie) ?? '.').split('.');
   if (req.query.error) return fail(res, 'cancelled');
   if (!provider || !state || state !== req.query.state || !req.query.code) return fail(res, 'bad_state');

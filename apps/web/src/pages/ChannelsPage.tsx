@@ -12,7 +12,7 @@ const BOTS: { id: Bot; name: string; icon: typeof Hash; note: string; cmd: strin
 const OPEN: Record<Bot, { label: string; url: (code: string) => string; hint: string }> = {
   telegram: { label: 'Open in Telegram', url: (c) => `https://t.me/VoW_rebot?start=${c}`, hint: 'Press Start in the chat: the code is sent for you.' },
   slack: { label: 'Open in Slack', url: () => 'https://slack.com/app_redirect?app=A0C6WKX1SNB&team=T0BA1NY055L', hint: 'Slack cannot pre-fill the message: paste the command below.' },
-  discord: { label: 'Add Vow to Discord', url: () => 'https://discord.com/oauth2/authorize?client_id=1557286978905571428&scope=bot+applications.commands&permissions=412317240384', hint: 'Add the app, then run the command in any channel or DM.' },
+  discord: { label: 'Add Vow to Discord', url: () => 'https://discord.com/oauth2/authorize?client_id=1557286978905571428&scope=bot+applications.commands&permissions=412317240384&response_type=code&redirect_uri=https%3A%2F%2Fvow-livid.vercel.app%2Fapi%2Fdash%2Foauth-callback', hint: 'Add the app, then run the command in any channel or DM.' },
 }
 const PLANNED = [
   { name: 'Desktop helper', icon: Laptop, note: 'Fastest channel: native notification with buttons. Planned.' },
@@ -33,6 +33,7 @@ export default function ChannelsPage() {
 
   const connected = (b: Bot) => channels.find(c => c.channel === b)
   const flash = (m: string) => { setNote(m); setTimeout(() => setNote(''), 2500) }
+  useEffect(() => { if (new URLSearchParams(window.location.search).get('discord') === 'added') flash('Vow was added to your Discord server. Now run /link in Discord, or press Connect.') }, [])
   const save = async (patch: Record<string, unknown>) => { const r = await api('prefs', 'PATCH', patch); if (r.ok) { await refresh(); flash('Saved') } else flash(`Could not save (${r.error ?? 'error'})`) }
 
   const startLink = async (bot: Bot) => {
@@ -76,7 +77,7 @@ export default function ChannelsPage() {
                     <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{b.note}</div>
                     {b.id === 'discord' && (
                       <div className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
-                        <a href="https://discord.com/oauth2/authorize?client_id=1557286978905571428&scope=bot+applications.commands&permissions=412317240384" target="_blank" rel="noreferrer" className="underline" style={{ color: '#0E9C86' }}>Add to a server</a>
+                        <a href="https://discord.com/oauth2/authorize?client_id=1557286978905571428&scope=bot+applications.commands&permissions=412317240384&response_type=code&redirect_uri=https%3A%2F%2Fvow-livid.vercel.app%2Fapi%2Fdash%2Foauth-callback" target="_blank" rel="noreferrer" className="underline" style={{ color: '#0E9C86' }}>Add to a server</a>
                         {' · '}
                         <a href="https://discord.com/oauth2/authorize?client_id=1557286978905571428&integration_type=1&scope=applications.commands" target="_blank" rel="noreferrer" className="underline" style={{ color: '#0E9C86' }}>Add to my DMs</a>
                         {' '}(DM free text needs a server that you and Vow share)
