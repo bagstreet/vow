@@ -31,6 +31,14 @@ export async function handleAdmin({ store, op, method, body = {}, profile, env =
     const target = await store.getProfile(id); if (!target) return err(404, 'not_found');
     if (isAdmin(target, env)) return err(400, 'cannot_block_admin');
     await store.setBlocked(id, !!body.blocked);
+    if (body.blocked && store.guardianLinksOf && store.addNotice) { // S06/S07: tell the other side that protection is paused
+      const who = target.display_name || 'A Vow user';
+      for (const l of await store.guardianLinksOf(id)) {
+        if (!l.guardianUserId) continue;
+        if (l.guardianUserId === id) await store.addNotice(l.watchedUserId, 'Your trusted contact is unavailable. Protection is paused until an admin restores the account; you can choose another trusted contact in the dashboard.');
+        else await store.addNotice(l.guardianUserId, `Alerts for ${who} are paused.`);
+      }
+    }
     return ok({ id, blocked: !!body.blocked });
   }
   if (op === 'admin-settings' && method === 'GET') return ok({ settings: { ...SETTING_DEFAULTS, ...(await store.getSettings()) } });

@@ -36,7 +36,7 @@ export function createNeonGuardianStore(sql) {
       };
     },
     async addNotice(userId, text) { await sql('insert into notices(user_id, text) values ($1,$2)', [userId, text]); },
-    async activeGuardianLinks() { return (await sql("select * from guardian_links where status = 'active' limit 500")).map(link); },
+    async activeGuardianLinks() { return (await sql("select l.* from guardian_links l join users w on w.id = l.watched_user_id and w.blocked_at is null join users g on g.id = l.guardian_user_id and g.blocked_at is null where l.status = 'active' limit 500")).map(link); },
     async guardianStats(userId) {
       const u = (await sql('select display_name from users where id = $1', [userId]))[0];
       const rows = await sql("select status from outbox where user_id = $1 and status in ('acked','expired') order by send_at desc limit 12", [userId]);
@@ -51,7 +51,7 @@ export function createNeonGuardianStore(sql) {
       return r.length > 0;
     },
     async claimNotices(limit) {
-      const r = await sql("update notices set sent_at = now() where id in (select id from notices where sent_at is null order by created_at limit $1 for update skip locked) returning id, user_id, text", [limit]);
+      const r = await sql("update notices set sent_at = now() where id in (select n.id from notices n join users u on u.id = n.user_id and u.blocked_at is null where n.sent_at is null order by n.created_at limit $1 for update skip locked) returning id, user_id, text", [limit]);
       return r.map((x) => ({ id: x.id, userId: x.user_id, text: x.text }));
     },
     async finishNotice(id, delivered) { if (!delivered) await sql('update notices set sent_at = now() where id = $1', [id]); },

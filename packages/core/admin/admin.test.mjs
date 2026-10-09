@@ -49,3 +49,14 @@ test('write mode: instant passes through; digest buffers, flushes when due or on
   age = 0; await m.remember('u1', 'e'); assert.equal(await m.flush('u1').then((r) => !!r), true); assert.match(written[2], /digest 1/);
   assert.equal(await m.flush('u1'), null);
 });
+
+test('blocking a trusted contact or a watched user notifies the other side (S06/S07)', async () => {
+  const notes = [];
+  const store = { ...mkStore(), guardianLinksOf: async () => [{ watchedUserId: 'w1', guardianUserId: 'u1' }], addNotice: async (uid, t) => notes.push([uid, t]) };
+  const admin = { id: 'a1', email: 'boss@x.io' };
+  await handleAdmin({ store, op: 'admin-block', method: 'POST', body: { id: 'u1', blocked: true }, profile: admin, env: { ADMIN_EMAILS: 'boss@x.io' } });
+  assert.equal(notes.length, 1); assert.equal(notes[0][0], 'w1'); assert.match(notes[0][1], /trusted contact is unavailable/);
+  notes.length = 0; store.guardianLinksOf = async () => [{ watchedUserId: 'u1', guardianUserId: 'g1' }];
+  await handleAdmin({ store, op: 'admin-block', method: 'POST', body: { id: 'u1', blocked: true }, profile: admin, env: { ADMIN_EMAILS: 'boss@x.io' } });
+  assert.equal(notes[0][0], 'g1'); assert.match(notes[0][1], /paused/);
+});
