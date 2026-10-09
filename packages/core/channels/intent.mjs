@@ -31,6 +31,10 @@ function applyPart(h, part, ampm) {
 /** Rewrite spoken times ("noon", "half past one", "quarter to 5", "7 in the evening", "12h", "9 o'clock") to "at HH:MM". */
 export function normalizeTimeWords(text) {
   let t = String(text);
+  t = t.replace(/(?<![\p{L}\d_])(?:at\s+)?(half|quarter)\s+(past|after|to|till|before)\s+(noon|midday|midnight)(?![\p{L}\d_])/giu, (_, a, dir, w) => {
+    const amount = /^half/i.test(a) ? 30 : 15; const base = /midnight/i.test(w) ? 0 : 12;
+    return /^(to|till|before)$/i.test(dir) ? ` at ${hhmm(base - 1 < 0 ? 23 : base - 1, 60 - amount)} ` : ` at ${hhmm(base, amount)} `;
+  });
   t = t.replace(/(?<![\p{L}\d_])(?:at\s+)?(noon|midday)(?![\p{L}\d_])/giu, ' at 12:00 ')
     .replace(/(?<![\p{L}\d_])(?:at\s+)?midnight(?![\p{L}\d_])/giu, ' at 00:00 ')
     .replace(new RegExp(`(?<![\\p{L}\\d_])(?:at\\s+)?(half|quarter|(?:${NW})(?:\\s+minutes?)?)\\s+(past|after|to|till|before)\\s+(\\d{1,2}|${NW})${PART}(?![\\p{L}\\d_])`, 'giu'),

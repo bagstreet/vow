@@ -54,6 +54,7 @@ export function createNeonGuardianStore(sql) {
       const r = await sql("update notices set sent_at = now() where id in (select n.id from notices n join users u on u.id = n.user_id and u.blocked_at is null where n.sent_at is null order by n.created_at limit $1 for update skip locked) returning id, user_id, text", [limit]);
       return r.map((x) => ({ id: x.id, userId: x.user_id, text: x.text }));
     },
-    async finishNotice(id, delivered) { if (!delivered) await sql('update notices set sent_at = now() where id = $1', [id]); },
+    // A failed delivery is retried by the next ticks for 30 minutes (a guardian alert must not be lost to one 5xx), then given up and left visible in the dashboard.
+    async finishNotice(id, delivered) { if (!delivered) await sql("update notices set sent_at = case when created_at > now() - interval '30 minutes' then null else now() end where id = $1", [id]); },
   };
 }
