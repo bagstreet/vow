@@ -15,8 +15,44 @@ const CREATE = /(напомни(?:ть)?(?![\p{L}\d_])|(?:создай|доба�
 const LIST = /((?:мои|все|список|покажи|показать)\s+напоминани[\p{L}\d_]*|what reminders|(?:my|list|show)\s+(?:all\s+)?reminders|\/reminders)/ui;
 const DELETE = /((?:удали|отмени|убери|выключи)\s+(?:мне\s+)?напоминани[\p{L}\d_]*|(?:delete|remove|cancel)\s+(?:the\s+|my\s+)?(?:[\p{L}\d_]+\s+)?reminder)/ui;
 
+const NUM_WORDS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, twenty: 20, 'twenty five': 25, 'twenty-five': 25, thirty: 30, forty: 40, 'forty five': 45, 'forty-five': 45 };
+const NW = Object.keys(NUM_WORDS).sort((a, b) => b.length - a.length).join('|');
+const num = (x) => (/^\d+$/.test(x) ? +x : NUM_WORDS[x.toLowerCase()]);
+const hhmm = (h, m) => `${String(((h % 24) + 24) % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+const PART = '(?:\\s+(?:in the|at)\\s+(morning|afternoon|evening|night)|\\s+(am|pm|a\\.m\\.|p\\.m\\.))?';
+function applyPart(h, part, ampm) {
+  const p = (part ?? '').toLowerCase(); const a = (ampm ?? '').replace(/\./g, '').toLowerCase();
+  if ((p === 'afternoon' || p === 'evening' || a === 'pm') && h < 12) return h + 12;
+  if (p === 'night' && h >= 6 && h < 12) return h + 12;
+  if ((p === 'morning' || p === 'night' || a === 'am') && h === 12) return 0;
+  return h;
+}
+/** Rewrite spoken times ("noon", "half past one", "quarter to 5", "7 in the evening", "12h", "9 o'clock") to "at HH:MM". */
+export function normalizeTimeWords(text) {
+  let t = String(text);
+  t = t.replace(/(?<![\p{L}\d_])(?:at\s+)?(noon|midday)(?![\p{L}\d_])/giu, ' at 12:00 ')
+    .replace(/(?<![\p{L}\d_])(?:at\s+)?midnight(?![\p{L}\d_])/giu, ' at 00:00 ')
+    .replace(new RegExp(`(?<![\\p{L}\\d_])(?:at\\s+)?(half|quarter|(?:${NW})(?:\\s+minutes?)?)\\s+(past|after|to|till|before)\\s+(\\d{1,2}|${NW})${PART}(?![\\p{L}\\d_])`, 'giu'),
+      (_, a, dir, hh, part, ampm) => {
+        const amount = /^half/i.test(a) ? 30 : /^quarter/i.test(a) ? 15 : num(a.replace(/\s+minutes?$/i, ''));
+        let h = num(hh); if (!amount || !h) return _;
+        const before = /^(to|till|before)$/i.test(dir);
+        h = applyPart(h, part, ampm);
+        return before ? ` at ${hhmm(h - 1, 60 - amount)} ` : ` at ${hhmm(h, amount)} `;
+      })
+    .replace(new RegExp(`(?<![\\p{L}\\d_])(?:at\\s+)?(\\d{1,2}|${NW})\\s*(?:o'?\\s?clock|oclock)${PART}(?![\\p{L}\\d_])`, 'giu'),
+      (_, hh, part, ampm) => { const h = num(hh); return h ? ` at ${hhmm(applyPart(h, part, ampm), 0)} ` : _; })
+    .replace(/(?<![\p{L}\d_.:])(?:at\s+)?(\d{1,2})\s*(?:h|hrs?|hours?)(?![\p{L}\d_])(?!\s+(?:a|per|every|before|after|of)\b)/giu, (_, hh) => (+hh <= 23 ? ` at ${hhmm(+hh, 0)} ` : _))
+    .replace(new RegExp(`(?<![\\p{L}\\d_])at\\s+(\\d{1,2}|${NW})\\s+(fifteen|twenty|twenty[ -]five|thirty|forty|forty[ -]five|fifty|ten|five|oh\\s?(?:one|two|three|four|five|six|seven|eight|nine))${PART}(?![\\p{L}\\d_])`, 'giu'),
+      (_, hh, mm, part, ampm) => { const h = num(hh); const mn = /^oh/i.test(mm) ? NUM_WORDS[mm.replace(/^oh\s?/i, '').toLowerCase()] : (mm.toLowerCase() === 'fifty' ? 50 : num(mm.toLowerCase().replace(' ', '-'))); return h && mn != null ? ` at ${hhmm(applyPart(h, part, ampm), mn)} ` : _; })
+    .replace(new RegExp(`(?<![\\p{L}\\d_])at\\s+(${NW})${PART}(?![\\p{L}\\d_])`, 'giu'), (_, hh, part, ampm) => ` at ${hhmm(applyPart(num(hh), part, ampm), 0)} `)
+    .replace(new RegExp(`(?<![\\d.:])(?:at\\s+)?(\\d{1,2})(?::(\\d{2}))?\\s+(?:in the|at)\\s+(morning|afternoon|evening|night)(?![\\p{L}\\d_])`, 'giu'),
+      (_, hh, mm, part) => (+hh <= 12 ? ` at ${hhmm(applyPart(+hh, part, ''), +(mm ?? 0))} ` : _));
+  return t.replace(/\s{2,}/g, ' ').trim();
+}
+
 export function parseTime(text) {
-  const t = String(text);
+  const t = normalizeTimeWords(text);
   let m = t.match(/(?:(?<![\p{L}\d_])в(?![\p{L}\d_])|(?<![\p{L}\d_])at(?![\p{L}\d_])|(?<![\p{L}\d_])to(?![\p{L}\d_])|(?<![\p{L}\d_])к(?![\p{L}\d_]))?\s*(\d{1,2})[:.](\d{2})\s*(am|pm)?/ui);
   let h; let min;
   if (m) { h = +m[1]; min = +m[2]; if (/pm/ui.test(m[3] ?? '') && h < 12) h += 12; if (/am/ui.test(m[3] ?? '') && h === 12) h = 0; }
@@ -40,7 +76,7 @@ export function parseDays(text) {
 }
 
 function titleOf(text) {
-  return String(text)
+  return normalizeTimeWords(text)
     .replace(CREATE, ' ').replace(/(?:(?<![\p{L}\d_])(?:в|at|к)(?![\p{L}\d_])\s*\d{1,2}(?:[:.]\d{2})?(?!\d)\s*(?:am|pm|утра|вечера|дня|ночи)?|(?<![\d.:])\d{1,2}[:.]\d{2}(?![\d])\s*(?:am|pm|утра|вечера|дня|ночи)?|(?<![\d.:])\d{1,2}\s*(?:am|pm|утра|вечера|дня|ночи)(?![\p{L}\d_]))/ugi, ' ')
     .replace(/(каждый день|ежедневно|every\s*day|daily|по\s+будн[\p{L}\d_]+|по\s+выходн[\p{L}\d_]+|weekdays?|weekends?|мне|please|пожалуйста|on)/ugi, ' ')
     .replace(/(?:^|\s)(?:о|об|про|что|to|about|that)\s+/ugi, ' ')
@@ -49,7 +85,7 @@ function titleOf(text) {
 
 /** Classify a message. Returns {type, ...} or null (falls through to the LLM chat). */
 export function parseIntent(text) {
-  const t = String(text ?? '').trim();
+  const t = normalizeTimeWords(String(text ?? '').trim());
   if (!t || t.startsWith('/') && !/^\/reminders(?![\p{L}\d_])/ui.test(t) || t.length > 240) return null;
   if (LIST.test(t)) return { type: 'list' };
   if (DELETE.test(t)) return { type: 'delete', query: t.replace(DELETE, ' ').replace(/[,.!?]+/g, ' ').replace(/\s+/g, ' ').trim() };

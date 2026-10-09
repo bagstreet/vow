@@ -88,3 +88,11 @@ test('parse: doses and quantities in the title are kept, only the time is stripp
   assert.match(parseIntent('напомни в 9 принять 200 мг магния').title, /200 мг/);
   assert.equal(parseIntent('remind me to call mom at 7pm').title, 'call mom');
 });
+
+test('parse: spoken and unusual time formats (English)', () => {
+  const cases = [['remind me to take vitamins at noon', '12:00', 'take vitamins'], ['remind me to stretch at half past one', '01:30', 'stretch'],
+    ['remind me to call mom at quarter to five', '04:45', 'call mom'], ['remind me to read at 12h', '12:00', 'read'], ['remind me to meditate at 7 in the evening', '19:00', 'meditate'],
+    ["remind me at nine o'clock to journal", '09:00', 'journal'], ['remind me to sleep at midnight', '00:00', 'sleep'], ['remind me to run at six thirty', '06:30', 'run'],
+    ['remind me to drink water at twenty past six pm', '18:20', 'drink water'], ['remind me to take 2 pills at 8 am', '08:00', 'take 2 pills'], ['remind me to eat at 12:30 pm', '12:30', 'eat']];
+  for (const [t, time, title] of cases) { const r = parseIntent(t); assert.equal(r.time, time, t); assert.equal(r.title, title, t); }
+});
