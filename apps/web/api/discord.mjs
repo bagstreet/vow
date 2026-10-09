@@ -1,4 +1,5 @@
 // Vercel function: Discord Interactions endpoint. Env: DATABASE_URL, DISCORD_PUBLIC_KEY, WEB_BASE_URL
+import { createHash } from 'node:crypto';
 import { createSql } from '../../../packages/db/neon.mjs';
 import { createNeonStore } from '../../../packages/core/channels/neon-store.mjs';
 import { buildLlmClient } from '../../../packages/core/llm/index.mjs';
@@ -22,7 +23,9 @@ export default async function handler(req, res) {
   const dbStore = createNeonStore(createSql());
   if (req.method !== 'POST') return res.status(405).json({ ok: false });
   const raw = await readRawBody(req);
-  if (!verifyDiscordSignature(req.headers, raw, process.env.DISCORD_PUBLIC_KEY)) return res.status(401).end();
+  // The Gateway relay (apps/discord-gateway) authenticates with a hash of the bot token instead of an Ed25519 signature.
+  const gw = process.env.DISCORD_BOT_TOKEN && req.headers['x-gateway-auth'] === createHash('sha256').update(process.env.DISCORD_BOT_TOKEN).digest('hex');
+  if (!gw && !verifyDiscordSignature(req.headers, raw, process.env.DISCORD_PUBLIC_KEY)) return res.status(401).end();
 
   let body;
   try { body = JSON.parse(raw); } catch { return res.status(400).json({ ok: false }); }

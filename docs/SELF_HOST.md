@@ -100,3 +100,16 @@ replies carry codes and one-time tokens.
    reminders arrive as a normal DM from Vow, the same way Telegram works — no need to hunt for the bot's DM
    first, Vow opens it. The old commands-only-everywhere install (`&integration_type=1&scope=applications.commands`)
    still works for one-off `/ask`/`/status` calls but will never DM you proactively.
+
+## Discord Gateway relay (free text in direct messages)
+
+Discord delivers direct-message text only over a persistent Gateway connection, which serverless functions cannot hold. Vow runs a small relay for it: `apps/discord-gateway`.
+
+```
+Discord Gateway --DM--> relay (Render, free) --POST /api/discord--> Vercel handler --> reply posted to the DM
+```
+
+- The relay maps `/link CODE`, `/login`, `/roles`, `/role`, `/status`, `/quiet`, `/priority`, `/help` and any other text to the same handler used by slash commands, so behaviour is identical on every Discord surface.
+- Authentication to the API: header `x-gateway-auth` = SHA-256 of the bot token. No extra secret to manage.
+- Deploy: Render dashboard, New, Blueprint, select the repository (`render.yaml` is at the root). Set `DISCORD_BOT_TOKEN`. Free instances sleep after 15 minutes without traffic, so add a cron-job.org job that requests the service URL every 10 minutes.
+- Slash commands and buttons keep working through the Vercel endpoint independently of the relay.

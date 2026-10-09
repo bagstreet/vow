@@ -1,0 +1,2 @@
+{ "name": "vow-discord-gateway", "version": "0.1.0", "private": true, "type": "module", "main": "worker.mjs",
+  "scripts": { "start": "node worker.mjs" }, "dependencies": { "ws": "^8.18.0" }, "engines": { "node": ">=20" } }
