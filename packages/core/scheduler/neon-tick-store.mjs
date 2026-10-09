@@ -6,7 +6,7 @@ const toMs = (v) => (v == null ? null : new Date(v).getTime());
 const iso = (ms) => new Date(ms).toISOString();
 
 export function createNeonTickStore(sql) {
-  const rem = (r) => ({ id: r.id, userId: r.user_id, role: r.role, title: r.title, timeLocal: String(r.time_local).slice(0, 5), days: parseArr(r.days), tz: r.tz });
+  const rem = (r) => ({ id: r.id, userId: r.user_id, role: r.role, title: r.title, timeLocal: String(r.time_local).slice(0, 5), days: parseArr(r.days), tz: r.tz, onceDate: r.once_date ? String(r.once_date).slice(0, 10) : null });
   return {
     ...createNeonGuardianStore(sql),
     async initReminders(now) {
@@ -15,6 +15,7 @@ export function createNeonTickStore(sql) {
       for (const r0 of rows) {
         const r = rem(r0); const nf = computeNextFire(r, now);
         if (nf) { await sql('update reminders set next_fire_at = $2 where id = $1 and next_fire_at is null', [r.id, iso(nf)]); n++; }
+        else if (r.onceDate) await sql('update reminders set enabled = false where id = $1', [r.id]); // one-time reminder whose date has passed
       }
       return rows.slice(0, n);
     },
@@ -24,7 +25,7 @@ export function createNeonTickStore(sql) {
       for (const r0 of rows) {
         const r = rem(r0); const nf = computeNextFire(r, now);
         const won = await sql('update reminders set next_fire_at = $3 where id = $1 and next_fire_at = $2 returning id', [r.id, r0.next_fire_at, nf ? iso(nf) : null]);
-        if (won.length) out.push(r);
+        if (won.length) { out.push(r); if (r.onceDate) await sql('update reminders set enabled = false where id = $1', [r.id]); }
       }
       return out;
     },

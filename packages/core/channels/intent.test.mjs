@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseIntent, runIntent, parseTime, parseDays, scheduleContext } from './intent.mjs';
+import { resolveOnce } from './once.mjs';
+import { computeNextFire } from '../scheduler/time.mjs';
 
 const mkStore = (o = {}) => {
   const s = { acks: [], reminders: o.reminders ?? [], added: [], removed: [], occ: o.occ ?? null };
@@ -97,11 +99,36 @@ test('parse: spoken and unusual time formats (English)', () => {
   for (const [t, time, title] of cases) { const r = parseIntent(t); assert.equal(r.time, time, t); assert.equal(r.title, title, t); }
 });
 
-test('create: one-time wording gets an honest repeat note', async () => {
-  const store = { listUserReminders: async () => [], addUserReminder: async () => {} };
-  const user = { id: 'u', default_role: 'fitness' };
+test('once: resolveOnce handles tomorrow, today, next weekday, in N minutes, dates, and leaves recurring alone', () => {
+  const now = Date.UTC(2026, 9, 9, 10, 0); // Fri 2026-10-09 10:00 UTC
+  const r = (t, time) => resolveOnce(t, { now, tz: 'UTC', time });
+  assert.deepEqual(r('remind me tomorrow at 9', '09:00'), { date: '2026-10-10' });
+  assert.deepEqual(r('remind me today at 18:00', '18:00'), { date: '2026-10-09' });
+  assert.deepEqual(r('remind me today at 8:00', '08:00'), { date: '2026-10-10' }); // already past
+  assert.deepEqual(r('call mom next monday at 9', '09:00'), { date: '2026-10-12' });
+  assert.deepEqual(r('remind me in 90 minutes to stretch'), { date: '2026-10-09', time: '11:30' });
+  assert.deepEqual(r('remind me on Oct 20 at 9', '09:00'), { date: '2026-10-20' });
+  assert.deepEqual(r('remind me on 2026-11-01 at 9', '09:00'), { date: '2026-11-01' });
+  assert.equal(r('remind me every day at 9', '09:00'), null);
+  assert.equal(r('remind me on monday at 9', '09:00'), null);
+  assert.deepEqual(resolveOnce('tomorrow at 9', { now: Date.UTC(2026, 9, 9, 15, 0), tz: 'Pacific/Auckland', time: '09:00' }), { date: '2026-10-11' }); // NZ is already Saturday
+});
+
+test('once: computeNextFire for one-time reminders, then null after the date', () => {
+  const now = Date.UTC(2026, 9, 9, 10, 0);
+  assert.equal(computeNextFire({ timeLocal: '09:00', tz: 'UTC', onceDate: '2026-10-10' }, now), Date.UTC(2026, 9, 10, 9, 0));
+  assert.equal(computeNextFire({ timeLocal: '09:00', tz: 'Europe/Minsk', onceDate: '2026-10-10' }, now), Date.UTC(2026, 9, 10, 6, 0));
+  assert.equal(computeNextFire({ timeLocal: '09:00', tz: 'UTC', onceDate: '2026-10-09' }, now), null);
+});
+
+test('create: one-time wording stores a date, recurring wording does not', async () => {
+  const added = [];
+  const store = { listUserReminders: async () => [], addUserReminder: async (_u, v) => { added.push(v); } };
+  const user = { id: 'u', default_role: 'fitness', tz: 'UTC' };
   const a = await runIntent({ text: 'remind me to stretch tomorrow at 9:00', user, store, channel: 'telegram', enabled: ['fitness'] });
-  assert.match(a.text, /one-time reminders are not supported/);
+  assert.match(a.text, /once on \d{4}-\d{2}-\d{2}/); assert.match(added[0].date, /^\d{4}-\d{2}-\d{2}$/); assert.equal(added[0].title, 'stretch');
   const b = await runIntent({ text: 'remind me to stretch at 9:00 daily', user, store, channel: 'telegram', enabled: ['fitness'] });
-  assert.doesNotMatch(b.text, /one-time/);
+  assert.doesNotMatch(b.text, /once/); assert.equal(added[1].date, null);
+  const c = await runIntent({ text: 'remind me in 20 minutes to check the oven', user, store, channel: 'telegram', enabled: ['fitness'] });
+  assert.match(c.text, /once on/); assert.equal(added[2].title, 'check the oven');
 });

@@ -9,8 +9,14 @@ export function tzOffsetMin(tz, ms) {
 }
 
 /** Next fire instant (ms) strictly after `now` for a daily-time reminder. days: ISO weekdays 1..7 (Mon=1). */
-export function computeNextFire({ timeLocal, days = [1, 2, 3, 4, 5, 6, 7], tz = 'UTC' }, now) {
+export function computeNextFire({ timeLocal, days = [1, 2, 3, 4, 5, 6, 7], tz = 'UTC', onceDate = null }, now) {
   const [hh, mm] = String(timeLocal).split(':').map(Number);
+  if (onceDate) { // one-time: that local date at timeLocal, or null when it is already past
+    const [y, mo, d] = String(onceDate).slice(0, 10).split('-').map(Number);
+    const base = Date.UTC(y, mo - 1, d, hh, mm);
+    const cand = base - tzOffsetMin(tz, base - tzOffsetMin(tz, now) * 60000) * 60000;
+    return cand > now ? cand : null;
+  }
   const allowed = new Set(days.length ? days : [1, 2, 3, 4, 5, 6, 7]);
   const off = tzOffsetMin(tz, now);
   const local = new Date(now + off * 60000);

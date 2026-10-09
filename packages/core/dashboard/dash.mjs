@@ -42,6 +42,10 @@ export function cleanReminder(b, { partial = false } = {}) {
     if (b.channel !== null && !CHANNELS.includes(b.channel)) return { error: 'bad_channel' };
     o.channel = b.channel;
   }
+  if (b.date !== undefined) {
+    if (b.date !== null && !/^\d{4}-\d{2}-\d{2}$/.test(String(b.date))) return { error: 'bad_date' };
+    o.date = b.date;
+  }
   if (b.enabled !== undefined) o.enabled = !!b.enabled;
   return { value: o };
 }

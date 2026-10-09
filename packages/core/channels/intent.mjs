@@ -1,3 +1,4 @@
+import { resolveOnce, ONCE_WORDS } from './once.mjs';
 // Deterministic intent layer that runs BEFORE the LLM chat. Free text that is really an action
 // ("I took it", "remind me to take vitamin D at 9", "list my reminders", "delete the vitamin reminder")
 // is executed against the same reminders/outbox the dashboard shows, so chat and dashboard never diverge.
@@ -77,7 +78,7 @@ export function parseDays(text) {
 
 function titleOf(text) {
   return normalizeTimeWords(text)
-    .replace(CREATE, ' ').replace(/(?:(?<![\p{L}\d_])(?:в|at|к)(?![\p{L}\d_])\s*\d{1,2}(?:[:.]\d{2})?(?!\d)\s*(?:am|pm|утра|вечера|дня|ночи)?|(?<![\d.:])\d{1,2}[:.]\d{2}(?![\d])\s*(?:am|pm|утра|вечера|дня|ночи)?|(?<![\d.:])\d{1,2}\s*(?:am|pm|утра|вечера|дня|ночи)(?![\p{L}\d_]))/ugi, ' ')
+    .replace(ONCE_WORDS, ' ').replace(CREATE, ' ').replace(/(?:(?<![\p{L}\d_])(?:в|at|к)(?![\p{L}\d_])\s*\d{1,2}(?:[:.]\d{2})?(?!\d)\s*(?:am|pm|утра|вечера|дня|ночи)?|(?<![\d.:])\d{1,2}[:.]\d{2}(?![\d])\s*(?:am|pm|утра|вечера|дня|ночи)?|(?<![\d.:])\d{1,2}\s*(?:am|pm|утра|вечера|дня|ночи)(?![\p{L}\d_]))/ugi, ' ')
     .replace(/(каждый день|ежедневно|every\s*day|daily|по\s+будн[\p{L}\d_]+|по\s+выходн[\p{L}\d_]+|weekdays?|weekends?|мне|please|пожалуйста|on)/ugi, ' ')
     .replace(/(?:^|\s)(?:о|об|про|что|to|about|that)\s+/ugi, ' ')
     .replace(/[,.!?]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
@@ -89,7 +90,7 @@ export function parseIntent(text) {
   if (!t || t.startsWith('/') && !/^\/reminders(?![\p{L}\d_])/ui.test(t) || t.length > 240) return null;
   if (LIST.test(t)) return { type: 'list' };
   if (DELETE.test(t)) return { type: 'delete', query: t.replace(DELETE, ' ').replace(/[,.!?]+/g, ' ').replace(/\s+/g, ' ').trim() };
-  if (CREATE.test(t) && !LATER.test(t)) return { type: 'create', time: parseTime(t), days: parseDays(t), title: titleOf(t) };
+  if (CREATE.test(t) && !LATER.test(t.replace(ONCE_WORDS, ' '))) return { type: 'create', time: parseTime(t), days: parseDays(t), title: titleOf(t) };
   if (t.includes('?')) return null; // questions go to the model
   if (LATER.test(t)) return { type: 'ack', status: 'snooze' };
   if (SKIP.test(t)) return { type: 'ack', status: 'skip' };
@@ -99,7 +100,7 @@ export function parseIntent(text) {
 
 const DAYS_EN = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 export const fmtDays = (d) => (!d || d.length === 7 ? 'daily' : d.join() === '1,2,3,4,5' ? 'weekdays' : d.map((x) => DAYS_EN[x]).join(', '));
-export const fmtReminder = (r, i) => `${i + 1}. ${r.title} — ${r.time} ${fmtDays(r.days)} (${r.role})${r.enabled === false ? ' [off]' : ''}`;
+export const fmtReminder = (r, i) => `${i + 1}. ${r.title} — ${r.time} ${r.date ? `once on ${r.date}` : fmtDays(r.days)} (${r.role})${r.enabled === false ? ' [off]' : ''}`;
 
 const FILLER = new Set(['record', 'log', 'note', 'mark', 'save', 'that', 'this', 'just', 'already', 'today', 'now', 'thanks', 'thank', 'please', 'the', 'and', 'it', 'my', 'all', 'as', 'was', 'have', 'had', 'did', 'done', 'took', 'taken', 'finished', 'completed', 'ok', 'okay', 'yes', 'yep',
   'запиши', 'записать', 'отметь', 'что', 'это', 'уже', 'как', 'мои', 'мой', 'сегодня', 'принял', 'принята', 'готово', 'выполнено', 'сделал', 'выпил', 'съел', 'спасибо', 'пожалуйста', 'все', 'всё', 'да']);
@@ -111,8 +112,6 @@ export function mentionsOtherSubject(text, title) {
   const t = String(title).toLowerCase();
   return !extra.some((w) => t.includes(w.slice(0, 4)));
 }
-
-const ONE_TIME = /\b(tomorrow|tonight|today|once|one[- ]time|next\s+(mon|tue|wed|thu|fri|sat|sun)[a-z]*)\b/i;
 
 /** Execute an action intent. Returns { text, role? } or null when the text is not an action. */
 export async function runIntent({ text, user, store, memory, settle, channel, enabled = [] }) {
@@ -143,23 +142,25 @@ export async function runIntent({ text, user, store, memory, settle, channel, en
   }
   // create
   if (!it.title) return { text: 'What should I remind you about? E.g. "remind me to take vitamin D at 9:00 daily".' };
+  const once = resolveOnce(text, { tz: user.tz ?? 'UTC', time: it.time });
+  if (once?.time) it.time = once.time; // "in 20 minutes"
   if (!it.time) return { text: `At what time? E.g. "remind me ${it.title} at 9:00 daily".` };
   const list = (await store.listUserReminders?.(user.id)) ?? [];
   if (list.length >= 50) return { text: 'You have reached the limit of 50 reminders. Delete some in the dashboard.' };
   const routed = route(it.title, { enabled, channel }).primary;
   const role = enabled.includes(routed) ? routed : enabled.includes(user.default_role) ? user.default_role : enabled[0];
   if (!role) return { text: 'No roles are enabled yet. Turn one on in the dashboard first.' };
-  const dup = list.find((r) => r.title.toLowerCase() === it.title.toLowerCase() && r.time === it.time);
+  const dup = list.find((r) => r.title.toLowerCase() === it.title.toLowerCase() && r.time === it.time && (r.date ?? null) === (once?.date ?? null));
   if (dup) return { text: `You already have "${dup.title}" at ${dup.time}.`, role };
-  await store.addUserReminder(user.id, { title: it.title, time: it.time, days: it.days, role });
-  if (memory) await memory.remember(user.id, `[schedule, ${channel}] reminder "${it.title}" at ${it.time} ${fmtDays(it.days)} (${role})`);
-  return { text: `✓ Reminder created: "${it.title}" — ${it.time} ${fmtDays(it.days)}, role ${role}. It shows up in the dashboard under Reminders (edit/delete there or here).${ONE_TIME.test(text) ? ' Note: reminders repeat, and one-time reminders are not supported yet. Delete this one after it fires.' : ''}`, role };
+  await store.addUserReminder(user.id, { title: it.title, time: it.time, days: it.days, role, date: once?.date ?? null });
+  if (memory) await memory.remember(user.id, `[schedule, ${channel}] reminder "${it.title}" at ${it.time} ${once ? `once on ${once.date}` : fmtDays(it.days)} (${role})`);
+  return { text: `✓ Reminder created: "${it.title}" — ${it.time} ${once ? `once on ${once.date}` : fmtDays(it.days)}, role ${role}. It shows up in the dashboard under Reminders (edit/delete there or here).`, role };
 }
 
 /** Context block so the model can answer "what was that reminder?" instead of guessing. */
 export function scheduleContext(reminders = [], lastOcc = null) {
   const parts = [];
-  if (reminders.length) parts.push(`User's reminders: ${reminders.slice(0, 20).map((r) => `"${r.title}" ${r.time} ${fmtDays(r.days)} (${r.role})`).join('; ')}.`);
+  if (reminders.length) parts.push(`User's reminders: ${reminders.slice(0, 20).map((r) => `"${r.title}" ${r.time} ${r.date ? `once on ${r.date}` : fmtDays(r.days)} (${r.role})`).join('; ')}.`);
   if (lastOcc) parts.push(`Most recent reminder sent to the user: "${lastOcc.title}" (${lastOcc.role}), status ${lastOcc.status}.`);
   if (lastOcc && ['sent', 'escalated'].includes(lastOcc.status)) parts.push('That check-in is still open. If the user\'s message answers it (taken, skipped, later, a detail about it), treat it as the reply. If it is about something else, answer that topic and do not ask what they "took".');
   return parts.join(' ');

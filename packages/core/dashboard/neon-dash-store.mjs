@@ -7,7 +7,7 @@ import { createNeonGuardianStore } from '../guardian/neon-guardian-store.mjs';
 import { SESSION_DAYS } from './session.mjs';
 
 const days = (v) => parseArr(v).map(Number);
-const remOut = (r) => ({ id: r.id, title: r.title, role: r.role, time: String(r.time_local).slice(0, 5), days: days(r.days), channel: r.channel_pref ?? null, enabled: r.enabled, source: r.source ?? 'dashboard', nextFireAt: r.next_fire_at ?? null });
+const remOut = (r) => ({ id: r.id, title: r.title, role: r.role, time: String(r.time_local).slice(0, 5), days: days(r.days), channel: r.channel_pref ?? null, enabled: r.enabled, source: r.source ?? 'dashboard', nextFireAt: r.next_fire_at ?? null, date: r.once_date ? String(r.once_date).slice(0, 10) : null });
 
 export function createNeonDashStore(sql) {
   const base = createNeonStore(sql);
@@ -76,14 +76,14 @@ export function createNeonDashStore(sql) {
     async unlinkChannel(userId, id) { await sql('delete from channel_links where id = $1 and user_id = $2', [id, userId]); },
     async listReminders(userId) { return (await sql('select * from reminders where user_id = $1 order by time_local, created_at', [userId])).map(remOut); },
     async createReminder(userId, v) {
-      const r = await sql('insert into reminders(user_id, role, title, time_local, days, channel_pref) values ($1,$2,$3,$4,$5::smallint[],$6) returning *', [userId, v.role, v.title, v.time, v.days, v.channel ?? null]);
+      const r = await sql('insert into reminders(user_id, role, title, time_local, days, channel_pref, once_date) values ($1,$2,$3,$4,$5::smallint[],$6,$7::date) returning *', [userId, v.role, v.title, v.time, v.days, v.channel ?? null, v.date ?? null]);
       return remOut(r[0]);
     },
     async updateReminder(userId, id, v) {
       if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
       const cur = (await sql('select * from reminders where id = $1 and user_id = $2', [id, userId]))[0]; if (!cur) return null;
-      const r = await sql('update reminders set title=$3, role=$4, time_local=$5, days=$6::smallint[], channel_pref=$7, enabled=$8, next_fire_at=null where id=$1 and user_id=$2 returning *',
-        [id, userId, v.title ?? cur.title, v.role ?? cur.role, v.time ?? String(cur.time_local).slice(0, 5), v.days ?? days(cur.days), v.channel === undefined ? cur.channel_pref : v.channel, v.enabled ?? cur.enabled]);
+      const r = await sql('update reminders set title=$3, role=$4, time_local=$5, days=$6::smallint[], channel_pref=$7, enabled=$8, once_date=$9::date, next_fire_at=null where id=$1 and user_id=$2 returning *',
+        [id, userId, v.title ?? cur.title, v.role ?? cur.role, v.time ?? String(cur.time_local).slice(0, 5), v.days ?? days(cur.days), v.channel === undefined ? cur.channel_pref : v.channel, v.enabled ?? cur.enabled, v.date === undefined ? cur.once_date : v.date]);
       return remOut(r[0]);
     },
     async deleteReminder(userId, id) { if (!/^[0-9a-f-]{36}$/i.test(id)) return false; return (await sql('delete from reminders where id = $1 and user_id = $2 returning id', [id, userId])).length > 0; },

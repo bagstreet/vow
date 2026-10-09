@@ -47,7 +47,7 @@ const LABELS = [{ v: 'always', t: 'Always' }, { v: 'on_change', t: 'On change' }
 const CHANNEL_ICONS: Record<string, typeof Globe> = { telegram: MessageCircle, discord: Hash, slack: Monitor }
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] // index + 1 = ISO weekday stored in the DB
 
-interface Reminder { id: string; title: string; role: string; time: string; days: number[]; channel: string | null; enabled: boolean; source?: string }
+interface Reminder { id: string; title: string; role: string; time: string; days: number[]; channel: string | null; enabled: boolean; source?: string; date?: string | null }
 const card = { background: 'var(--surface)', border: '1px solid var(--border)' }
 const field = { background: 'var(--recessed)', color: 'var(--text)', border: '1px solid var(--border)' }
 
@@ -123,7 +123,7 @@ export default function SettingsPage() {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [reminders, setReminders] = useState<Reminder[]>([])
   const [loadingRem, setLoadingRem] = useState(true)
-  const [draft, setDraft] = useState({ title: '', time: '08:00', channel: '', role: '' })
+  const [draft, setDraft] = useState({ title: '', time: '08:00', channel: '', role: '', date: '' })
   const [showAdd, setShowAdd] = useState(false)
 
   useEffect(() => { setName(profile?.display_name || ''); setTimezone(profile?.tz || 'UTC') }, [profile])
@@ -164,9 +164,9 @@ export default function SettingsPage() {
   }
   const addReminder = async () => {
     if (!draft.title.trim()) return
-    const r = await api('reminders', 'POST', { title: draft.title, time: draft.time, days: [1, 2, 3, 4, 5, 6, 7], channel: draft.channel || null, ...(draft.role ? { role: draft.role } : {}) })
+    const r = await api('reminders', 'POST', { title: draft.title, time: draft.time, days: [1, 2, 3, 4, 5, 6, 7], channel: draft.channel || null, ...(draft.date ? { date: draft.date } : {}), ...(draft.role ? { role: draft.role } : {}) })
     if (!r.ok) { flash(r.error === 'role_not_enabled' ? 'Enable a role first' : `Could not add (${r.error ?? 'error'})`); return }
-    setDraft({ title: '', time: '08:00', channel: '', role: '' }); setShowAdd(false); await loadReminders(); flash('Reminder added')
+    setDraft({ title: '', time: '08:00', channel: '', role: '', date: '' }); setShowAdd(false); await loadReminders(); flash('Reminder added')
   }
   const removeReminder = async (id: string) => {
     const r = await api('reminders', 'DELETE', { id })
@@ -274,7 +274,14 @@ export default function SettingsPage() {
                   <button onClick={() => void patchReminder(r.id, { enabled: !r.enabled })} aria-pressed={r.enabled} className="text-[10px] px-2 py-0.5 rounded cursor-pointer" style={{ border: '1px solid var(--border)', color: 'var(--text-muted)' }}>{r.enabled ? 'on' : 'off'}</button>
                   <button onClick={() => void removeReminder(r.id)} aria-label="Delete reminder" className="p-1 rounded cursor-pointer hover:bg-white/10" style={{ color: 'var(--text-muted)' }}><Trash2 size={12} /></button>
                 </div>
-                <div className="flex gap-1">
+                {r.date ? (
+                  <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    <span>One-time on</span>
+                    <input type="date" value={r.date} aria-label="One-time date" onChange={e => e.target.value && void patchReminder(r.id, { date: e.target.value })} className="bg-transparent outline-none" />
+                    <button type="button" onClick={() => void patchReminder(r.id, { date: null })} className="px-1.5 py-0.5 rounded cursor-pointer" style={{ border: '1px solid var(--border)' }}>Make repeating</button>
+                  </div>
+                ) : null}
+                <div className="flex gap-1" style={r.date ? { display: 'none' } : undefined}>
                   {DAYS.map((d, i) => (
                     <button key={d} type="button" onClick={() => toggleDay(r, i + 1)} aria-pressed={r.days.includes(i + 1)} className="px-1.5 py-0.5 rounded text-[9px] font-mono cursor-pointer"
                       style={{ background: r.days.includes(i + 1) ? '#0E9C8620' : 'transparent', color: r.days.includes(i + 1) ? '#0E9C86' : 'var(--text-muted)', border: `1px solid ${r.days.includes(i + 1) ? '#0E9C8633' : 'var(--border)'}` }}>{d}</button>
@@ -288,6 +295,7 @@ export default function SettingsPage() {
           <div className="mt-3 p-3 rounded-lg" style={{ background: 'var(--recessed)', border: '1px solid #0E9C8633' }}>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
               <input value={draft.title} onChange={e => setDraft(p => ({ ...p, title: e.target.value }))} placeholder="What should I remind you about?" aria-label="New reminder name" className="px-3 py-2 rounded-lg text-sm outline-none" style={{ ...field, background: 'var(--surface)' }} />
+              <input type="date" value={draft.date} onChange={e => setDraft(p => ({ ...p, date: e.target.value }))} aria-label="One-time date (leave empty to repeat daily)" title="One-time date (leave empty to repeat daily)" className="px-3 py-2 rounded-lg text-sm outline-none" style={field} />
               <input type="time" value={draft.time} onChange={e => setDraft(p => ({ ...p, time: e.target.value }))} aria-label="New reminder time" className="px-3 py-2 rounded-lg text-sm outline-none" style={{ ...field, background: 'var(--surface)' }} />
               <select value={draft.channel} onChange={e => setDraft(p => ({ ...p, channel: e.target.value }))} aria-label="New reminder channel" className="px-3 py-2 rounded-lg text-sm outline-none cursor-pointer" style={{ ...field, background: 'var(--surface)' }}>
                 <option value="">Auto (best channel)</option><option value="telegram">Telegram</option><option value="slack">Slack</option><option value="discord">Discord</option>
