@@ -10,22 +10,27 @@ export function createNeonTickStore(sql) {
   return {
     ...createNeonGuardianStore(sql),
     async initReminders(now) {
-      const rows = await sql("select r.*, u.tz from reminders r join users u on u.id = r.user_id where r.enabled and u.blocked_at is null and r.next_fire_at is null limit 100");
+      const rows = await sql("select r.*, array_to_string(r.days, ',') as days, u.tz from reminders r join users u on u.id = r.user_id where r.enabled and u.blocked_at is null and r.next_fire_at is null limit 100");
       let n = 0;
       for (const r0 of rows) {
-        const r = rem(r0); const nf = computeNextFire(r, now);
-        if (nf) { await sql('update reminders set next_fire_at = $2 where id = $1 and next_fire_at is null', [r.id, iso(nf)]); n++; }
-        else if (r.onceDate) await sql('update reminders set enabled = false where id = $1', [r.id]); // one-time reminder whose date has passed
+        try {
+          const r = rem(r0); const nf = computeNextFire(r, now);
+          if (nf) { await sql('update reminders set next_fire_at = $2 where id = $1 and next_fire_at is null', [r.id, iso(nf)]); n++; }
+          else if (r.onceDate) await sql('update reminders set enabled = false where id = $1', [r.id]); // one-time reminder whose date has passed
+          else await sql('update reminders set enabled = false where id = $1', [r.id]); // unschedulable (e.g. empty days): park it so it cannot block the tick
+        } catch (e) { console.error('initReminders row failed', r0.id, e?.message); }
       }
       return rows.slice(0, n);
     },
     async claimDueReminders(now, limit) {
-      const rows = await sql("select r.*, u.tz from reminders r join users u on u.id = r.user_id where r.enabled and u.blocked_at is null and r.next_fire_at <= $1 order by r.next_fire_at limit $2", [iso(now), limit]);
+      const rows = await sql("select r.*, array_to_string(r.days, ',') as days, u.tz from reminders r join users u on u.id = r.user_id where r.enabled and u.blocked_at is null and r.next_fire_at <= $1 order by r.next_fire_at limit $2", [iso(now), limit]);
       const out = [];
       for (const r0 of rows) {
-        const r = rem(r0); const nf = computeNextFire(r, now);
-        const won = await sql('update reminders set next_fire_at = $3 where id = $1 and next_fire_at = $2 returning id', [r.id, r0.next_fire_at, nf ? iso(nf) : null]);
-        if (won.length) { out.push(r); if (r.onceDate) await sql('update reminders set enabled = false where id = $1', [r.id]); }
+        try {
+          const r = rem(r0); const nf = computeNextFire(r, now);
+          const won = await sql('update reminders set next_fire_at = $3 where id = $1 and next_fire_at = $2 returning id', [r.id, r0.next_fire_at, nf ? iso(nf) : null]);
+          if (won.length) { out.push(r); if (r.onceDate) await sql('update reminders set enabled = false where id = $1', [r.id]); }
+        } catch (e) { console.error('claimDue row failed', r0.id, e?.message); }
       }
       return out;
     },
