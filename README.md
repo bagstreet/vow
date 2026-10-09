@@ -117,20 +117,18 @@ Then follow [docs/SELF_HOST.md](docs/SELF_HOST.md): deploy `apps/web` to Vercel,
 | Developer or agent builder | [docs/API.md](docs/API.md) (Agent API, MCP bridge, SDK) |
 | Mechanics | [docs/MECHANICS.md](docs/MECHANICS.md), [docs/DIAGRAMS.md](docs/DIAGRAMS.md) |
 | Self-hoster | [docs/SELF_HOST.md](docs/SELF_HOST.md), [docs/SERVICES.md](docs/SERVICES.md) |
-| Tester | [docs/testing/SCENARIOS.md](docs/testing/SCENARIOS.md) |
-| Status and limits | [docs/STATUS.md](docs/STATUS.md), [docs/planning/KNOWN_LIMITATIONS.md](docs/planning/KNOWN_LIMITATIONS.md) |
+| Plans | [docs/ROADMAP.md](docs/ROADMAP.md) |
 | Security reviewer | [SECURITY.md](SECURITY.md), [Access and privacy](#access-and-privacy) |
 
 ## Access and privacy
 
-- **Stored:** your commitments, schedule labels and times, check-ins, corrections, consent records, Study lessons and progress; all as encrypted records in your Walrus Memory account (or the workspace account with roles).
-- **Sensitive by inference:** a schedule label can reveal health. Vow treats schedule data as sensitive: encryption, roles, labels never in logs or summaries by default, no medical processing. Vow does not claim this is "not health data" and gives no legal guarantee; wording is reviewed by the owner.
-- **Consent:** before the first reminder and the first Study upload you accept a short versioned consent text; withdrawing stops that processing and pauses the role. Pausing or withdrawing on one device takes effect on another device only once it syncs; an offline desktop cannot see a pause made in Telegram until it reconnects.
-- **Roles:** owner / editor / viewer plus role modules, enforced on the bot server. Honest limit: the operator of a shared server can read what the server's delegate key decrypts; per-user accounts are a real cryptographic boundary and are the default for personal schedules.
-- **Memory off:** no read, no write, no recall on any path; the reply says "memory off".
-- **Revoke, forget, delete are different things** ([forget vs delete](internal/agent-pack/PRIVACY_ACCESS_ROUTING.md#3-revoke-deactivate-forget-delete-four-different-operations-readme-section-required)): revoking a device or server stops new decryptions but does not recall copies already produced; `forget` hides records from recall but blobs persist until they expire or are deleted; permanent deletion of tracked blobs is an owner-wallet action (Walrus Memory Security Delete), executed per blob with per-item outcomes, and does not reach exports or texts already sent to an LLM provider you enabled. We do not use the words "crypto-shredding" or "GDPR compliant".
-- **LLM providers:** replies use a fallback chain of hosted models (Groq, Cerebras, OpenRouter, z.ai, Vercel AI Gateway, NVIDIA); the health endpoint lists which are configured. A local model is part of the planned desktop helper only.
-
+- **Stored:** facts you tell the bot, reminder schedules and check-ins, in your Walrus Memory namespace; account, channel links and settings in the database.
+- **Sensitive by inference:** a reminder title can reveal health. Vow does no medical processing and gives no doses; roles give general guidance only.
+- **Memory off:** no read, no write and no recall on any path; the reply says so.
+- **Forget** hides a record from recall. Walrus is append-only, so the blob itself stays until it expires.
+- **Trusted contact** sees that check-ins were missed, never memory contents or chat text.
+- **Honest limit:** the operator of a server holds the delegate key and can read what it decrypts. Run your own instance to own that boundary ([self-hosting](docs/SELF_HOST.md)).
+- **LLM providers:** replies use a fallback chain of hosted models; the health endpoint lists which are configured.
 
 ## Agents, MCP and SDK
 
@@ -147,7 +145,7 @@ packages/core/     channels, memory, scheduler, trusted contact, admin, agent AP
 packages/db/       Neon migrations
 packages/presets/  role presets
 packages/sdk/      JavaScript client for the Agent API
-docs/              mechanics, diagrams, services, API, testing, roadmap
+docs/              mechanics, diagrams, services, API, roadmap
 ```
 
 
@@ -156,7 +154,7 @@ docs/              mechanics, diagrams, services, API, testing, roadmap
 - Memory is written through the MemWal relayer (encrypted at rest by the relayer). Client-side Seal, hash-chained event sourcing and cold recovery are designed, not built.
 - Walrus Memory is append-only: Forget hides a record from recall but does not erase the blob.
 - Scenarios S02 (mail provider down), S03 (database down) and S09 (account merge during a firing reminder) are covered by unit tests only, not by a live run.
-- The desktop helper and browser extension are planned ([plan](docs/DESKTOP_HELPER.md)), not built. The SDK is not published to npm.
+- The desktop helper and browser extension are on the [roadmap](docs/ROADMAP.md). The SDK is not published to npm.
 - Vow is not a medical device or an emergency service. Roles give general guidance and never doses.
 
 ## Verification
@@ -165,19 +163,18 @@ docs/              mechanics, diagrams, services, API, testing, roadmap
 |---|---|
 | Tests pass | `npm test`, and the CI badge above links to the real run |
 | Records stored on Walrus Mainnet | [docs/MAINNET_EVIDENCE.md](docs/MAINNET_EVIDENCE.md): job ids, blob ids and Walruscan links, TEST and DEMO accounts |
-| Live channel behaviour | scenario log in [docs/testing/SCENARIOS.md](docs/testing/SCENARIOS.md) |
 | Trusted contact alert on a real channel | live Telegram delivery verified 2026-10-09 |
 
 ## Why Walrus Memory and why an LLM
 
-Memory is justified because commitments, check-ins, corrections, schedules and consent must survive device loss and be recoverable cold with an honest receipt state; a plain note would not change a later decision. The LLM is used only where judgement or parsing is needed (free-text reminder parsing with user confirmation, lesson generation with owner approval, tone of summaries); counting, scheduling, grading MCQs, mastery and audit are deterministic. Full argument: `VALUE_AND_AI_DESIGN.md`.
+Memory is justified because commitments, check-ins, corrections, schedules and consent must survive device loss and be recoverable cold with an honest receipt state; a plain note would not change a later decision. The LLM is used only where judgement or parsing is needed (free-text reminder parsing with user confirmation, lesson generation with owner approval, tone of summaries); counting, scheduling, grading MCQs, mastery and audit are deterministic.
 
 ## Contributing and security
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md), [`SECURITY.md`](SECURITY.md) and the hard rules in `internal/agent-pack/START_HERE.md`. Never commit secrets; never claim a live or verified state that `ACCEPTANCE_STATUS.md` does not record.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`SECURITY.md`](SECURITY.md). Never commit secrets.
 
 ---
 
-Built for [Walrus Session 8: Chatbots That Remember](https://www.deepsurge.xyz/hackathons/c0141a4a-21be-4009-bc63-7c168608c849). Rules snapshot: `docs/audit/OFFICIAL_RULES.md`. LLM disclosure: hosted models via the fallback chain listed in the health endpoint. Memory: [MemWal](https://github.com/MystenLabs/MemWal) (version pinned in `package.json`; Mainnet status per `MAINNET_EVIDENCE.md`).
+Built for [Walrus Session 8: Chatbots That Remember](https://www.deepsurge.xyz/hackathons/c0141a4a-21be-4009-bc63-7c168608c849). LLM disclosure: hosted models via the fallback chain listed in the health endpoint. Memory: [MemWal](https://github.com/MystenLabs/MemWal) (version pinned in `package.json`; blobs in [docs/MAINNET_EVIDENCE.md](docs/MAINNET_EVIDENCE.md)).
 
 Last verified against `main` on 2026-10-09 (`npm test`: 373 pass, 0 fail).

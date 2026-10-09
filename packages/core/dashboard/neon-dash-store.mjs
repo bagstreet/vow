@@ -117,7 +117,7 @@ export function createNeonDashStore(sql) {
     },
     /** One-use: returns the source account id or null. */
     async consumeMergeCode(code) { const r = await sql("update link_codes set used_at = now() where code = $1 and channel = 'merge' and used_at is null and expires_at > now() returning user_id", [String(code)]); return r[0]?.user_id ?? null; },
-    /** Move everything from source into target (rules in docs/design/ACCOUNT_MERGE.md), then delete source. Steps are ordered so a retry is safe. */
+    /** Move everything from source into target (rules in docs/MECHANICS.md), then delete source. Steps are ordered so a retry is safe. */
     async mergeAccounts(targetId, sourceId) {
       const src = (await sql('select email from users where id = $1', [sourceId]))[0]; if (!src) return { error: 'source_missing' };
       await sql('update channel_links set user_id = $1 where user_id = $2', [targetId, sourceId]);

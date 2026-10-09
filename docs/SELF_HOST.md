@@ -79,11 +79,9 @@ replies carry codes and one-time tokens.
 1. Create the application at discord.com/developers/applications, grab the Public Key (`DISCORD_PUBLIC_KEY`)
    and a bot token (`DISCORD_BOT_TOKEN`, Bot tab > Reset Token).
 2. Everything else — interactions endpoint URL, description, install scopes — can be done over the REST
-   API with the bot token once it's in Vercel env (see git history of this file / internal TASKS.md for the
-   exact calls used). Avatar: `PATCH /users/@me` with `{"avatar": "data:image/png;base64,<...>"}` using the
+   API with the bot token once it's in Vercel env. Avatar: `PATCH /users/@me` with `{"avatar": "data:image/png;base64,<...>"}` using the
    same `brand/app-icon-1024.png` as Slack — square assets crop fine into Discord's circular avatar because
-   the wordmark is centered with generous margin; a solid color/placeholder circle is not an acceptable
-   stand-in for the logo. No portal UI steps are required beyond creating the app and the token.
+   the wordmark is centered with generous margin. No portal UI steps are required beyond creating the app and the token.
 3. Install scopes — **this is the one thing that must not be commands-only**, or DMs can never be sent:
    - **Guild Install** (`integration_types_config.0`): scopes `bot` + `applications.commands`, permissions `0`.
      The `bot` scope is what actually adds Vow as a member of the server you install it to — without it the

@@ -1,4 +1,4 @@
-# Trusted Contact ("Guardian") — design v1
+# Trusted Contact ("Guardian")
 
 **One line:** a user names another Vow user as a trusted contact; if the user goes silent under rules *the contact chooses*, Vow notifies the contact. Two accounts, one link, consent on both sides.
 
@@ -30,15 +30,11 @@
 - Every state visible: pending (with code countdown), active, declined, revoked.
 - Alert text is neutral and actionable, never alarming; no health details.
 
-## Edge cases to define before coding
+## Edge cases
 Guardian deletes account (see Deletion semantics); both are the same person on two channels (reject: same user id); invite code leaked (guardian must be a different, logged-in user; code one-use, 10 min); guardian never answers (second alert after 2× window, then stop and show "unreachable" on the watched user's card); watched user changes timezone/quiet hours; rapid revoke/accept; duplicate alerts on tick retry (idempotency key = link+rule+window); guardian on a channel that is later unlinked (fall back to remaining channels, else mark link "guardian unreachable").
 
-## Scope for the hackathon
-Phase A (must): tables, invite/accept/revoke, rule `missed_checkins` + `silence_hours`, alert delivery with buttons, both dashboard cards, notifications on revoke, tests. Phase B (**Vision / roadmap, not built for the hackathon**): `unanswered_messages`, crisis-flag opt-in, "Anna is back".
-Estimated cost: about 1.2–1.8k credits including tests (cheap model for routine code).
-
-## Scenarios
-See group L in `docs/testing/SCENARIOS.md`.
+## Scope
+Built: tables, invite/accept/revoke, rule `missed_checkins` + `silence_hours`, alert delivery with buttons, both dashboard cards, notifications on revoke, tests. Planned ([roadmap](ROADMAP.md)): `unanswered_messages`, crisis-flag opt-in, "Anna is back".
 
 ## Guardian must be a Vow user
 A guardian is always a registered Vow user (accepts the invite from their own logged-in session). No anonymous guardians.

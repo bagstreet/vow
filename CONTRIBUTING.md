@@ -1,46 +1,41 @@
 # Contributing to Vow
 
-## Quick Start
+## Quick start
 
 ```bash
 git clone https://github.com/bagstreet/vow
 cd vow && npm install
-make setup    # verify Node ≥ 20, run tests, check coverage
-make demo     # see the tamper-evident chain in action
+make setup    # check Node >= 20, run the tests
+make demo     # tamper-evident chain in action
 ```
 
 ## Structure
 
 ```
-vow/
-├── ledger/           # Core domain: hash-chain commitment ledger
-│   ├── companion.mjs # App API (makeVow, checkin, audit, status)
-│   ├── ledger/       # Chain: linkCheckin, audit, summary, screen
-│   ├── llm/          # LLM provider chain (Groq → Cerebras → deterministic)
-│   ├── http/         # HTTP server with auth
-│   ├── memwal*.mjs   # Walrus Memory adapter + offline mock
-│   └── keys.mjs      # Namespace and key utilities
-├── web/              # React + Vite + Tailwind frontend
-├── bin/              # CLI entry points
-├── mcp/              # MCP server for IDE integration
-├── tests/            # Test suite (mutation + e2e + security)
-├── demo/             # Demo scripts and tamper scenarios
-├── docs/             # Documentation
-├── brand/            # Identity assets
-├── article/          # Medium/Inkray article draft
-└── evidence/         # Test results and receipts
+apps/web/          landing, dashboard and serverless API (Vite + React, Vercel)
+apps/cli/          `vow` command-line client
+apps/mcp/          MCP bridge to the Agent API
+apps/discord-gateway/  Discord DM relay
+packages/core/     channels, memory, scheduler, trusted contact, admin, agent API
+packages/db/       Neon migrations
+packages/presets/  role presets
+packages/sdk/      JavaScript client for the Agent API
+tests/             test suite
+examples/          demo scripts
+docs/              mechanics, diagrams, services, API, roadmap
 ```
 
-## Running Tests
+## Tests
 
 ```bash
-make test          # All tests
-make jury          # Hackathon jury scenarios (record actual result)
-make coverage      # Coverage report with thresholds
+npm test           # full suite, offline, no keys needed
+make jury          # quick PASS/FAIL over the headline use cases
+cd apps/web && npx tsc --noEmit
 ```
 
-## Code Style
+## Conventions
 
-- Pure ESM (.mjs), no build step for backend
-- Functional where possible, classes for stateful services
-- Every gate rule must be proven load-bearing by mutation test
+- Pure ESM (`.mjs`) in the backend, no build step.
+- Everything user-facing, in code and docs, is English.
+- Commit messages: an emoji, then a short English sentence, for example `🐛 Fix quiet-hours edge case`.
+- Never commit secrets; `make secret-scan` runs in CI.
