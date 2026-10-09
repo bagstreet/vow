@@ -125,6 +125,11 @@ export function createNeonDashStore(sql) {
       await sql('delete from reminders r using reminders t where r.user_id = $2 and t.user_id = $1 and r.role is not distinct from t.role and r.time_local = t.time_local and r.days = t.days and r.title is not distinct from t.title', [targetId, sourceId]);
       await sql("update reminders set user_id = $1, title = case when title is null or title = '' then title else title end where user_id = $2", [targetId, sourceId]);
       for (const t of ['memory_log', 'chat_messages', 'memory_buffer', 'outbox', 'agent_tokens']) await sql(`update ${t} set user_id = $1 where user_id = $2`, [targetId, sourceId]);
+      await sql('delete from guardian_links where (watched_user_id = $1 and guardian_user_id = $2) or (watched_user_id = $2 and guardian_user_id = $1)', [targetId, sourceId]);
+      await sql('delete from guardian_links s using guardian_links t where s.watched_user_id = $2 and t.watched_user_id = $1 and s.guardian_user_id is not null and s.guardian_user_id = t.guardian_user_id', [targetId, sourceId]);
+      await sql('delete from guardian_links s using guardian_links t where s.guardian_user_id = $2 and t.guardian_user_id = $1 and s.watched_user_id = t.watched_user_id', [targetId, sourceId]);
+      await sql('update guardian_links set watched_user_id = $1 where watched_user_id = $2', [targetId, sourceId]);
+      await sql('update guardian_links set guardian_user_id = $1 where guardian_user_id = $2', [targetId, sourceId]);
       await sql('insert into user_aliases(alias_id, user_id) values ($2, $1) on conflict do nothing', [targetId, sourceId]);
       await sql('update user_aliases set user_id = $1 where user_id = $2', [targetId, sourceId]);
       if (src.email) { await sql('update users set email = null where id = $1', [sourceId]); await sql('update users set email = coalesce(email, $2) where id = $1', [targetId, src.email]); }

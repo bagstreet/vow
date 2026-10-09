@@ -24,6 +24,7 @@ Vow is a Commitment Steward: one assistant that helps you confirm a commitment, 
 | Developer implementing the plan | [`internal/agent-pack/START_HERE.md`](internal/agent-pack/START_HERE.md) then [`TASKS.md`](internal/agent-pack/TASKS.md) (T00-T48; no cut line, one commit per task item) |
 | Auditor / judge | [`internal/agent-pack/AUDIT_BRIEF.md`](internal/agent-pack/AUDIT_BRIEF.md), recovered audit evidence under `internal/agent-pack/audit-preparation/recovered/` (prior missing report not inherited) |
 | Security reviewer | [`PRIVACY_ACCESS_ROUTING.md`](internal/agent-pack/PRIVACY_ACCESS_ROUTING.md) (Seal mode, RBAC, revoke vs forget vs delete, consent), [`DURABILITY_AND_CONTEXT.md`](internal/agent-pack/DURABILITY_AND_CONTEXT.md) (outbox, event model, merge, conflicts), [`SECURITY.md`](SECURITY.md) |
+| Anyone who wants to understand the mechanics | [`docs/MECHANICS.md`](docs/MECHANICS.md): accounts, merge, roles, reminders, memory writes, trusted contact (diagrams plus rules) |
 | Product / investor | [`PRODUCT_BRIEF.md`](internal/agent-pack/PRODUCT_BRIEF.md), [`VALUE_AND_AI_DESIGN.md`](internal/agent-pack/VALUE_AND_AI_DESIGN.md), [`COMPETITOR_MATRIX.md`](internal/agent-pack/COMPETITOR_MATRIX.md) |
 | User asking "what does it store about me?" | [Access and privacy](#access-and-privacy) below |
 | Historical plans (2026-10-01..03) | `packages/core/delivery/  adaptive delivery router: presence, quick replies, escalation (T47)

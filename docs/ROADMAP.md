@@ -57,7 +57,7 @@ Conventions: English only in repo, docs and commits; commit message = emoji + te
 | ID | Task | Depends | Notes |
 |---|---|---|---|
 | T30 | README and SELF_HOST: table of every service and the settings to make (Vercel, GitHub, Neon, Brevo, cron-job.org, Slack, Discord, Telegram, MemWal), free-stack rationale, cron design, Docker alternative | T29 | Note that Slack/Discord sign-in works only inside the installer's own workspace |
-| T31 | Mechanics reference: account merge rules, admin role and first-admin setup, email and channel linking, write modes, Agent API, MCP, Forget | T29 | Text plus diagram for each |
+| T31 | Mechanics reference: account merge rules, admin role and first-admin setup, email and channel linking, write modes, Agent API, MCP, Forget | T29 | Text plus diagram for each (done: docs/MECHANICS.md) (done: docs/MECHANICS.md) |
 | T32 | Diagrams (Mermaid): account life cycles, login/link/merge flows, sequence diagrams, ER and class diagrams, reminder and trusted-contact state machines, user/admin roles, notification mechanic | T22 | Drawn after the freeze |
 | T33 | Roadmap and vision sections: this file plus post-hackathon items | — | |
 | T34 | Clean `internal/agent-pack/TASKS.md` (archive), remove outdated notes | T29 | |
