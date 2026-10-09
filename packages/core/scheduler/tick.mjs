@@ -21,7 +21,7 @@ export const SNOOZE_MIN = { snooze: 10, snooze_1h: 60 };
 export async function runTick({ store, senders, pickButtons = null, presence = null, now = Date.now(), batch = 50 }) {
   const out = { initialized: 0, fired: 0, sent: 0, deferred: 0, retried: 0, failed: 0, escalated: 0, expired: 0, snoozed: 0 };
 
-  const choose = async (row, text) => { try { return pickButtons ? await pickButtons({ role: row.role, reminderText: text }) : selectButtons(null); } catch { return selectButtons(null); } };
+  const choose = async (row, text) => { try { return pickButtons ? await pickButtons({ role: row.role, reminderText: text }) : selectButtons(null, row.role); } catch { return selectButtons(null, row.role); } };
 
   for (const r of await store.initReminders(now)) { out.initialized++; void r; }
 

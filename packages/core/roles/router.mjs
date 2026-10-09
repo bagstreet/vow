@@ -9,6 +9,9 @@ const MEDICAL_Q = /\b(headache|fever|diagnos|symptom of|what (drug|medicine) (sh
 const LEARNING = /\b(learning|learn|reading) about\b/i;
 const STUDY_PLAN = /\b(study (block|plan|schedule)|plan my study|exam|homework|revise)\b/i;
 
+const SUPPLEMENT = /\b(supplements?|vitamins?|magnesium|omega|protein|creatine|zinc|iron|collagen|probiotics?|water)\b/i;
+const PRESCRIPTION = /\b(prescri\w*|antibiotics?|insulin|refill|meds|medications?|medicine|inhaler|antidepressants?|ibuprofen|paracetamol)\b/i;
+
 const done = (o) => ({ primary: null, secondary: [], kind: 'log', confidence: 1, reason: '', outOfScope: false, needsModel: false, crisis: false, ...o });
 
 export function route(text, ctx = {}) {
@@ -36,6 +39,12 @@ export function route(text, ctx = {}) {
   const scores = enabled.map((id) => [id, ROLES[id].keywords.filter((k) => new RegExp(`\\b${k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`).test(low)).length]).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
   const sticky = ctx.sticky && ctx.now - ctx.sticky.at <= STICKY_MS && enabled.includes(ctx.sticky.role) ? ctx.sticky.role : null;
   if (scores.length) {
+    // supplements/vitamins/water belong to nutrition even though 'tablet' or 'take' also matches medication; real medicines stay with medication
+    const ids = scores.map(([i]) => i);
+    if (ids.includes('medication') && ids.includes('nutrition')) {
+      const winner = SUPPLEMENT.test(t) && !PRESCRIPTION.test(t) ? 'nutrition' : PRESCRIPTION.test(t) && !SUPPLEMENT.test(t) ? 'medication' : null;
+      if (winner) return done({ primary: winner, secondary: ids.filter((i) => i !== winner), reason: 'med/nutrition split', confidence: 0.8 });
+    }
     const [top, ...rest] = scores;
     const tie = rest.length && rest[0][1] === top[1];
     if (tie && sticky && scores.some(([id]) => id === sticky)) return done({ primary: sticky, secondary: scores.map(([i]) => i).filter((i) => i !== sticky), reason: 'tie->sticky', confidence: 0.6 });

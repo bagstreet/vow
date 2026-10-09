@@ -35,11 +35,21 @@ export const DEFAULT_BUTTON_IDS = Object.freeze(['taken', 'skipped', 'snooze']);
 
 // Validates a model suggestion: unknown ids dropped, dupes removed, max 4, must keep an
 // answer ('taken'|'skipped') and a deferral ('snooze'*); otherwise falls back to the default set.
-export function selectButtons(suggested) {
+// Role-specific wording only; ids and statuses stay in the catalog, so callbacks resolve the same way.
+export const ROLE_BUTTON_LABELS = Object.freeze({
+  fitness: { taken: 'Done', skipped: 'Skip today', snooze: 'Remind later' },
+  medication: { taken: 'Taken', skipped: 'Skipped' },
+  nutrition: { taken: 'Done', skipped: 'Skip' },
+  health: { taken: 'Logged', skipped: 'Not today', snooze: 'Remind later' },
+  study: { taken: 'Done', skipped: 'Skip', snooze: 'Remind later' },
+});
+
+export function selectButtons(suggested, role = null) {
   const ids = [...new Set(Array.isArray(suggested) ? suggested.filter(i => typeof i === 'string' && Object.hasOwn(BUTTON_CATALOG, i)) : [])].slice(0, 4);
   const ok = ids.some(i => i === 'taken') && ids.some(i => BUTTON_CATALOG[i].status === 'snooze');
   const final = ok ? ids : DEFAULT_BUTTON_IDS;
-  return final.map(id => ({ id, label: BUTTON_CATALOG[id].label }));
+  const L = ROLE_BUTTON_LABELS[role] ?? {};
+  return final.map(id => ({ id, label: L[id] ?? BUTTON_CATALOG[id].label }));
 }
 
 export function checkinFromButton(buttonId, occurrence, now = Date.now()) {

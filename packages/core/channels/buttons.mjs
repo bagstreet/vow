@@ -13,6 +13,6 @@ export async function pickButtons({ llm, role, reminderText }) {
     const sys = `Choose 2-4 quick-reply button ids for a ${role} reminder. Allowed ids: ${Object.keys(BUTTON_CATALOG).join(', ')}. Always include taken and one snooze option. Reply with a JSON array of ids only.`;
     const out = await llm.complete({ task: 'buttons', messages: [{ role: 'system', content: sys }, { role: 'user', content: String(reminderText).slice(0, 300) }], maxTokens: 40 });
     const m = String(out.text).match(/\[[^\]]*\]/);
-    return selectButtons(m ? JSON.parse(m[0]) : null);
-  } catch { return selectButtons(null); }
+    return selectButtons(m ? JSON.parse(m[0]) : null, role);
+  } catch { return selectButtons(null, role); }
 }
