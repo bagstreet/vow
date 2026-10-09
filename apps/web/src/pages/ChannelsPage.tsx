@@ -74,6 +74,14 @@ export default function ChannelsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium">{b.name} <span className="text-[10px] ml-1" style={{ color: c ? '#0E9C86' : 'var(--text-muted)' }}>{c ? `connected · active ${ago(c.lastSeenAt)}` : 'not connected'}</span></div>
                     <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{b.note}</div>
+                    {b.id === 'discord' && (
+                      <div className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                        <a href="https://discord.com/oauth2/authorize?client_id=1557286978905571428&scope=bot+applications.commands&permissions=412317240384" target="_blank" rel="noreferrer" className="underline" style={{ color: '#0E9C86' }}>Add to a server</a>
+                        {' · '}
+                        <a href="https://discord.com/oauth2/authorize?client_id=1557286978905571428&integration_type=1&scope=applications.commands" target="_blank" rel="noreferrer" className="underline" style={{ color: '#0E9C86' }}>Add to my DMs</a>
+                        {' '}(DM free text needs a server that you and Vow share)
+                      </div>
+                    )}
                   </div>
                   <button onClick={() => (c ? void unlink(b.id) : void startLink(b.id))} className="px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer"
                     style={{ background: c ? 'transparent' : '#0E9C86', color: c ? 'var(--text)' : '#000', border: '1px solid var(--border)' }}>{c ? 'Disconnect' : 'Connect'}</button>
