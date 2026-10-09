@@ -2,71 +2,124 @@
 
 # ◎ vow
 
-**Make a commitment. Keep an honest record.**
+**Make a commitment. Keep an honest record. And if you go quiet, someone who cares finds out.**
 
-Vow is a Commitment Steward: one assistant that helps you confirm a commitment, check in, correct the record without rewriting history, keep a schedule of reminders you define, and study material you upload. Its memory is designed to live in your own Walrus Memory account as encrypted, append-only records.
-
-**Status (2026-10-04): working draft before implementation.** Nothing in this repository is a verified Mainnet-persistent service yet. Statuses below are honest; counts are re-measured before being quoted.
+Vow is a commitment steward that lives where you already chat: Telegram, Slack, Discord and a web dashboard. It reminds you of what you promised, records what *you* confirm, remembers across every channel through [Walrus Memory](https://github.com/MystenLabs/MemWal), and can tell a person you trust when you stop answering.
 
 [![CI](https://github.com/bagstreet/vow/actions/workflows/ci.yml/badge.svg)](https://github.com/bagstreet/vow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-[Live app](https://vow-livid.vercel.app) · [Docs](docs/) · [Discord](https://discord.com/invite/walrusprotocol)
+[Live app](https://vow-livid.vercel.app) · [Telegram bot](https://t.me/VoW_rebot) · [Mainnet evidence](docs/MAINNET_EVIDENCE.md) · [Run it yourself](#run-it-yourself) · [Docs](docs/)
 
 </div>
 
 ---
 
+## The problem
+
+- **You forget the pill, the call, the deadline.** A reminder app fires once, you swipe it away, and nobody knows whether you did it.
+- **Every AI chat starts from zero.** You told a bot about your medication schedule on Monday; on Tuesday it has never heard of you, and on Slack it is a different bot again.
+- **When something goes wrong, nobody notices in time.** You feel unwell, you miss two doses, you stop replying. The people who would help do not know.
+
+Vow answers each of these with one mechanism: **a reminder you must acknowledge, a memory that follows you across channels, and a trusted contact who is told when acknowledgements stop.**
+
+## Trusted contact: the feature that changes the use case
+
+> *You felt unwell and forgot your pills. Two check-ins pass with no answer. Your sister gets one short message: "Anna missed 2 check-ins in 24h, last reply 9 Oct 08:12." She calls you.*
+
+You name another Vow user as your trusted contact. They choose the rules (N missed check-ins in a row, or N hours of silence). You see every rule and can remove them at any time. Either side can leave.
+
+```mermaid
+sequenceDiagram
+    participant A as Anna (watched)
+    participant V as Vow
+    participant B as Boris (trusted contact)
+    V->>A: Reminder: "Evening pill" [Taken / Skip / Later]
+    Note over A: no answer
+    V->>A: Second and last reminder, other channel if the first failed
+    Note over V: occurrence = unacknowledged (not counted as taken)
+    V->>V: 2 missed check-ins in a row, rule met
+    V->>B: "Anna missed 2 check-ins in 24h" [I'll check on her / Snooze 6h / Stop watching]
+    B->>V: I'll check on her
+    V->>A: Anna replies later
+    V->>B: "Anna is back"
+```
+
+Minimal disclosure by design: the contact learns *that* a check-in was missed, never the medicine, the label or the chat text. One alert per breach, then a cool-down. Vow is not an emergency service and says so. Use cases:
+
+| Who | Pain | What Vow does |
+|---|---|---|
+| Someone taking antibiotics or insulin | Forgets doses when they feel ill, which is when it matters | Reminder with Taken / Skip / Later; a trusted contact is told after the misses you agreed |
+| An adult child and an elderly parent | Worry without a way to check, calls that feel like nagging | The parent gets neutral reminders; the child is alerted only on a real pattern of silence |
+| A student before exams | Plans slip silently | Study blocks, owner-approved lessons, code-graded quizzes, a nudge when a block is missed |
+| Anyone who lives in three chat apps | Each bot knows only its own corner | One memory per person, shared by Telegram, Slack, Discord and web |
+
+## How a reminder lives
+
+```mermaid
+stateDiagram-v2
+    [*] --> Scheduled: you define item + time
+    Scheduled --> Held: quiet hours
+    Held --> Sent: quiet hours end
+    Scheduled --> Sent: due
+    Sent --> Taken: tap Taken / say "took it"
+    Sent --> Skipped: tap Skip
+    Sent --> Snoozed: tap Later
+    Snoozed --> Sent: snooze ends (counted as not taken)
+    Sent --> Resent: no answer, other channel on failure
+    Resent --> Unacknowledged: still no answer
+    Unacknowledged --> GuardianAlert: contact's rule is met
+    Taken --> [*]
+    Skipped --> [*]
+    Unacknowledged --> [*]
+```
+
+At most two reminders per occurrence across all your devices. Delivery goes to the channel where you were active most recently (or the one you picked), falls back to your other linked channels on failure, honours quiet hours and can switch to a digest mode. One-time and recurring reminders are both supported, and you can write times in words ("at 12", "half past one", "tomorrow morning").
+
+## One memory, many doors
+
+```mermaid
+flowchart LR
+    TG[Telegram] --> R{Role router}
+    SL[Slack] --> R
+    DC[Discord] --> R
+    WEB[Web chat + dashboard] --> R
+    R -->|keywords, then a cheap classifier with recent context| ROLE[Fitness / Medication / Nutrition / Health / Study]
+    ROLE --> LLM[LLM chain with fallbacks]
+    ROLE -->|facts only, no questions or fragments| W[(Walrus Memory\nvow:mem:userId)]
+    W -->|recall before every reply| LLM
+    TICK[Per-minute tick] --> OUT[Reminders and alerts] --> TG & SL & DC
+```
+
+- **Five roles** (Health & Fitness, Medication, Nutritionist, Health Companion, Study & Exam). Several can be on at once; each message is routed to one of them and the reply says which. Unmatched messages go to a small classifier that sees the last turns, not to a default role. Medication and nutrition keep a hard rule: no dose advice, ever.
+- **Memory you can inspect.** Each remembered fact is a Walrus blob with a job id and a blob id, visible in History with a Walruscan link, with Forget (tombstone) and Remember now. Questions, small talk and fragments are never written.
+- **Accounts that merge.** Sign in with Telegram, Discord, Slack or an email link; link the rest. Account merge follows seven explicit rules, blocked users are refused, admin has its own dashboard.
+- **Agent API and MCP.** Role-scoped tokens let other agents write verified facts and read them back ([docs/API.md](docs/API.md)).
+
+## Run it yourself
+
+Node 20+, a free Neon database, a Vercel project, and a Walrus Memory delegate key.
+
+```bash
+git clone https://github.com/bagstreet/vow && cd vow
+npm install
+npm test            # expect: all tests pass, 0 fail
+cp .env.example .env   # paste placeholders: MEMWAL_PRIVATE_KEY, MEMWAL_ACCOUNT_ID, DATABASE_URL, bot tokens
+```
+
+Then follow [docs/SELF_HOST.md](docs/SELF_HOST.md): deploy `apps/web` to Vercel, point the Telegram, Slack and Discord webhooks at `/api/*`, and add a per-minute job that POSTs `/api/tick` with `x-tick-secret`. Every service and its free-tier limit is in [docs/SERVICES.md](docs/SERVICES.md). Each channel works independently: skip the ones you do not need.
+
 ## Navigation
 
 | You are a... | Start here |
 |---|---|
-| User or judge wanting the idea | [What Vow does](#what-vow-does-accepted-scope), [Trusted contact](#trusted-contact) |
+| User or judge | [Trusted contact](#trusted-contact-the-feature-that-changes-the-use-case), [live app](https://vow-livid.vercel.app) |
 | Developer or agent builder | [docs/API.md](docs/API.md) (Agent API, MCP bridge, SDK) |
-| Anyone who wants the mechanics | [docs/MECHANICS.md](docs/MECHANICS.md) and [docs/DIAGRAMS.md](docs/DIAGRAMS.md) (diagrams plus rules) |
-| Self-hoster | [docs/SELF_HOST.md](docs/SELF_HOST.md) and [docs/SERVICES.md](docs/SERVICES.md) |
+| Mechanics | [docs/MECHANICS.md](docs/MECHANICS.md), [docs/DIAGRAMS.md](docs/DIAGRAMS.md) |
+| Self-hoster | [docs/SELF_HOST.md](docs/SELF_HOST.md), [docs/SERVICES.md](docs/SERVICES.md) |
 | Tester | [docs/testing/SCENARIOS.md](docs/testing/SCENARIOS.md) |
-| Project status and plan | [docs/STATUS.md](docs/STATUS.md), [docs/ROADMAP.md](docs/ROADMAP.md) |
+| Status and limits | [docs/STATUS.md](docs/STATUS.md), [docs/planning/KNOWN_LIMITATIONS.md](docs/planning/KNOWN_LIMITATIONS.md) |
 | Security reviewer | [SECURITY.md](SECURITY.md), [Access and privacy](#access-and-privacy) |
-
-## What Vow does (accepted scope)
-
-One Steward, one ledger, three engine modules and five user-facing roles ([Roles and Routing](internal/agent-pack/ROLES_AND_ROUTING.md): Health & Fitness, Medication, Nutritionist, Health Companion, Study & Exam; several can be enabled at once, the AI routes each message and shows which role answered):
-
-| Role | What it does | What it never does |
-|---|---|---|
-| **Core commitments** | create a confirmed commitment, check in (`done`/`skipped`), append a correction, audit, export, propose a feasible next step without shame | rewrite or delete history |
-| **Schedule** ([spec](internal/agent-pack/VOW_SCHEDULE.md)) | you type items and times (pills, water, anything); Vow reminds you and records what *you* confirm: `taken` / `skipped` / `snoozed` (never counted as taken) or `unacknowledged`; at most two reminders per occurrence across all your devices; pause/resume; weekly counts | suggest or change doses, name medicines, check interactions, interpret symptoms, or treat silence as "skipped". Medical questions get a fixed refusal: *"I only keep the schedule you set. For medical questions ask a doctor or pharmacist."* |
-| **Study** ([spec](internal/agent-pack/VOW_STUDY.md)) | owner uploads `.txt`/`.md`/text `.pdf` (<= 200 KB text) -> up to 10 lessons generated and **owner-approved** -> MCQ quiz graded by code -> mastery computed deterministically -> progress view. Vision (RAG, SM-2, exams, cohorts) is roadmap, labelled planned | grade by LLM alone, write raw documents to Walrus, follow instructions found inside uploaded text |
-
-Surfaces: **Telegram, Slack, Discord and the web dashboard are live**; the Agent API / MCP is available for other agents. A desktop helper (reminders and chat, optional local LLM) is on the roadmap and not built yet ([plan](docs/DESKTOP_HELPER.md)). Slash commands and plain text map to the same typed operations: `/vow new`, `/checkin done|skipped`, `/correct <id>`, `/audit`, `/next`, `/export`, `/pause`, `/schedule add`, `/study upload` (full registry: `internal/agent-pack/DOMAIN_CONTRACT.md` §11, proposed).
-
-## How memory works (design, to be verified in T02/T10)
-
-```mermaid
-flowchart LR
-    U[User on desktop / Telegram / web] -->|typed operation| C[Shared core]
-    C -->|event: id, device, seq, prev_hash, sig| O[(Local durable outbox)]
-    O -->|ciphertext only| W[(Walrus Memory)]
-    W -->|receipt: pending -> stored blob_id| O
-    O -->|saved locally / stored on Walrus / failed| U
-    W -->|inventory by manifest, not top-k| R[Cold recovery + deterministic merge]
-    R -->|conflicts shown, never hidden| U
-```
-
-- Every record is an **event** with a stable id, a per-device sequence and a hash link to the same device's previous event; devices sync by a deterministic merge; a signed checkpoint lists every branch head. Conflicting check-ins or corrections are shown as **conflicts** and resolved by a new correction, never silently. Details: `DURABILITY_AND_CONTEXT.md` section 9; exact proposed schema `DOMAIN_CONTRACT.md`. A fresh device restoring from Walrus sees a verified snapshot and says when its currentness is unknown; it never claims to have seen events an offline device has not yet synced.
-- Only ciphertext is written to Walrus (client-side Seal "Manual" mode by default; if the day-0 spike T44 fails, a disclosed fallback encrypts at the app layer before the relayer). The UI always shows the active mode.
-- The user is acknowledged only after the record is in the local write-ahead outbox; "stored on Walrus" appears only after the blob id is confirmed.
-
-> **What is actually deployed today (2026-10-07):** the hash-chain/event-sourcing/Seal design above is the
-> target architecture, not yet built against the live relayer (`packages/core/companion.mjs` is an unused
-> prototype — see `docs/planning/KNOWN_LIMITATIONS.md`). What *is* live, verified against the real mainnet
-> relayer: `packages/core/memory/walrus-memory.mjs`, called from the Telegram and Discord webhooks
-> (`apps/web/api/{telegram,discord}.mjs`). Every chat turn and reminder check-in is written as a MemWal
-> `remember()` call (relayer-encrypted at rest, not client-side Seal yet) into one namespace per app user
-> (`vow:mem:<userId>`, shared across every channel they've linked — one memory, many doors in); the next chat
-> turn recalls relevant past memories before the model replies. See `docs/MAINNET_EVIDENCE.md` for real blob
-> ids. Slack is not wired to memory yet (Slack is also single-tenant today, see `docs/SELF_HOST.md`).
 
 ## Access and privacy
 
@@ -75,24 +128,14 @@ flowchart LR
 - **Consent:** before the first reminder and the first Study upload you accept a short versioned consent text; withdrawing stops that processing and pauses the role. Pausing or withdrawing on one device takes effect on another device only once it syncs; an offline desktop cannot see a pause made in Telegram until it reconnects.
 - **Roles:** owner / editor / viewer plus role modules, enforced on the bot server. Honest limit: the operator of a shared server can read what the server's delegate key decrypts; per-user accounts are a real cryptographic boundary and are the default for personal schedules.
 - **Memory off:** no read, no write, no recall on any path; the reply says "memory off".
-- **Revoke, forget, delete are different things** ([details](internal/agent-pack/PRIVACY_ACCESS_ROUTING.md#3-revoke-deactivate-forget-delete-four-different-operations-readme-section-required)): revoking a device or server stops new decryptions but does not recall copies already produced; `forget` hides records from recall but blobs persist until they expire or are deleted; permanent deletion of tracked blobs is an owner-wallet action (Walrus Memory Security Delete), executed per blob with per-item outcomes, and does not reach exports or texts already sent to an LLM provider you enabled. We do not use the words "crypto-shredding" or "GDPR compliant".
-- **Local LLM:** on desktop, parsing and tone use Ollama; cloud providers run only if you enable them, and the UI says which one answered.
+- **Revoke, forget, delete are different things** ([forget vs delete](internal/agent-pack/PRIVACY_ACCESS_ROUTING.md#3-revoke-deactivate-forget-delete-four-different-operations-readme-section-required)): revoking a device or server stops new decryptions but does not recall copies already produced; `forget` hides records from recall but blobs persist until they expire or are deleted; permanent deletion of tracked blobs is an owner-wallet action (Walrus Memory Security Delete), executed per blob with per-item outcomes, and does not reach exports or texts already sent to an LLM provider you enabled. We do not use the words "crypto-shredding" or "GDPR compliant".
+- **LLM providers:** replies use a fallback chain of hosted models (Groq, Cerebras, OpenRouter, z.ai, Vercel AI Gateway, NVIDIA); the health endpoint lists which are configured. A local model is part of the planned desktop helper only.
 
-## Services and configuration
-
-The whole stack runs on free tiers by design. Every service, its limit and the settings to make are listed in [docs/SERVICES.md](docs/SERVICES.md); step-by-step setup is in [docs/SELF_HOST.md](docs/SELF_HOST.md).
-
-## Trusted contact
-
-Name another Vow user as a trusted contact. If you miss N check-ins or stay silent for N hours, they get a short alert that a miss happened (never message or memory content). The contact sets the conditions, you see every change and can remove them at any time, and either side can leave. One account can watch up to 10 others. Flow and rules: [docs/MECHANICS.md](docs/MECHANICS.md#6-trusted-contact).
 
 ## Agents, MCP and SDK
 
 Role-scoped tokens let external AI agents write verified facts into a user's memory and read them back, limited to the roles the user allowed. REST, a stdio MCP bridge (`apps/mcp`) and a zero-dependency JavaScript client (`packages/sdk`) are described in [docs/API.md](docs/API.md).
 
-## Delivery routing
-
-A reminder goes to the channel where you were active most recently (or the one you picked for it), falls back to your other linked channels on failure, honours quiet hours, and carries Taken / Skip / Later buttons. Scheduling uses cron-job.org every minute plus a GitHub Actions tick as a backup: see [docs/SERVICES.md](docs/SERVICES.md).
 
 ## Repository layout
 
@@ -107,24 +150,23 @@ packages/sdk/      JavaScript client for the Agent API
 docs/              mechanics, diagrams, services, API, testing, roadmap
 ```
 
-## Quick start
 
-```bash
-git clone https://github.com/bagstreet/vow && cd vow
-npm install
-npm test
-```
-Deployment on free tiers: [docs/SELF_HOST.md](docs/SELF_HOST.md). Planned desktop helper: [docs/DESKTOP_HELPER.md](docs/DESKTOP_HELPER.md).
+## Where this stops
 
-## Verification policy
+- Memory is written through the MemWal relayer (encrypted at rest by the relayer). Client-side Seal, hash-chained event sourcing and cold recovery are designed, not built.
+- Walrus Memory is append-only: Forget hides a record from recall but does not erase the blob.
+- Scenarios S02 (mail provider down), S03 (database down) and S09 (account merge during a firing reminder) are covered by unit tests only, not by a live run.
+- The desktop helper and browser extension are planned ([plan](docs/DESKTOP_HELPER.md)), not built. The SDK is not published to npm.
+- Vow is not a medical device or an emergency service. Roles give general guidance and never doses.
 
-| Claim | Where it is proven | Current state |
-|---|---|---|
-| Tests pass, coverage | `docs/audit/ACCEPTANCE_STATUS.md` after `npm test` on the current head | not re-measured since the audit; inherited numbers removed |
-| Records stored on Walrus Mainnet | `docs/MAINNET_EVIDENCE.md`: blob ids, explorer links, agent/account id | yes — verified 2026-10-07 against the live mainnet relayer; see the doc for current blob count |
-| Cold recovery | T06 test + desktop demo (T38) | not yet |
-| Seal active | active-mode indicator + T44 spike log in `docs/audit/FRICTION.md` | not yet |
-| Badges | generated from CI/eval output only | CI badge only |
+## Verification
+
+| Claim | Proof |
+|---|---|
+| Tests pass | `npm test`, and the CI badge above links to the real run |
+| Records stored on Walrus Mainnet | [docs/MAINNET_EVIDENCE.md](docs/MAINNET_EVIDENCE.md): job ids, blob ids and Walruscan links, TEST and DEMO accounts |
+| Live channel behaviour | scenario log in [docs/testing/SCENARIOS.md](docs/testing/SCENARIOS.md) |
+| Trusted contact alert on a real channel | live Telegram delivery verified 2026-10-09 |
 
 ## Why Walrus Memory and why an LLM
 
@@ -136,4 +178,6 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md), [`SECURITY.md`](SECURITY.md) and the h
 
 ---
 
-Built for [Walrus Session 8: Chatbots That Remember](https://www.deepsurge.xyz/hackathons/c0141a4a-21be-4009-bc63-7c168608c849). Rules snapshot: `docs/audit/OFFICIAL_RULES.md`. LLM disclosure: local Ollama model on desktop; cloud providers only when enabled (listed in the health endpoint). Memory: [MemWal](https://github.com/MystenLabs/MemWal) (version pinned in `package.json`; Mainnet status per `MAINNET_EVIDENCE.md`).
+Built for [Walrus Session 8: Chatbots That Remember](https://www.deepsurge.xyz/hackathons/c0141a4a-21be-4009-bc63-7c168608c849). Rules snapshot: `docs/audit/OFFICIAL_RULES.md`. LLM disclosure: hosted models via the fallback chain listed in the health endpoint. Memory: [MemWal](https://github.com/MystenLabs/MemWal) (version pinned in `package.json`; Mainnet status per `MAINNET_EVIDENCE.md`).
+
+Last verified against `main` on 2026-10-09 (`npm test`: 373 pass, 0 fail).
