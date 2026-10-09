@@ -77,3 +77,9 @@ test('activity logs route to fitness when study is the default role', () => {
     assert.equal(pickRole(t, ['study', 'fitness'], 'study').role, 'fitness', t);
   }
 });
+
+test('shouldRemember skips questions and fragments, keeps facts', async () => {
+  const { shouldRemember } = await import('./chat.mjs');
+  for (const q of ['What reminders do I have?', 'Did I take it today?', 'Какие у меня есть напоминания?', 'Только что выпил']) assert.equal(shouldRemember(q, 'fitness'), false, q);
+  for (const f of ['I ran 1 km in 3 minutes', 'My sleep goal is 7.5 hours']) assert.equal(shouldRemember(f, 'fitness'), true, f);
+});

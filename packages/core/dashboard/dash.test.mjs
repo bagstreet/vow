@@ -128,8 +128,8 @@ test('link-code / link-status', async () => {
 test('chat: real llm+memory path saves history, remembers, logs a memory entry; rejects empty/oversize', async () => {
   const st = makeStore(); const u = st.mkUser(); const mem = [];
   const deps = { llm: { complete: async ({ messages }) => ({ text: 'ok:' + messages.at(-1).content }) }, memory: { recall: async () => ['likes rowing'], remember: async (id, t) => { mem.push(t); return 'job1'; } } };
-  const r = await call(st, 'chat', 'POST', { text: 'plan my week' }, u.id, deps);
-  assert.equal(r.status, 200); assert.match(r.json.reply, /ok:plan my week/); assert.equal(r.json.remembered, 1); assert.equal(r.json.memoryJob, 'job1');
+  const r = await call(st, 'chat', 'POST', { text: 'I plan my week around three runs' }, u.id, deps);
+  assert.equal(r.status, 200); assert.match(r.json.reply, /ok:I plan my week/); assert.equal(r.json.remembered, 1); assert.equal(r.json.memoryJob, 'job1');
   assert.equal(st._s.msgs.length, 2); assert.equal(st._s.mem[0].jobId, 'job1'); assert.match(mem[0], /web\/fitness/);
   assert.equal((await call(st, 'chat', 'POST', { text: '   ' }, u.id, deps)).status, 400);
   assert.equal((await call(st, 'chat', 'POST', { text: 'x'.repeat(2001) }, u.id, deps)).status, 400);

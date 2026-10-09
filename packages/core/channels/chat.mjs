@@ -49,12 +49,16 @@ export function withRoleLabel(text, role, mode = 'always', lastRole = null) {
 
 // Memory-write filter: only durable, on-topic facts go to Walrus (every blob costs gas and is immutable).
 const SMALL_TALK = /^(ping|test|hi|hello|hey|yo|hello there|hi there|hey there|good (morning|evening|night|day)|how are you|what'?s up|got it|cool|nice|great|lol|ok thanks|thanks a lot|добрый (день|вечер|утро)|доброе утро|как дела|понял|ясно|круто|отлично|ok|okay|thanks|thank you|thx|спасибо|привет|здравствуй(те)?|ок|хорошо|да|нет|yes|no|bye|пока|\?+|\.+)[\s!.?,]*$/i;
+const QUESTION = /\?\s*$|^\s*(what|which|when|where|who|how|why|do|does|did|am|is|are|can|could|will|would|should|show|list|tell me|какие|какой|что|когда|где|как|почему|сколько|покажи)\b/i;
+
 export function shouldRemember(text, role) {
   const t = String(text ?? '').trim();
   if (!role) return false;            // off-topic / refused: no role matched
   if (t.length < 8) return false;     // too short to carry a fact
   if (t.startsWith('/')) return false; // commands
   if (SMALL_TALK.test(t)) return false;
+  if (QUESTION.test(t)) return false;  // lookups ("what reminders do I have?") are queries, not facts
+  if (t.split(/\s+/).length < 4) return false; // fragments like "just drank" carry no fact without context
   return true;
 }
 

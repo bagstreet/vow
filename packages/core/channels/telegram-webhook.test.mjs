@@ -65,9 +65,9 @@ test('memory: chat recalls before reply and remembers after; check-ins are remem
   const llm = { complete: async () => ({ text: 'ok' }) };
   store._s.chats.set('1', { id: 'u1' }); store._s.roles.set('u1', ['fitness']);
   const ctx = { store, tg: { sendMessage: async (c, t) => sent.push([c, t]), answerCallbackQuery: async () => {} }, webBase: 'https://x.test', llm, memory };
-  await handleUpdate({ update_id: 1, message: { text: 'how much protein', chat: { id: 1 } } }, ctx);
-  assert.deepEqual(recallCalls[0], ['u1', 'how much protein']);
-  assert.ok(remembered.some(([u, t]) => u === 'u1' && t.includes('how much protein')));
+  await handleUpdate({ update_id: 1, message: { text: 'I eat protein after every workout', chat: { id: 1 } } }, ctx);
+  assert.deepEqual(recallCalls[0], ['u1', 'I eat protein after every workout']);
+  assert.ok(remembered.some(([u, t]) => u === 'u1' && t.includes('I eat protein after every workout')));
 
   const cb = { update_id: 2, callback_query: { id: 'q2', data: 'occ9:taken', message: { chat: { id: 1 } } } };
   store._s.acks = []; // actual title/role returned by createMemoryStore is undefined -> memory.remember skipped (acceptable offline double)
