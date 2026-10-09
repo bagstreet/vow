@@ -18,8 +18,7 @@ export async function poll() {
   if (isMuted(mutedUntil)) return; // muted reminders stay in the popup and are announced after unmuting
   const fresh = items.filter((i) => !notified.includes(i.id));
   for (const i of fresh) {
-    const [yes, later] = [i.buttons[0], i.buttons.find((b) => b.id.startsWith('snooze'))];
-    chrome.notifications.create(i.id, { type: 'basic', iconUrl: ICON, title: `Vow · ${i.role}`, message: i.title, requireInteraction: true, buttons: [{ title: yes.label }, { title: later?.label ?? 'Remind later' }] });
+    chrome.notifications.create(i.id, { type: 'basic', iconUrl: ICON, title: `Vow · ${i.role}`, message: `${i.title}\nClick to answer in Vow.`, requireInteraction: true });
   }
   await set({ notified: [...notified.filter((id) => items.some((i) => i.id === id)), ...fresh.map((i) => i.id)] });
 }
@@ -30,9 +29,7 @@ async function answer(id, button) {
   if (r.ok) await poll();
 }
 
-chrome.notifications.onButtonClicked.addListener(async (id, idx) => {
-  const { items = [] } = await get(['items']);
-  const item = items.find((i) => i.id === id); if (!item) return;
-  const b = idx === 0 ? item.buttons[0] : item.buttons.find((x) => x.id.startsWith('snooze'));
-  if (b) await answer(id, b.id);
+chrome.notifications.onClicked.addListener(async (id) => {
+  chrome.notifications.clear(id);
+  try { await chrome.action.openPopup(); } catch { /* popup needs a focused window; the toolbar badge still shows the count */ }
 });

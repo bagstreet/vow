@@ -34,12 +34,13 @@ export function isDuplicateWrite(userId, text, now = Date.now()) {
   recent.set(key, now); return false;
 }
 
-export function createWalrusMemory(sdk) {
+export function createWalrusMemory(sdk, { claim } = {}) {
   return {
     /** Submit-only: returns a job_id string once the relayer accepts the write, or null (never throws). */
     async remember(userId, text) {
       if (!sdk) return null;
       if (isDuplicateWrite(userId, text)) return null;
+      if (claim && !(await claim(userId, norm(text)).catch(() => true))) return null; // another instance wrote the same text moments ago
       try {
         const job = await sdk.remember(String(text).slice(0, 2000), ns(userId));
         return job?.job_id ?? null;

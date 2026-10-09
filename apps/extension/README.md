@@ -1,6 +1,6 @@
 # Vow browser extension
 
-A delivery channel, like Telegram or Slack. Vow reminders arrive as browser notifications with the same quick-reply buttons (Taken, Skip, Later), and the popup lists everything still waiting. Answering here marks the reminder handled in every other channel.
+A delivery channel, like Telegram or Slack. Vow reminders arrive as browser notifications; clicking one opens the popup, where the same quick-reply buttons (Taken, Skip, Later) answer it. Answering here marks the reminder handled in every other channel.
 
 ## Install and connect
 

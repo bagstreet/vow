@@ -47,3 +47,12 @@ test('S10: the same text through two channels within seconds is written once', a
   assert.equal(await mem.remember('u-s10', '[slack] I took magnesium 400 mg'), null);
   assert.equal(await mem.remember('u-s10', '[slack] something else'), 'j2'); assert.equal(calls.length, 2);
 });
+
+test('cross-instance claim: a twin write that lost the DB claim is not sent; a claim error fails open', async () => {
+  const calls = [];
+  const sdk = { remember: async (t) => { calls.push(t); return { job_id: 'j' + calls.length }; } };
+  const lost = createWalrusMemory(sdk, { claim: async () => false });
+  assert.equal(await lost.remember('u-claim-1', 'I took vitamin D at 9 today'), null);
+  const broken = createWalrusMemory(sdk, { claim: async () => { throw new Error('db down'); } });
+  assert.equal(await broken.remember('u-claim-2', 'I took vitamin D at 9 today'), 'j1');
+});

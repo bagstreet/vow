@@ -568,6 +568,8 @@ const BLOBS = [
 ]
 function ProofBlobs() {
   const [visible, setVisible] = useState(false)
+  const [total, setTotal] = useState(BLOBS.length)
+  useEffect(() => { fetch('/api/health?stats=proof').then(r => r.json()).then(j => { if (typeof j.blobs === 'number') setTotal(j.blobs) }).catch(() => {}) }, [])
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const el = ref.current; if (!el) return
@@ -579,7 +581,7 @@ function ProofBlobs() {
       <div className="max-w-3xl mx-auto">
         <FadeIn>
           <div className="text-center mb-8">
-            <div className="text-5xl font-bold mb-2" style={{ color: T.accent }}><CountUp target={BLOBS.length} active={visible} /></div>
+            <div className="text-5xl font-bold mb-2" style={{ color: T.accent }}><CountUp key={total} target={total} active={visible} /></div>
             <h2 className="text-xl sm:text-2xl font-bold mb-2" style={{ color: T.text }}>blobs written to Walrus mainnet by the live bots</h2>
             <p className="text-sm" style={{ color: T.textMuted }}>Every confirmed fact becomes a blob with an id. Only the id is public; what is inside stays private to its owner.</p>
           </div>

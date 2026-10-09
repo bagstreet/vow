@@ -7,7 +7,7 @@ type Bot = 'telegram' | 'slack' | 'discord' | 'extension'
 const BOTS: { id: Bot; name: string; icon: typeof Hash; note: string; cmd: string }[] = [
   { id: 'telegram', name: 'Telegram', icon: MessageCircle, note: 'Quick-reply buttons work. Telegram bots cannot see your online status, so last activity is used.', cmd: '/link CODE' },
   { id: 'slack', name: 'Slack', icon: Monitor, note: 'DM the app. Vow also checks whether you are active in Slack right now.', cmd: '/link CODE' },
-  { id: 'extension', name: 'Browser extension', icon: Puzzle, note: 'Reminders as browser notifications with Taken, Skip and Later buttons. Works while the browser is running; otherwise Vow escalates to your next channel.', cmd: 'CODE' },
+  { id: 'extension', name: 'Browser extension', icon: Puzzle, note: 'Reminders as browser notifications; click one to answer Taken, Skip or Later in the extension popup. Works while the browser is running; otherwise Vow escalates to your next channel.', cmd: 'CODE' },
   { id: 'discord', name: 'Discord', icon: Hash, note: 'Add the app to your account, then run the command anywhere or in DM.', cmd: '/link code:CODE' },
 ]
 const OPEN: Record<Exclude<Bot, 'extension'>, { label: string; url: (code: string) => string; hint: string }> = {
