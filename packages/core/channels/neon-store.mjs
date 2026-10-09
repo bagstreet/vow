@@ -52,7 +52,7 @@ export function createNeonStore(sql) {
       return r[0] ?? null;
     },
     async listUserReminders(u) { return (await sql('select id, title, role, time_local, days, enabled from reminders where user_id = $1 order by time_local, created_at', [u])).map((x) => ({ id: x.id, title: x.title, role: x.role, time: String(x.time_local).slice(0, 5), days: x.days, enabled: x.enabled })); },
-    async addUserReminder(u, v) { await sql('insert into reminders(user_id, role, title, time_local, days) values ($1,$2,$3,$4,$5::smallint[])', [u, v.role, v.title, v.time, v.days]); },
+    async addUserReminder(u, v) { await sql('insert into reminders(user_id, role, title, time_local, days, source) values ($1,$2,$3,$4,$5::smallint[],$6)', [u, v.role, v.title, v.time, v.days, 'chat']); },
     async removeUserReminder(u, id) { await sql('delete from reminders where id = $1 and user_id = $2', [id, u]); },
     async createLoginToken(u) { const t = randomBytes(24).toString('base64url'); await sql("insert into login_tokens(token, user_id, expires_at) values ($1,$2, now() + interval '10 minutes')", [t, u]); return t; },
     async getHistory(u, limit = 12) {

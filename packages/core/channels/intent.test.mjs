@@ -67,3 +67,8 @@ test('schedule context names reminders so the model can answer "what was that re
   const c = scheduleContext([{ title: 'dadsa', time: '18:40', days: [1, 2, 3, 4, 5, 6, 7], role: 'fitness' }], { title: 'dadsa', role: 'fitness', status: 'sent' });
   assert.match(c, /"dadsa" 18:40 daily \(fitness\)/); assert.match(c, /Most recent reminder sent/);
 });
+
+test('open check-in adds a reply-disambiguation hint; closed one does not', () => {
+  assert.match(scheduleContext([], { title: 'Pills', role: 'medication', status: 'sent' }), /still open/);
+  assert.doesNotMatch(scheduleContext([], { title: 'Pills', role: 'medication', status: 'acked' }), /still open/);
+});

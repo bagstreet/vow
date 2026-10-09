@@ -4,8 +4,20 @@ import { useAuth } from '../lib/auth'
 import { api } from '../lib/api'
 import AgentTokens from '../components/AgentTokens'
 
-const ALL_TZ: string[] = Intl.supportedValuesOf ? Intl.supportedValuesOf('timeZone') : ['UTC']
-// Time zones grouped by region, labelled "(UTC+03:00) Tallinn · Europe/Tallinn" and sorted by the current offset, so UTC+1 and UTC+2 are distinguishable.
+// One entry per UTC offset, named by its key cities. The IANA id behind each entry keeps daylight-saving rules correct;
+// the offset in the label is computed for today's date.
+const TZ_LIST: [string, string][] = [
+  ['Pacific/Pago_Pago', 'Pago Pago'], ['Pacific/Honolulu', 'Honolulu'], ['America/Anchorage', 'Anchorage'],
+  ['America/Los_Angeles', 'Los Angeles, Vancouver'], ['America/Denver', 'Denver, Phoenix'], ['America/Chicago', 'Chicago, Mexico City'],
+  ['America/New_York', 'New York, Toronto'], ['America/Halifax', 'Halifax, Caracas'], ['America/Sao_Paulo', 'São Paulo, Buenos Aires'],
+  ['Atlantic/South_Georgia', 'South Georgia'], ['Atlantic/Azores', 'Azores'], ['UTC', 'UTC'], ['Europe/London', 'London, Lisbon, Dublin'],
+  ['Europe/Berlin', 'Berlin, Paris, Warsaw'], ['Europe/Kyiv', 'Kyiv, Athens, Helsinki, Cairo'], ['Europe/Moscow', 'Moscow, Minsk, Istanbul'],
+  ['Asia/Dubai', 'Dubai, Baku'], ['Asia/Tehran', 'Tehran'], ['Asia/Kabul', 'Kabul'], ['Asia/Tashkent', 'Tashkent, Karachi'],
+  ['Asia/Kolkata', 'Mumbai, Delhi'], ['Asia/Kathmandu', 'Kathmandu'], ['Asia/Dhaka', 'Dhaka, Almaty'], ['Asia/Yangon', 'Yangon'],
+  ['Asia/Bangkok', 'Bangkok, Jakarta'], ['Asia/Singapore', 'Singapore, Beijing, Perth'], ['Asia/Tokyo', 'Tokyo, Seoul'],
+  ['Australia/Adelaide', 'Adelaide'], ['Australia/Sydney', 'Sydney, Melbourne'], ['Pacific/Noumea', 'Noumea, Vladivostok'],
+  ['Pacific/Auckland', 'Auckland'], ['Pacific/Tongatapu', 'Tonga'],
+]
 function offsetMin(tz: string): number {
   try {
     const p = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'longOffset' }).formatToParts(new Date()).find(x => x.type === 'timeZoneName')?.value ?? 'GMT'
@@ -14,18 +26,9 @@ function offsetMin(tz: string): number {
   } catch { return 0 }
 }
 const fmtOffset = (min: number) => `UTC${min < 0 ? '-' : '+'}${String(Math.floor(Math.abs(min) / 60)).padStart(2, '0')}:${String(Math.abs(min) % 60).padStart(2, '0')}`
-function buildTzGroups(extra: string) {
-  const list = ALL_TZ.includes(extra) ? ALL_TZ : [extra, ...ALL_TZ]
-  const groups = new Map<string, { id: string; label: string; off: number }[]>()
-  for (const id of list) {
-    const [region, ...rest] = id.split('/')
-    const g = rest.length ? region : 'Other'
-    const off = offsetMin(id)
-    const city = (rest.length ? rest.join(' / ') : id).replace(/_/g, ' ')
-    if (!groups.has(g)) groups.set(g, [])
-    groups.get(g)!.push({ id, label: `(${fmtOffset(off)}) ${city}`, off })
-  }
-  return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([g, items]) => [g, items.sort((x, y) => x.off - y.off || x.label.localeCompare(y.label))] as const)
+function buildTzOptions(current: string) {
+  const list = TZ_LIST.some(([id]) => id === current) ? TZ_LIST : [...TZ_LIST, [current, current.split('/').pop()!.replace(/_/g, ' ')] as [string, string]]
+  return list.map(([id, cities]) => ({ id, off: offsetMin(id), label: `${fmtOffset(offsetMin(id))} · ${cities}` })).sort((x, y) => x.off - y.off)
 }
 const PRESETS = [
   { id: 'fitness', label: 'Health & Fitness', color: '#22c55e' },
@@ -44,7 +47,7 @@ const LABELS = [{ v: 'always', t: 'Always' }, { v: 'on_change', t: 'On change' }
 const CHANNEL_ICONS: Record<string, typeof Globe> = { telegram: MessageCircle, discord: Hash, slack: Monitor }
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] // index + 1 = ISO weekday stored in the DB
 
-interface Reminder { id: string; title: string; role: string; time: string; days: number[]; channel: string | null; enabled: boolean }
+interface Reminder { id: string; title: string; role: string; time: string; days: number[]; channel: string | null; enabled: boolean; source?: string }
 const card = { background: 'var(--surface)', border: '1px solid var(--border)' }
 const field = { background: 'var(--recessed)', color: 'var(--text)', border: '1px solid var(--border)' }
 
@@ -113,14 +116,14 @@ function MergeBox({ onChanged, flash }: { onChanged: () => void; flash: (m: stri
 export default function SettingsPage() {
   const { user, profile, roles, refresh, patchLocal, logout } = useAuth()
   const [saving, setSaving] = useState<string | null>(null) // id of the control whose save is in flight; it is locked meanwhile
-  const tzGroups = useMemo(() => buildTzGroups(profile?.tz || 'UTC'), [profile?.tz])
+  const tzOptions = useMemo(() => buildTzOptions(profile?.tz || 'UTC'), [profile?.tz])
   const [name, setName] = useState(user?.name || '')
   const [timezone, setTimezone] = useState(profile?.tz || 'UTC')
   const [status, setStatus] = useState<string>('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [reminders, setReminders] = useState<Reminder[]>([])
   const [loadingRem, setLoadingRem] = useState(true)
-  const [draft, setDraft] = useState({ title: '', time: '08:00', channel: '' })
+  const [draft, setDraft] = useState({ title: '', time: '08:00', channel: '', role: '' })
   const [showAdd, setShowAdd] = useState(false)
 
   useEffect(() => { setName(profile?.display_name || ''); setTimezone(profile?.tz || 'UTC') }, [profile])
@@ -161,9 +164,9 @@ export default function SettingsPage() {
   }
   const addReminder = async () => {
     if (!draft.title.trim()) return
-    const r = await api('reminders', 'POST', { title: draft.title, time: draft.time, days: [1, 2, 3, 4, 5, 6, 7], channel: draft.channel || null })
+    const r = await api('reminders', 'POST', { title: draft.title, time: draft.time, days: [1, 2, 3, 4, 5, 6, 7], channel: draft.channel || null, ...(draft.role ? { role: draft.role } : {}) })
     if (!r.ok) { flash(r.error === 'role_not_enabled' ? 'Enable a role first' : `Could not add (${r.error ?? 'error'})`); return }
-    setDraft({ title: '', time: '08:00', channel: '' }); setShowAdd(false); await loadReminders(); flash('Reminder added')
+    setDraft({ title: '', time: '08:00', channel: '', role: '' }); setShowAdd(false); await loadReminders(); flash('Reminder added')
   }
   const removeReminder = async (id: string) => {
     const r = await api('reminders', 'DELETE', { id })
@@ -191,7 +194,7 @@ export default function SettingsPage() {
           <div>
             <label className="text-xs block mb-1" htmlFor="tz" style={{ color: 'var(--text-muted)' }}>Time zone</label>
             <select id="tz" value={timezone} onChange={e => setTimezone(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none cursor-pointer" style={field}>
-              {tzGroups.map(([g, items]) => <optgroup key={g} label={g}>{items.map(i => <option key={i.id} value={i.id} title={i.id}>{i.label}</option>)}</optgroup>)}
+              {tzOptions.map(i => <option key={i.id} value={i.id} title={i.id}>{i.label}</option>)}
             </select>
           </div>
           <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Used for reminder times and quiet hours. Offsets shift with daylight saving.</p>
@@ -263,6 +266,11 @@ export default function SettingsPage() {
                     <select value={r.channel ?? ''} aria-label="Channel" onChange={e => void patchReminder(r.id, { channel: e.target.value || null })} className="bg-transparent outline-none text-[11px] cursor-pointer">
                       <option value="">auto</option><option value="telegram">telegram</option><option value="slack">slack</option><option value="discord">discord</option>
                     </select></label>
+                  <label className="flex items-center gap-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>role
+                    <select value={r.role} aria-label="Role" onChange={e => void patchReminder(r.id, { role: e.target.value })} className="bg-transparent outline-none text-[11px] cursor-pointer">
+                      {[...new Set([...roles, r.role])].map(x => <option key={x} value={x}>{x}</option>)}
+                    </select></label>
+                  {r.source === 'chat' && <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ border: '1px solid var(--border)', color: 'var(--text-muted)' }} title="Created by asking Vow in a chat">from chat</span>}
                   <button onClick={() => void patchReminder(r.id, { enabled: !r.enabled })} aria-pressed={r.enabled} className="text-[10px] px-2 py-0.5 rounded cursor-pointer" style={{ border: '1px solid var(--border)', color: 'var(--text-muted)' }}>{r.enabled ? 'on' : 'off'}</button>
                   <button onClick={() => void removeReminder(r.id)} aria-label="Delete reminder" className="p-1 rounded cursor-pointer hover:bg-white/10" style={{ color: 'var(--text-muted)' }}><Trash2 size={12} /></button>
                 </div>
@@ -284,7 +292,11 @@ export default function SettingsPage() {
               <select value={draft.channel} onChange={e => setDraft(p => ({ ...p, channel: e.target.value }))} aria-label="New reminder channel" className="px-3 py-2 rounded-lg text-sm outline-none cursor-pointer" style={{ ...field, background: 'var(--surface)' }}>
                 <option value="">Auto (best channel)</option><option value="telegram">Telegram</option><option value="slack">Slack</option><option value="discord">Discord</option>
               </select>
+              <select value={draft.role} onChange={e => setDraft(p => ({ ...p, role: e.target.value }))} aria-label="New reminder role" className="px-3 py-2 rounded-lg text-sm outline-none cursor-pointer sm:col-span-3" style={{ ...field, background: 'var(--surface)' }}>
+                <option value="">Role: let Vow pick from the name</option>{roles.map(x => <option key={x} value={x}>Role: {x}</option>)}
+              </select>
             </div>
+            <p className="text-[11px] mb-3" style={{ color: 'var(--text-muted)' }}>A reminder belongs to a role. Replies to it are saved to that role's memory, and the role is the context Vow uses when you answer.</p>
             <div className="flex gap-2">
               <button onClick={addReminder} className="px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer hover:brightness-110" style={{ background: '#0E9C86', color: '#000' }}>Add reminder</button>
               <button onClick={() => setShowAdd(false)} className="px-3 py-1.5 rounded-lg text-xs cursor-pointer hover:bg-white/5" style={{ border: '1px solid var(--border)', color: 'var(--text-muted)' }}>Cancel</button>

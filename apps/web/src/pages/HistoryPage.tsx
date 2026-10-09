@@ -11,6 +11,7 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true); const [channel, setChannel] = useState('all')
   useEffect(() => { api<{ memory: Mem[]; messages: Msg[] }>('history').then(r => { if (r.ok) { setMem(r.data.memory); setMsgs(r.data.messages) } setLoading(false) }) }, [])
   const [busy, setBusy] = useState<string | null>(null)
+  const [flushing, setFlushing] = useState(false); const [note, setNote] = useState('')
   const forget = async (id: string) => {
     if (busy || !window.confirm('Hide this memory from future answers? The Walrus blob is immutable and stays on the network.')) return
     setBusy(id)
@@ -25,6 +26,11 @@ export default function HistoryPage() {
     <div className="max-w-3xl mx-auto px-4 py-6 space-y-5">
       <div><h1 className="text-xl font-bold">History</h1>
         <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{loading ? 'Loading…' : `${mem.length} memory writes · ${msgs.length} recent messages. Memory writes go to Walrus; the blob id appears once the network confirms the upload.`}</p></div>
+      <div className="flex items-center gap-2">
+        <button disabled={flushing} aria-busy={flushing} onClick={async () => { setFlushing(true); const r = await api('memory-flush', 'POST', {}); setFlushing(false); setNote(r.ok ? 'Pending notes were written to memory.' : 'Could not write now, try again.'); setTimeout(() => setNote(''), 3000) }}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer" style={{ background: '#0E9C86', color: '#000' }}>{flushing ? 'Writing…' : 'Remember now'}</button>
+        <span className="text-[11px]" role="status" style={{ color: 'var(--text-muted)' }}>{note || 'Notes are batched; this writes them to Walrus immediately.'}</span>
+      </div>
       <div className="flex gap-1.5">{channels.map(c => <button key={c} onClick={() => setChannel(c)} aria-pressed={channel === c} className="px-2.5 py-1 rounded-full text-[11px] cursor-pointer" style={{ border: '1px solid var(--border)', background: channel === c ? '#0E9C8626' : 'transparent', color: channel === c ? '#0E9C86' : 'var(--text-muted)' }}>{c}</button>)}</div>
       {!loading && shown.length === 0 && <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Nothing here yet. Chat with Vow in any channel and the memory writes show up here.</p>}
       <div className="space-y-2">

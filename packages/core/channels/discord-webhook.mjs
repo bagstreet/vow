@@ -70,7 +70,7 @@ export async function handleInteraction(interaction, { store, webBase, llm, memo
 
   const cmd = String(interaction.data?.name ?? '').toLowerCase();
   const user = await store.userByChat(chat, CHANNEL);
-  if (user?.blocked) return { ok: true, ignored: 'blocked' };
+  if (user?.blocked) return { ...reply('Your Vow account is suspended. Contact the project administrator.'), ignored: 'blocked' };
   if (user) await store.touchChannel?.(chat, CHANNEL); // activity feeds delivery ranking
 
   if (cmd === 'link') {

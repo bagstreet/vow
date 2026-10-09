@@ -111,6 +111,7 @@ export function scheduleContext(reminders = [], lastOcc = null) {
   const parts = [];
   if (reminders.length) parts.push(`User's reminders: ${reminders.slice(0, 20).map((r) => `"${r.title}" ${r.time} ${fmtDays(r.days)} (${r.role})`).join('; ')}.`);
   if (lastOcc) parts.push(`Most recent reminder sent to the user: "${lastOcc.title}" (${lastOcc.role}), status ${lastOcc.status}.`);
+  if (lastOcc && ['sent', 'escalated'].includes(lastOcc.status)) parts.push('That check-in is still open. If the user\'s message answers it (taken, skipped, later, a detail about it), treat it as the reply. If it is about something else, answer that topic and do not ask what they "took".');
   return parts.join(' ');
 }
 

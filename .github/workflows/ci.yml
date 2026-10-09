@@ -14,6 +14,7 @@ jobs:
         with:
           node-version: '22'
       - run: npm install
+      - run: cd apps/mcp && npm install
       - run: npm test
       - name: Coverage
         run: node --test --experimental-test-coverage packages/**/*.test.mjs tests/*.test.mjs 2>&1 || true

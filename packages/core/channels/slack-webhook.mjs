@@ -41,7 +41,7 @@ export async function handleEvent(body, { store, slack, webBase, llm, memory, se
   const m = text.match(/^\/(\w+)(?:\s+(.*))?$/s);
   const cmd = m?.[1]?.toLowerCase(); const arg = (m?.[2] ?? '').trim();
   const user = await store.userByChat(chat, CHANNEL);
-  if (user?.blocked) return { ok: true, ignored: 'blocked' };
+  if (user?.blocked) { await send('Your Vow account is suspended. Contact the project administrator.'); return { ok: true, ignored: 'blocked' }; }
   if (user) await store.touchChannel?.(chat, CHANNEL); // activity feeds delivery ranking
 
   if (cmd === 'link') {

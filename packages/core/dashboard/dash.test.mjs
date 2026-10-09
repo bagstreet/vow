@@ -212,3 +212,19 @@ test('merge: code from source, run by target; same account and bad code rejected
   const r = await call(st, 'merge', 'POST', { code: 'M1' }, a.id);
   assert.equal(r.status, 200); assert.deepEqual(merged, [[a.id, b.id]]);
 });
+
+test('reminder role can be changed and is validated; blocked profile gets 403 on me', async () => {
+  const st = makeStore(); const a = st.mkUser();
+  const c = await call(st, 'reminders', 'POST', { title: 'Run', time: '07:00', days: [1, 2, 3], role: 'fitness' }, a.id);
+  const id = c.json.reminder.id;
+  const u = await call(st, 'reminders', 'PATCH', { id, role: 'study' }, a.id); assert.equal(u.json.reminder.role, 'study');
+  const bad = await call(st, 'reminders', 'PATCH', { id, role: 'nope' }, a.id); assert.equal(bad.status, 400);
+  st._s.users.get(a.id).blocked_at = 'now';
+  const me = await call(st, 'me', 'GET', undefined, a.id); assert.equal(me.status, 403); assert.equal(me.json.error, 'blocked');
+});
+
+test('memory-flush calls the memory stack and reports the result', async () => {
+  const st = makeStore(); const a = st.mkUser(); let n = 0;
+  const r = await call(st, 'memory-flush', 'POST', {}, a.id, { memory: { flush: async () => { n++; return true; } } });
+  assert.equal(r.status, 200); assert.equal(r.json.flushed, true); assert.equal(n, 1);
+});

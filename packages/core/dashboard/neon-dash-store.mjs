@@ -6,7 +6,7 @@ import { parseArr, parseTextArr } from '../scheduler/time.mjs';
 import { SESSION_DAYS } from './session.mjs';
 
 const days = (v) => parseArr(v).map(Number);
-const remOut = (r) => ({ id: r.id, title: r.title, role: r.role, time: String(r.time_local).slice(0, 5), days: days(r.days), channel: r.channel_pref ?? null, enabled: r.enabled, nextFireAt: r.next_fire_at ?? null });
+const remOut = (r) => ({ id: r.id, title: r.title, role: r.role, time: String(r.time_local).slice(0, 5), days: days(r.days), channel: r.channel_pref ?? null, enabled: r.enabled, source: r.source ?? 'dashboard', nextFireAt: r.next_fire_at ?? null });
 
 export function createNeonDashStore(sql) {
   const base = createNeonStore(sql);

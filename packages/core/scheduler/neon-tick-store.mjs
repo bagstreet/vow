@@ -8,7 +8,7 @@ export function createNeonTickStore(sql) {
   const rem = (r) => ({ id: r.id, userId: r.user_id, role: r.role, title: r.title, timeLocal: String(r.time_local).slice(0, 5), days: parseArr(r.days), tz: r.tz });
   return {
     async initReminders(now) {
-      const rows = await sql("select r.*, u.tz from reminders r join users u on u.id = r.user_id where r.enabled and r.next_fire_at is null limit 100");
+      const rows = await sql("select r.*, u.tz from reminders r join users u on u.id = r.user_id where r.enabled and u.blocked_at is null and r.next_fire_at is null limit 100");
       let n = 0;
       for (const r0 of rows) {
         const r = rem(r0); const nf = computeNextFire(r, now);
@@ -17,7 +17,7 @@ export function createNeonTickStore(sql) {
       return rows.slice(0, n);
     },
     async claimDueReminders(now, limit) {
-      const rows = await sql("select r.*, u.tz from reminders r join users u on u.id = r.user_id where r.enabled and r.next_fire_at <= $1 order by r.next_fire_at limit $2", [iso(now), limit]);
+      const rows = await sql("select r.*, u.tz from reminders r join users u on u.id = r.user_id where r.enabled and u.blocked_at is null and r.next_fire_at <= $1 order by r.next_fire_at limit $2", [iso(now), limit]);
       const out = [];
       for (const r0 of rows) {
         const r = rem(r0); const nf = computeNextFire(r, now);

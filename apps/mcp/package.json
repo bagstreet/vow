@@ -1,0 +1,9 @@
+{
+  "name": "vow-agent-mcp",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Stdio MCP bridge to the Vow Agent API",
+  "bin": { "vow-agent-mcp": "vow-agent-mcp.mjs" },
+  "dependencies": { "@modelcontextprotocol/sdk": "^1.12.0", "zod": "^3.23.8" }
+}

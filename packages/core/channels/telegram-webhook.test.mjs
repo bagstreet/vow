@@ -74,3 +74,12 @@ test('memory: chat recalls before reply and remembers after; check-ins are remem
   await handleUpdate(cb, ctx);
 });
 
+
+test('blocked user gets a suspension notice and nothing else', async () => {
+  const { ctx, store, sent } = setup(); store._s.codes.set('BLK123', { userId: 'u9', exp: Date.now() + 1e5 });
+  await handleUpdate(msg(1, '/link BLK123', 7), ctx);
+  const orig = store.userByChat; store.userByChat = async (...a) => { const u = await orig(...a); return u ? { ...u, blocked: true } : u; };
+  sent.length = 0;
+  const r = await handleUpdate(msg(2, 'hello', 7), ctx);
+  assert.equal(r.ignored, 'blocked'); assert.equal(sent.length, 1); assert.match(sent[0][1], /suspended/);
+});

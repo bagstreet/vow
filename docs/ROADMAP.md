@@ -22,13 +22,13 @@ Conventions: English only in repo, docs and commits; commit message = emoji + te
 ## Phase 1 — Bot and reminders polish (PRE, one commit)
 | ID | Task | Depends | Notes |
 |---|---|---|---|
-| T12 | Reminder ↔ role link in the dashboard: role selector is mandatory, hint "a reminder belongs to a role"; marker `created_from` (`dashboard` / `chat`) shown in the list | T09 | Needs column `reminders.source`; chat-created reminders are editable and deletable in the dashboard like the rest |
-| T13 | Text reply to a reminder resolves the open occurrence even when the phrase is not in the intent list: pass the open occurrence (title, role) into the chat prompt as context and switch the active role to it | T09 | Cases: on-topic text, off-topic text (other role / unrelated fact → normal routing, occurrence stays open) |
-| T14 | "Remember now" button in the dashboard (op `memory-flush` exists) | T08 | Shows how many buffered facts will be written |
-| T15 | Save feedback on reminder PATCH (day, time, channel) and busy indicator on slow selects | — | Owner request from the first UX review |
-| T16 | Hover / focus / active / disabled states on every interactive element, no underline on buttons and cards | — | Audit every page, including admin |
-| T17 | Automated dashboard tests: add/remove channel, settings, export, blob links, AI chat, reminder save, merge, email attach | T10, T12 | API-level with the in-memory store plus a browser smoke test |
-| T18 | Real-token MCP round trip (install `@modelcontextprotocol/sdk` in `apps/mcp`, document `npx` usage) | T07 | Example config for desktop agents |
+| T12 | Reminder ↔ role link in the dashboard: role selector is mandatory, hint "a reminder belongs to a role"; marker `created_from` (`dashboard` / `chat`) shown in the list | T09 | Needs column `reminders.source`; chat-created reminders are editable and deletable in the dashboard like the rest (done) |
+| T13 | Text reply to a reminder resolves the open occurrence even when the phrase is not in the intent list: pass the open occurrence (title, role) into the chat prompt as context and switch the active role to it | T09 | Cases: on-topic text, off-topic text (other role / unrelated fact → normal routing, occurrence stays open) (done) |
+| T14 | "Remember now" button in the dashboard (op `memory-flush` exists) | T08 | Shows how many buffered facts will be written (done) |
+| T15 | Save feedback on reminder PATCH (day, time, channel) and busy indicator on slow selects | — | Owner request from the first UX review (done) |
+| T16 | Hover / focus / active / disabled states on every interactive element, no underline on buttons and cards | — | Audit every page, including admin (done) |
+| T17 | Automated dashboard tests: add/remove channel, settings, export, blob links, AI chat, reminder save, merge, email attach | T10, T12 | API-level with the in-memory store plus a browser smoke test (done) |
+| T18 | Real-token MCP round trip (install `@modelcontextprotocol/sdk` in `apps/mcp`, document `npx` usage) | T07 | Example config for desktop agents (done) |
 
 ## Phase 2 — Scenario matrix v5 (PRE)
 | ID | Task | Depends | Notes |
@@ -82,3 +82,6 @@ Article (before/after of AI-agent testing), demo video in the landing style, sub
 | T42 | Per-channel presence UI; desktop helper and browser extension; push adapters | T25 | |
 | T43 | Delayed events and retry handling for Slack (enabled), idempotency review | — | |
 | T44 | Rotate every secret shared during development | — | After the hackathon |
+
+## Changelog
+- Phase 1 closed: reminder role selector and `from chat` badge (migration 014), open check-in hint in the chat prompt, Remember now button, curated time zone list (one entry per UTC offset, key cities), suspended-account behaviour (notice in each bot, no reminders, dashboard sign-in refused with a message), MCP round-trip test, CI installs the MCP SDK.
