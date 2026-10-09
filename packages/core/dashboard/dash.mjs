@@ -200,7 +200,7 @@ export async function handleDash({ store, op, method, body = {}, userId, deps = 
     const profile = await store.getProfile(userId);
     const enabled = await store.listRoles(userId);
     const [history, remembered] = await Promise.all([store.getHistory(userId, 12), deps.memory ? deps.memory.recall(userId, text) : []]);
-    const r = await chatReply({ text, enabled, def: profile.default_role, llm: deps.llm, history, remembered, tone: profile.tone });
+    const r = await chatReply({ text, enabled, def: profile.default_role, llm: deps.llm, history, remembered, tone: profile.tone, lastRole: profile.last_role ?? null, channel: 'web' });
     const reply = withRoleLabel(r.text, r.role, profile.role_label === 'change' ? 'on_change' : profile.role_label, profile.last_role);
     await store.saveMessage(userId, 'web', 'in', text, r.role); await store.saveMessage(userId, 'web', 'out', r.text, r.role);
     if (r.role) await store.setLastRole(userId, r.role);

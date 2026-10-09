@@ -121,7 +121,7 @@ export async function handleInteraction(interaction, { store, webBase, llm, memo
       const schedule = await loadSchedule(store, user.id);
       const history = (await store.getHistory?.(user.id)) ?? [];
       const remembered = memory ? await memory.recall(user.id, text) : [];
-      const r = await chatReply({ text, enabled, def: user.default_role, llm, history, remembered, tone: user.tone, schedule });
+      const r = await chatReply({ text, enabled, def: user.default_role, llm, history, remembered, tone: user.tone, schedule, lastRole: user.last_role ?? null, channel: 'discord' });
       await store.setLastRole?.(user.id, r.role);
       await store.saveMessage?.(user.id, CHANNEL, 'in', text, r.role);
       await store.saveMessage?.(user.id, CHANNEL, 'out', r.text, r.role);

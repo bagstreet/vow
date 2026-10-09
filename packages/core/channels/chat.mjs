@@ -1,9 +1,13 @@
 // Free-text chat: pick role (explicit prefix > default > first enabled), build prompt, ask router, return text.
 import { ROLES, ROLE_IDS } from '../../presets/roles/index.mjs';
+import { route } from '../roles/router.mjs';
 
-export function pickRole(text, enabled, def) {
+export function pickRole(text, enabled, def, ctx = {}) {
   const m = String(text).match(/^\s*(?:role:|@)?\s*(\w+)\s*[:,]\s*(.+)$/is);
   if (m && ROLES[m[1].toLowerCase()] && enabled.includes(m[1].toLowerCase())) return { role: m[1].toLowerCase(), text: m[2].trim() };
+  // keyword routing across the enabled roles (supplements -> nutrition, exam -> study, ...); no match falls back to the sticky/default role
+  const r = enabled.length > 1 ? route(text, { enabled, channel: ctx.channel, sticky: ctx.lastRole ? { role: ctx.lastRole, at: ctx.now ?? Date.now() } : null, now: ctx.now ?? Date.now() }) : null;
+  if (r?.primary && enabled.includes(r.primary) && !r.outOfScope && r.reason !== 'sticky') return { role: r.primary, text: String(text).trim() };
   const role = enabled.includes(def) ? def : enabled[0] ?? null;
   return { role, text: String(text).trim() };
 }
@@ -23,9 +27,9 @@ export function trimHistory(history, role) {
 // Tone only changes phrasing; it never overrides role scope or safety wording.
 export const TONE_HINT = { friendly: 'Tone: warm, encouraging, a little informal.', neutral: '', concise: 'Tone: shortest possible replies, no filler.', strict: 'Tone: direct accountability language, no fluff.' };
 
-export async function chatReply({ text, enabled, def, llm, history, remembered, tone, schedule }) {
+export async function chatReply({ text, enabled, def, llm, history, remembered, tone, schedule, lastRole = null, channel = null }) {
   if (!enabled.length) return { text: 'No roles are enabled yet. Turn some on in the dashboard.', role: null };
-  const { role, text: q } = pickRole(text, enabled, def);
+  const { role, text: q } = pickRole(text, enabled, def, { lastRole, channel });
   const memoryBlock = Array.isArray(remembered) && remembered.length
     ? `\nLong-term memory about this user (from past sessions/channels, most relevant first): ${remembered.map((m) => `"${m}"`).join('; ')}. Use it only if relevant; never invent memories that are not listed here. If what the user now says conflicts with a remembered fact (for example a different dose, weight, diet or allergy), do NOT silently pick one: name both versions, say which is newer if known, and ask which is correct before treating either as final.`
     : '';

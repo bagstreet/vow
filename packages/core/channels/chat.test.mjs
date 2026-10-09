@@ -59,3 +59,11 @@ test('splitMessage keeps chunks within the limit and loses no text', () => {
   assert.equal(parts.join(' ').replace(/\s+/g, ' '), t);
   assert.deepEqual(splitMessage('short', 200), ['short']);
 });
+
+test('pickRole routes by keywords across enabled roles', () => {
+  const en = ['fitness', 'nutrition', 'health', 'study', 'medication'];
+  assert.equal(pickRole('How much protein should I eat?', en, 'fitness').role, 'nutrition');
+  assert.equal(pickRole('Plan my study for the exam', en, 'fitness').role, 'study');
+  assert.equal(pickRole('my period is late', en, 'fitness').role, 'health');
+  assert.equal(pickRole('how are you?', en, 'fitness').role, 'fitness');
+});

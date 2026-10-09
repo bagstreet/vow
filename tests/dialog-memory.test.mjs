@@ -37,13 +37,13 @@ test('chatReply includes prior same-role turns as chat messages, in order', asyn
     { direction: 'in', appRole: 'fitness', content: 'how much protein after leg day' },
     { direction: 'out', appRole: 'fitness', content: 'about 30g within 2 hours' },
   ];
-  await chatReply({ text: 'and carbs?', enabled, def: 'fitness', llm, history });
+  await chatReply({ text: 'and what about tomorrow?', enabled, def: 'fitness', llm, history });
   const msgs = llm.calls[0].messages;
   assert.equal(msgs[0].role, 'system');
   assert.deepEqual(msgs.slice(1), [
     { role: 'user', content: 'how much protein after leg day' },
     { role: 'assistant', content: 'about 30g within 2 hours' },
-    { role: 'user', content: 'and carbs?' },
+    { role: 'user', content: 'and what about tomorrow?' },
   ]);
 });
 
