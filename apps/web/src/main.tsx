@@ -9,6 +9,7 @@ import ChatPage from './pages/ChatPage'
 import AdminPage from './pages/AdminPage'
 import HistoryPage from './pages/HistoryPage'
 import SettingsPage from './pages/SettingsPage'
+import TrustedPage from './pages/TrustedPage'
 import ExportPage from './pages/ExportPage'
 import LoginPage from './pages/LoginPage'
 import { BusyIndicator } from './lib/busy'
@@ -35,6 +36,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="history" element={<HistoryPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="admin" element={<AdminPage />} />
+            <Route path="trusted" element={<TrustedPage />} />
             <Route path="export" element={<ExportPage />} />
           </Route>
         </Routes>

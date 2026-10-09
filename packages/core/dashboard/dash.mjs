@@ -5,6 +5,7 @@ import { ROLE_IDS } from '../../presets/roles/index.mjs';
 import { chatReply, withRoleLabel, shouldRemember } from '../channels/chat.mjs';
 import { hashToken, newToken } from './session.mjs';
 import { manageTokens } from '../agent/agent.mjs';
+import { handleGuardian, notifyBeforeDelete } from '../guardian/guardian.mjs';
 import { handleAdmin, isAdmin } from '../admin/admin.mjs';
 
 export const CHANNELS = ['telegram', 'slack', 'discord'];
@@ -215,10 +216,12 @@ export async function handleDash({ store, op, method, body = {}, userId, deps = 
   }
   if (op === 'export' && method === 'GET') return ok({ exportedAt: new Date(now).toISOString(), data: await store.exportAll(userId) });
   if (op === 'memory-flush' && method === 'POST') { const r = await deps.memory?.flush?.(userId); return ok({ flushed: !!r }); }
+  if (op.startsWith('guardian-')) return (await handleGuardian({ store, op, method, body, userId })) ?? err(404, 'unknown_op');
   if (op.startsWith('admin-')) return handleAdmin({ store, op, method, body, profile: await store.getProfile(userId), env: deps.env, memory: deps.memory });
   if (op === 'account' && method === 'DELETE') {
     if (isAdmin(await store.getProfile(userId), deps.env)) return err(403, 'admin_cannot_delete');
     if (body.confirm !== 'DELETE') return err(400, 'confirm_required');
+    await notifyBeforeDelete(store, userId);
     await store.deleteAccount(userId);
     return ok({}, { clearSession: true });
   }

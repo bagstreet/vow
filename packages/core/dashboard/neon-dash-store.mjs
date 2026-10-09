@@ -3,6 +3,7 @@ import { createNeonStore } from '../channels/neon-store.mjs';
 import { createAccountStore } from '../channels/account-store.mjs';
 import { parseArr, parseTextArr } from '../scheduler/time.mjs';
 
+import { createNeonGuardianStore } from '../guardian/neon-guardian-store.mjs';
 import { SESSION_DAYS } from './session.mjs';
 
 const days = (v) => parseArr(v).map(Number);
@@ -13,6 +14,7 @@ export function createNeonDashStore(sql) {
   const acct = createAccountStore(sql);
   return {
     ...base,
+    ...createNeonGuardianStore(sql),
     createLinkCode: acct.createLinkCode, isChannelLinked: acct.isChannelLinked,
     async consumeLoginToken(token) {
       const r = await sql('update login_tokens set used_at = now() where token = $1 and used_at is null and expires_at > now() returning user_id', [token]);

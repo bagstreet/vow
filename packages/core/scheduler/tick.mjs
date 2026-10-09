@@ -1,5 +1,6 @@
 // Reminder tick (T39/T41/T51). Stateless and idempotent: every step claims rows through the store
 // (compare-and-swap), so overlapping or repeated ticks (cron-job.org + GitHub Actions backup) never double-send.
+import { evaluateGuardians, deliverNotices } from '../guardian/guardian.mjs';
 import { computeNextFire } from './time.mjs';
 import { inQuietHours } from '../delivery/escalation.mjs';
 import { orderChannels } from '../delivery/choose.mjs';
@@ -60,6 +61,7 @@ export async function runTick({ store, senders, pickButtons = null, presence = n
     if (next.length) { await store.enqueue({ userId: e.userId, reminderId: e.reminderId, step: e.step + 1, sendAt: now, occurrenceId: e.occurrenceId, label: e.label, role: e.role }); out.escalated++; }
     else { await store.expire(e.id); out.expired++; }
   }
+  if (store.activeGuardianLinks) { out.guardianAlerts = await evaluateGuardians({ store, now }); out.notices = await deliverNotices({ store, senders, now }); }
   return out;
 }
 

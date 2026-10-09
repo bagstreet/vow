@@ -1,4 +1,5 @@
 // Neon implementation of the tick store. Claims use compare-and-swap UPDATEs (no long transactions over HTTP SQL).
+import { createNeonGuardianStore } from '../guardian/neon-guardian-store.mjs';
 import { computeNextFire, parseArr, parseTextArr, tzOffsetMin } from './time.mjs';
 
 const toMs = (v) => (v == null ? null : new Date(v).getTime());
@@ -7,6 +8,7 @@ const iso = (ms) => new Date(ms).toISOString();
 export function createNeonTickStore(sql) {
   const rem = (r) => ({ id: r.id, userId: r.user_id, role: r.role, title: r.title, timeLocal: String(r.time_local).slice(0, 5), days: parseArr(r.days), tz: r.tz });
   return {
+    ...createNeonGuardianStore(sql),
     async initReminders(now) {
       const rows = await sql("select r.*, u.tz from reminders r join users u on u.id = r.user_id where r.enabled and u.blocked_at is null and r.next_fire_at is null limit 100");
       let n = 0;

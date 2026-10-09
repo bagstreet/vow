@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { MessageCircle, Clock, Settings, Download, Radio, LogOut, Menu, X, ChevronLeft, ChevronsLeft, ChevronsRight, HelpCircle, ShieldCheck } from 'lucide-react'
+import { MessageCircle, Clock, Settings, Download, Radio, LogOut, Menu, X, ChevronLeft, ChevronsLeft, ChevronsRight, HelpCircle, ShieldCheck, Users } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 import OnboardingTour, { useTourAutostart } from './OnboardingTour'
 
@@ -9,6 +9,7 @@ const BASE_NAV = [
   { to: '/dashboard/channels', icon: Radio, label: 'Channels' },
   { to: '/dashboard/history', icon: Clock, label: 'History' },
   { to: '/dashboard/settings', icon: Settings, label: 'Settings' },
+  { to: '/dashboard/trusted', icon: Users, label: 'Trusted contact' },
   { to: '/dashboard/export', icon: Download, label: 'Export' },
 ]
 

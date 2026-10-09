@@ -41,11 +41,11 @@ Conventions: English only in repo, docs and commits; commit message = emoji + te
 ## Phase 3 — Trusted Contact (PRE)
 | ID | Task | Depends | Notes |
 |---|---|---|---|
-| T23 | Migration 014: `guardian_links`, `guardian_rules`, `guardian_alerts`, `guardian_invites` | T22 | Design: `docs/design/TRUSTED_CONTACT.md`. The trusted contact must be a Vow user |
-| T24 | API ops: invite, accept, set rules (missed check-ins N, silence N hours), list watched accounts, leave | T23 | Confirmation by the invited user |
-| T25 | Alert engine in tick: evaluates rules, notifies the guardian through their own channel priority, de-duplicates alerts | T24 | |
-| T26 | Notifications and dashboard updates when the guardian leaves or deletes the account | T24 | Full deletion = account row removed; all links drop automatically, the watched user is notified |
-| T27 | Tests N18–N21 plus deletion of the guardian account and of the watched account | T25, T26 | |
+| T23 | Migration 015: `guardian_links` (rules stored on the link), `notices` (done) | T22 | Design: `docs/design/TRUSTED_CONTACT.md`. The trusted contact must be a Vow user |
+| T24 | API ops: invite, accept, set rules (missed check-ins N, silence N hours), list watched accounts, leave (done) | T23 | Confirmation by the invited user |
+| T25 | Alert engine in tick: evaluates rules, notifies the guardian through their own channel priority, de-duplicates alerts (done) | T24 | |
+| T26 | Notifications and dashboard updates when the guardian leaves or deletes the account (done) | T24 | Full deletion = account row removed; all links drop automatically, the watched user is notified |
+| T27 | Tests N18–N21 plus deletion of the guardian account and of the watched account (done) | T25, T26 | |
 
 ## Phase 4 — Verification run (PRE)
 | ID | Task | Depends | Notes |
@@ -85,3 +85,5 @@ Article (before/after of AI-agent testing), demo video in the landing style, sub
 
 ## Changelog
 - Phase 1 closed: reminder role selector and `from chat` badge (migration 014), open check-in hint in the chat prompt, Remember now button, curated time zone list (one entry per UTC offset, key cities), suspended-account behaviour (notice in each bot, no reminders, dashboard sign-in refused with a message), MCP round-trip test, CI installs the MCP SDK.
+
+- 2026-10-09: Trusted Contact implemented (T23–T27): migration 015, `packages/core/guardian/`, dashboard page "Trusted contact", tick step for alerts and notice delivery, 10 unit tests (invite, accept, limits, rules, leave, N18–N21, breach rules, notice delivery). Not yet in the first version: Telegram deep link and `/guardian` chat command, "share role names", acknowledgement buttons for the guardian, merge of guardian links on account merge (links of the absorbed account are dropped).
