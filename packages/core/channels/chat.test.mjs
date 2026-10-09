@@ -71,3 +71,9 @@ test('pickRole routes by keywords across enabled roles', () => {
 test('medical questions go to medication when enabled', () => {
   assert.equal(pickRole('How much ibuprofen for a headache?', ['fitness', 'medication'], 'fitness').role, 'medication');
 });
+
+test('activity logs route to fitness when study is the default role', () => {
+  for (const t of ['I ran 1 km in 3 minutes', 'did 20 pushups', 'cycled 10 km today', 'swam 500 meters']) {
+    assert.equal(pickRole(t, ['study', 'fitness'], 'study').role, 'fitness', t);
+  }
+});

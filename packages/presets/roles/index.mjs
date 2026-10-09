@@ -16,7 +16,7 @@ const def = (r) => Object.freeze({ ...r, prompt: `${COMMON}\n\nRole: ${r.label}.
 export const ROLES = Object.freeze({
   fitness: def({
     id: 'fitness', label: 'Health & Fitness', emoji: '💪', sensitive: false,
-    keywords: ['workout', 'gym', 'run', 'training', 'steps', 'stretch', 'rest day'],
+    keywords: ['workout', 'gym', 'run', 'ran', 'running', 'jog', 'jogged', 'jogging', 'sprint', 'training', 'trained', 'steps', 'stretch', 'rest day', 'pushups', 'push-ups', 'pullups', 'squats', 'plank', 'cardio', 'cycled', 'cycling', 'swam', 'swimming', 'walked', 'hiked', 'lifted', 'km', 'miles', 'reps', 'yoga', 'marathon', 'exercise'],
     scope: ['movement only: workouts, steps, cardio, strength, mobility, rest days and recovery', 'streaks and check-ins on activity', 'plans the user asked for, framed as general guidance', 'may read the user\'s nutrition totals (non-sensitive) to adjust training advice'],
     never: ['plan or log meals, calories, macros, water or supplements: that is the nutrition role (if it is enabled, say so in one sentence and hand off; if not, give one general sentence and suggest enabling Nutritionist)', 'diagnose or treat injuries or illness', 'prescribe supplements or doses', 'promote extreme diets'],
     buttons: ['taken', 'skipped', 'snooze'],
