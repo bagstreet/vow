@@ -7,6 +7,7 @@ export function pickRole(text, enabled, def, ctx = {}) {
   if (m && ROLES[m[1].toLowerCase()] && enabled.includes(m[1].toLowerCase())) return { role: m[1].toLowerCase(), text: m[2].trim() };
   // keyword routing across the enabled roles (supplements -> nutrition, exam -> study, ...); no match falls back to the sticky/default role
   const r = enabled.length > 1 ? route(text, { enabled, channel: ctx.channel, sticky: ctx.lastRole ? { role: ctx.lastRole, at: ctx.now ?? Date.now() } : null, now: ctx.now ?? Date.now() }) : null;
+  if (r?.outOfScope && r.reason === 'medical-question' && enabled.includes('medication')) return { role: 'medication', text: String(text).trim() };
   if (r?.primary && enabled.includes(r.primary) && !r.outOfScope && r.reason !== 'sticky') return { role: r.primary, text: String(text).trim() };
   const role = enabled.includes(def) ? def : enabled[0] ?? null;
   return { role, text: String(text).trim() };

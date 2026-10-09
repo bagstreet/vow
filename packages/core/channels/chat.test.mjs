@@ -67,3 +67,7 @@ test('pickRole routes by keywords across enabled roles', () => {
   assert.equal(pickRole('my period is late', en, 'fitness').role, 'health');
   assert.equal(pickRole('how are you?', en, 'fitness').role, 'fitness');
 });
+
+test('medical questions go to medication when enabled', () => {
+  assert.equal(pickRole('How much ibuprofen for a headache?', ['fitness', 'medication'], 'fitness').role, 'medication');
+});
