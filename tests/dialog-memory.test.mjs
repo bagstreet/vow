@@ -7,7 +7,7 @@ const enabled = ['fitness', 'nutrition'];
 
 function capturingLlm() {
   const calls = [];
-  return { calls, complete: async (req) => { calls.push(req); return { text: `reply ${calls.length}` }; } };
+  return { calls, complete: async (req) => { if (req.task === 'classify') return { text: 'null' }; calls.push(req); return { text: `reply ${calls.length}` }; } };
 }
 
 test('trimHistory drops other-role turns and caps length', () => {

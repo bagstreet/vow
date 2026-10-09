@@ -83,3 +83,12 @@ test('shouldRemember skips questions and fragments, keeps facts', async () => {
   for (const q of ['What reminders do I have?', 'Did I take it today?', 'Какие у меня есть напоминания?', 'Только что выпил']) assert.equal(shouldRemember(q, 'fitness'), false, q);
   for (const f of ['I ran 1 km in 3 minutes', 'My sleep goal is 7.5 hours']) assert.equal(shouldRemember(f, 'fitness'), true, f);
 });
+
+test('no keyword match: classifier picks the role from recent context, not the default', async () => {
+  const { chatReply } = await import('./chat.mjs');
+  const seen = [];
+  const llm = { complete: async ({ task, messages }) => { seen.push(task); return task === 'classify' ? { text: '{"primary":"nutrition","secondary":[],"confidence":0.9,"outOfScope":false}' } : { text: 'ok' }; } };
+  const r = await chatReply({ text: 'slept badly then skipped it', enabled: ['study', 'nutrition', 'fitness'], def: 'study', llm, history: [{ direction: 'out', content: 'Time for your omega', appRole: 'nutrition' }] });
+  assert.equal(r.role, 'nutrition');
+  assert.ok(seen.includes('classify'));
+});

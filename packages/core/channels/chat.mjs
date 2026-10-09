@@ -1,6 +1,7 @@
 // Free-text chat: pick role (explicit prefix > default > first enabled), build prompt, ask router, return text.
 import { ROLES, ROLE_IDS } from '../../presets/roles/index.mjs';
 import { route } from '../roles/router.mjs';
+import { buildClassifierMessages, parseClassifierOutput } from '../roles/classifier.mjs';
 
 export function pickRole(text, enabled, def, ctx = {}) {
   const m = String(text).match(/^\s*(?:role:|@)?\s*(\w+)\s*[:,]\s*(.+)$/is);
@@ -30,7 +31,19 @@ export const TONE_HINT = { friendly: 'Tone: warm, encouraging, a little informal
 
 export async function chatReply({ text, enabled, def, llm, history, remembered, tone, schedule, lastRole = null, channel = null }) {
   if (!enabled.length) return { text: 'No roles are enabled yet. Turn some on in the dashboard.', role: null };
-  const { role, text: q } = pickRole(text, enabled, def, { lastRole, channel });
+  let { role, text: q } = pickRole(text, enabled, def, { lastRole, channel });
+  // No keyword hit across several roles: ask the cheap classifier (with the last turns as context) instead of guessing the default role.
+  if (enabled.length > 1 && !/^\s*(?:role:|@)?\s*\w+\s*[:,]/.test(String(text)) && route(text, { enabled, channel, sticky: lastRole ? { role: lastRole, at: Date.now() } : null, now: Date.now() }).needsModel) {
+    const recent = (history ?? []).slice(-4).map((h) => `${h.direction === 'out' ? 'bot' : 'user'}: ${String(h.content).slice(0, 120)}`).join('\n');
+    const msgs = buildClassifierMessages(String(text).trim(), enabled);
+    if (recent || lastRole) msgs[1].content = `${recent ? `Recent chat:\n${recent}\n` : ''}${lastRole ? `Last active role: ${lastRole}\n` : ''}Classify this message: ${msgs[1].content}`;
+    try {
+      const out = await Promise.race([llm.complete({ task: 'classify', messages: msgs, maxTokens: 80 }), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000))]);
+      const r = parseClassifierOutput(out?.text, enabled);
+      if (r?.primary) role = r.primary;
+      else if (lastRole && enabled.includes(lastRole) && !r?.outOfScope) role = lastRole;
+    } catch { if (lastRole && enabled.includes(lastRole)) role = lastRole; }
+  }
   const memoryBlock = Array.isArray(remembered) && remembered.length
     ? `\nLong-term memory about this user (from past sessions/channels, most relevant first): ${remembered.map((m) => `"${m}"`).join('; ')}. Use it only if relevant; never invent memories that are not listed here. If what the user now says conflicts with a remembered fact (for example a different dose, weight, diet or allergy), do NOT silently pick one: name both versions, say which is newer if known, and ask which is correct before treating either as final.`
     : '';

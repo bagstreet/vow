@@ -16,7 +16,7 @@ const def = (r) => Object.freeze({ ...r, prompt: `${COMMON}\n\nRole: ${r.label}.
 export const ROLES = Object.freeze({
   fitness: def({
     id: 'fitness', label: 'Health & Fitness', emoji: '💪', sensitive: false,
-    keywords: ['workout', 'gym', 'run', 'ran', 'running', 'jog', 'jogged', 'jogging', 'sprint', 'training', 'trained', 'steps', 'stretch', 'rest day', 'pushups', 'push-ups', 'pullups', 'squats', 'plank', 'cardio', 'cycled', 'cycling', 'swam', 'swimming', 'walked', 'hiked', 'lifted', 'km', 'miles', 'reps', 'yoga', 'marathon', 'exercise'],
+    keywords: ['workout', 'gym', 'run', 'ran', 'running', 'jog', 'jogged', 'jogging', 'sprint', 'training', 'trained', 'steps', 'stretch', 'rest day', 'pushups', 'push-ups', 'pullups', 'squats', 'plank', 'cardio', 'cycled', 'cycling', 'swam', 'swimming', 'walked', 'hiked', 'lifted', 'km', 'miles', 'reps', 'yoga', 'marathon', 'exercise', 'пробежал', 'бежал', 'бегал', 'бег', 'пробежка', 'тренировка', 'тренировался', 'отжимания', 'присед', 'плавал', 'километр', 'км', 'зал'],
     scope: ['movement only: workouts, steps, cardio, strength, mobility, rest days and recovery', 'streaks and check-ins on activity', 'plans the user asked for, framed as general guidance', 'may read the user\'s nutrition totals (non-sensitive) to adjust training advice'],
     never: ['plan or log meals, calories, macros, water or supplements: that is the nutrition role (if it is enabled, say so in one sentence and hand off; if not, give one general sentence and suggest enabling Nutritionist)', 'diagnose or treat injuries or illness', 'prescribe supplements or doses', 'promote extreme diets'],
     buttons: ['taken', 'skipped', 'snooze'],
@@ -24,7 +24,7 @@ export const ROLES = Object.freeze({
   }),
   medication: def({
     id: 'medication', label: 'Medication Tracker', emoji: '💊', sensitive: true,
-    keywords: ['pill', 'pills', 'tablet', 'dose', 'medication', 'medicine', 'meds', 'refill', 'prescription', 'antibiotic', 'antibiotics', 'insulin', 'inhaler', 'antidepressant', 'ibuprofen', 'paracetamol', 'aspirin'],
+    keywords: ['pill', 'pills', 'tablet', 'dose', 'medication', 'medicine', 'meds', 'refill', 'prescription', 'antibiotic', 'antibiotics', 'insulin', 'inhaler', 'antidepressant', 'ibuprofen', 'paracetamol', 'aspirin', 'таблетка', 'таблетки', 'таблетку', 'лекарство', 'лекарства', 'принял', 'антибиотик'],
     scope: ['reminders for prescription and over-the-counter medicines the user typed (pills, tablets, drops, inhalers)', 'log taken/skipped/snoozed', 'refill and doctor-visit reminders'],
     never: ['suggest or change a dose or regimen (on any dose question say you cannot advise and send the user to their doctor or pharmacist, then offer the reminder)', 'state interactions as medical fact (say: ask a pharmacist or doctor)', 'add items the user did not enter', 'handle vitamins, supplements, water or meals: that is the nutrition role (if it is enabled, hand off in one sentence; if not, you may still set a plain reminder the user typed)'],
     buttons: ['taken', 'skipped', 'snooze', 'snooze_1h'],
@@ -32,7 +32,7 @@ export const ROLES = Object.freeze({
   }),
   nutrition: def({
     id: 'nutrition', label: 'Nutritionist', emoji: '🥗', sensitive: false,
-    keywords: ['supplement', 'vitamin', 'protein', 'calories', 'macros', 'carbs', 'fat', 'water', 'meal', 'diet', 'omega', 'magnesium'],
+    keywords: ['supplement', 'vitamin', 'protein', 'calories', 'macros', 'carbs', 'fat', 'water', 'meal', 'lunch', 'dinner', 'breakfast', 'salad', 'ate', 'diet', 'omega', 'magnesium', 'витамин', 'витамины', 'вода', 'воду', 'еда', 'поел', 'обед', 'завтрак', 'ужин', 'салат'],
     scope: ['supplement and vitamin schedule reminders', 'meal and water reminders', 'calorie and macro (protein/fat/carbs) logging from what the user reports', 'daily and weekly totals against the user\'s own targets', 'general food-group education', 'may read the user\'s activity level (non-sensitive) to adjust targets'],
     never: ['plan workouts, training load or recovery: that is the fitness role', 'diagnose or treat conditions', 'prescribe diets for medical conditions, eating disorders or pregnancy', 'set dosages or tell the user to start/stop a medication', 'state a specific supplement/vitamin dose (mg/mcg/IU/ml) as a recommendation: say you cannot advise on dosage and point to a doctor or pharmacist, then offer the reminder/logging instead', 'shame about food or weight; no extreme-restriction targets'],
     buttons: ['taken', 'skipped', 'snooze'],
@@ -48,7 +48,7 @@ export const ROLES = Object.freeze({
   }),
   study: def({
     id: 'study', label: 'Study & Exam', emoji: '📚', sensitive: false,
-    keywords: ['study', 'exam', 'lesson', 'quiz', 'deadline', 'homework', 'learn', 'course', 'revise'],
+    keywords: ['study', 'exam', 'lesson', 'quiz', 'deadline', 'homework', 'learn', 'course', 'revise', 'учёба', 'учеба', 'экзамен', 'урок', 'дз', 'выучил'],
     scope: ['study blocks and deadlines', 'lessons and quizzes from owner-uploaded material', 'nudges when a block is missed'],
     never: ['grade answers yourself (grading is code)', 'answer medical or legal questions', 'do the user\'s graded assignment for them'],
     buttons: ['taken', 'skipped', 'snooze'],

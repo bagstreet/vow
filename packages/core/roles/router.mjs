@@ -36,7 +36,7 @@ export function route(text, ctx = {}) {
   if (LEARNING.test(t) || STUDY_PLAN.test(t)) { if (enabled.includes('study')) return done({ primary: 'study', kind: 'study', reason: 'study wording' }); }
   // 4. keywords
   const low = t.toLowerCase();
-  const scores = enabled.map((id) => [id, ROLES[id].keywords.filter((k) => new RegExp(`\\b${k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`).test(low)).length]).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
+  const scores = enabled.map((id) => [id, ROLES[id].keywords.filter((k) => new RegExp(`(?<![\\p{L}\\p{N}])${k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'u').test(low)).length]).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
   const sticky = ctx.sticky && ctx.now - ctx.sticky.at <= STICKY_MS && enabled.includes(ctx.sticky.role) ? ctx.sticky.role : null;
   if (scores.length) {
     // supplements/vitamins/water belong to nutrition even though 'tablet' or 'take' also matches medication; real medicines stay with medication
