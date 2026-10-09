@@ -293,7 +293,7 @@ function Nav() {
             })}
           </div>
           <div className="flex items-center gap-3">
-            <a href="https://github.com/aleksgleams-pixel/vow" target="_blank" rel="noopener" className="hidden sm:inline-block text-sm px-3 py-1.5 rounded-lg border cursor-pointer transition-colors hover:bg-white/5" style={{ color: T.textSec, borderColor: T.border }}>GitHub</a>
+            <a href="https://github.com/bagstreet/vow" target="_blank" rel="noopener" className="hidden sm:inline-block text-sm px-3 py-1.5 rounded-lg border cursor-pointer transition-colors hover:bg-white/5" style={{ color: T.textSec, borderColor: T.border }}>GitHub</a>
             <a href="#signin" className="hidden sm:inline-block text-sm px-4 py-1.5 rounded-lg cursor-pointer transition-all hover:brightness-110 font-semibold" style={{ background: T.accent, color: '#000' }}>Sign in</a>
             <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden w-11 h-11 rounded-lg flex items-center justify-center cursor-pointer transition-colors hover:bg-white/5" style={{ color: T.textSec }}>
               {menuOpen ? <X size={18} /> : <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>}
@@ -312,7 +312,7 @@ function Nav() {
                 <a key={l} href={`#${l.toLowerCase()}`} onClick={() => setMenuOpen(false)}
                   className="text-2xl font-semibold cursor-pointer transition-colors hover:text-white" style={{color: activeSection === l.toLowerCase() ? T.accent : T.textMuted}}>{l}</a>
               ))}
-              <a href="https://github.com/aleksgleams-pixel/vow" target="_blank" rel="noopener"
+              <a href="https://github.com/bagstreet/vow" target="_blank" rel="noopener"
                 className="mt-4 text-sm px-6 py-2 rounded-xl border cursor-pointer" style={{color:T.accent, borderColor:T.accent}}>GitHub</a>
             </div>
           </div>
@@ -909,7 +909,7 @@ function Comparison() {
 function Deploy() {
   const [copied, setCopied] = useState(-1)
   const lines = [
-    { prompt: true, cmd: 'git clone https://github.com/aleksgleams-pixel/vow && cd vow' },
+    { prompt: true, cmd: 'git clone https://github.com/bagstreet/vow && cd vow' },
     { output: 'Cloning into \'vow\'... done.' },
     { prompt: true, cmd: 'cp .env.example .env' },
     { output: '# Edit .env: add GROQ_API_KEY, MEMWAL_PRIVATE_KEY, MEMWAL_ACCOUNT_ID' },
@@ -1114,7 +1114,7 @@ function CTA() {
         <p className="text-sm mb-6" style={{color:T.textSec}}>Pick a preset. Connect a channel. Your first check-in is a receipt you own forever.</p>
         <div className="flex flex-wrap gap-3 justify-center">
           <a href="#signin" className="px-6 py-3 rounded-xl font-semibold text-sm cursor-pointer hover:brightness-110" style={{background:T.accent,color:'#000'}}>Seal your first commitment</a>
-          <a href="https://github.com/aleksgleams-pixel/vow" target="_blank" rel="noopener" className="px-6 py-3 rounded-xl font-semibold text-sm border cursor-pointer hover:bg-white/5" style={{borderColor:T.borderVis,color:T.text}}>View source</a>
+          <a href="https://github.com/bagstreet/vow" target="_blank" rel="noopener" className="px-6 py-3 rounded-xl font-semibold text-sm border cursor-pointer hover:bg-white/5" style={{borderColor:T.borderVis,color:T.text}}>View source</a>
         </div>
       </div>
     </section>
@@ -1279,10 +1279,10 @@ function CountUp({ target, active }: { target: number, active: boolean }) {
 /* ═══ Developer Resources ═══ */
 function DevResources() {
   const resources = [
-    { title: 'API Documentation', desc: 'REST endpoints for remember, recall, verify, and chain operations', link: 'https://github.com/aleksgleams-pixel/vow/tree/main/docs', icon: Globe },
-    { title: 'TypeScript SDK', desc: 'npm install @vow/sdk; typed client for all operations', link: 'https://github.com/aleksgleams-pixel/vow/tree/main/ledger', icon: Settings },
-    { title: 'Dockerfile', desc: 'docker run -p 3000:3000 vow/bot; production-ready container', link: 'https://github.com/aleksgleams-pixel/vow/blob/main/Dockerfile', icon: Monitor },
-    { title: 'Webhooks', desc: 'Get notified on check-in, streak milestone, or tamper attempt', link: 'https://github.com/aleksgleams-pixel/vow/issues/new?title=Webhook+docs', icon: Bell },
+    { title: 'Agent API & MCP', desc: 'Role-scoped tokens: remember verified facts, recall by role; stdio MCP bridge included', link: 'https://github.com/bagstreet/vow/blob/main/docs/API.md', icon: Globe },
+    { title: 'JavaScript SDK', desc: 'Zero-dependency client (packages/sdk); npm publishing planned', link: 'https://github.com/bagstreet/vow/tree/main/packages/sdk', icon: Settings },
+    { title: 'Self-host', desc: 'Free-tier stack or Docker; step-by-step guide', link: 'https://github.com/bagstreet/vow/blob/main/docs/SELF_HOST.md', icon: Monitor },
+    { title: 'Services & setup', desc: 'Every service the project uses and the settings each needs', link: 'https://github.com/bagstreet/vow/blob/main/docs/SERVICES.md', icon: Bell },
   ]
   return (
     <section className="py-16 px-6">
@@ -1319,11 +1319,11 @@ function Footer() {
           <VowLogo height={16} />
         </div>
         <nav className="flex gap-5 text-xs" style={{color:T.textMuted}} aria-label="Footer navigation">
-          <a href="https://github.com/aleksgleams-pixel/vow" target="_blank" rel="noopener" className="hover:text-white transition-colors cursor-pointer">GitHub</a>
-          <a href="https://github.com/aleksgleams-pixel/vow/issues/new" target="_blank" rel="noopener" className="hover:text-white transition-colors cursor-pointer">Report Issue</a>
-          <a href="https://github.com/aleksgleams-pixel/vow/issues" target="_blank" rel="noopener" className="hover:text-white transition-colors cursor-pointer">Open Issues</a>
-          <a href="https://github.com/aleksgleams-pixel/vow/blob/main/SECURITY.md" target="_blank" rel="noopener" className="hover:text-white transition-colors cursor-pointer">Security</a>
-          <a href="https://github.com/aleksgleams-pixel/vow/tree/main/docs" target="_blank" rel="noopener" className="hover:text-white transition-colors cursor-pointer">Docs</a>
+          <a href="https://github.com/bagstreet/vow" target="_blank" rel="noopener" className="hover:text-white transition-colors cursor-pointer">GitHub</a>
+          <a href="https://github.com/bagstreet/vow/issues/new" target="_blank" rel="noopener" className="hover:text-white transition-colors cursor-pointer">Report Issue</a>
+          <a href="https://github.com/bagstreet/vow/issues" target="_blank" rel="noopener" className="hover:text-white transition-colors cursor-pointer">Open Issues</a>
+          <a href="https://github.com/bagstreet/vow/blob/main/SECURITY.md" target="_blank" rel="noopener" className="hover:text-white transition-colors cursor-pointer">Security</a>
+          <a href="https://github.com/bagstreet/vow/tree/main/docs" target="_blank" rel="noopener" className="hover:text-white transition-colors cursor-pointer">Docs</a>
         </nav>
         <span className="text-xs" style={{color:T.textMuted}}>MIT License &middot; 2026</span>
       </div>

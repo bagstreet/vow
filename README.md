@@ -11,7 +11,7 @@ Vow is a Commitment Steward: one assistant that helps you confirm a commitment, 
 [![CI](https://github.com/bagstreet/vow/actions/workflows/ci.yml/badge.svg)](https://github.com/bagstreet/vow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-[Live web prototype (Vercel, not verified end to end)](https://vow-livid.vercel.app) · [Agent execution pack](internal/agent-pack/START_HERE.md) · [Discord](https://discord.com/invite/walrusprotocol)
+[Live app](https://vow-livid.vercel.app) · [Docs](docs/) · [Discord](https://discord.com/invite/walrusprotocol)
 
 </div>
 
@@ -21,15 +21,13 @@ Vow is a Commitment Steward: one assistant that helps you confirm a commitment, 
 
 | You are a... | Start here |
 |---|---|
-| Developer implementing the plan | [`internal/agent-pack/START_HERE.md`](internal/agent-pack/START_HERE.md) then [`TASKS.md`](internal/agent-pack/TASKS.md) (T00-T48; no cut line, one commit per task item) |
-| Auditor / judge | [`internal/agent-pack/AUDIT_BRIEF.md`](internal/agent-pack/AUDIT_BRIEF.md), recovered audit evidence under `internal/agent-pack/audit-preparation/recovered/` (prior missing report not inherited) |
-| Security reviewer | [`PRIVACY_ACCESS_ROUTING.md`](internal/agent-pack/PRIVACY_ACCESS_ROUTING.md) (Seal mode, RBAC, revoke vs forget vs delete, consent), [`DURABILITY_AND_CONTEXT.md`](internal/agent-pack/DURABILITY_AND_CONTEXT.md) (outbox, event model, merge, conflicts), [`SECURITY.md`](SECURITY.md) |
-| Anyone who wants to understand the mechanics | [`docs/MECHANICS.md`](docs/MECHANICS.md): accounts, merge, roles, reminders, memory writes, trusted contact (diagrams plus rules) |
-| Product / investor | [`PRODUCT_BRIEF.md`](internal/agent-pack/PRODUCT_BRIEF.md), [`VALUE_AND_AI_DESIGN.md`](internal/agent-pack/VALUE_AND_AI_DESIGN.md), [`COMPETITOR_MATRIX.md`](internal/agent-pack/COMPETITOR_MATRIX.md) |
-| User asking "what does it store about me?" | [Access and privacy](#access-and-privacy) below |
-| Historical plans (2026-10-01..03) | `packages/core/delivery/  adaptive delivery router: presence, quick replies, escalation (T47)
-docs/              planning, audit and superseded preset docs (each starts with a reconciliation header saying what still applies |
-```
+| User or judge wanting the idea | [What Vow does](#what-vow-does-accepted-scope), [Trusted contact](#trusted-contact) |
+| Developer or agent builder | [docs/API.md](docs/API.md) (Agent API, MCP bridge, SDK) |
+| Anyone who wants the mechanics | [docs/MECHANICS.md](docs/MECHANICS.md) and [docs/DIAGRAMS.md](docs/DIAGRAMS.md) (diagrams plus rules) |
+| Self-hoster | [docs/SELF_HOST.md](docs/SELF_HOST.md) and [docs/SERVICES.md](docs/SERVICES.md) |
+| Tester | [docs/testing/SCENARIOS.md](docs/testing/SCENARIOS.md) |
+| Project status and plan | [docs/STATUS.md](docs/STATUS.md), [docs/ROADMAP.md](docs/ROADMAP.md) |
+| Security reviewer | [SECURITY.md](SECURITY.md), [Access and privacy](#access-and-privacy) |
 
 ## What Vow does (accepted scope)
 
@@ -84,34 +82,39 @@ flowchart LR
 
 The whole stack runs on free tiers by design. Every service, its limit and the settings to make are listed in [docs/SERVICES.md](docs/SERVICES.md); step-by-step setup is in [docs/SELF_HOST.md](docs/SELF_HOST.md).
 
+## Trusted contact
+
+Name another Vow user as a trusted contact. If you miss N check-ins or stay silent for N hours, they get a short alert that a miss happened (never message or memory content). The contact sets the conditions, you see every change and can remove them at any time, and either side can leave. One account can watch up to 10 others. Flow and rules: [docs/MECHANICS.md](docs/MECHANICS.md#6-trusted-contact).
+
+## Agents, MCP and SDK
+
+Role-scoped tokens let external AI agents write verified facts into a user's memory and read them back, limited to the roles the user allowed. REST, a stdio MCP bridge (`apps/mcp`) and a zero-dependency JavaScript client (`packages/sdk`) are described in [docs/API.md](docs/API.md).
+
+## Delivery routing
+
+A reminder goes to the channel where you were active most recently (or the one you picked for it), falls back to your other linked channels on failure, honours quiet hours, and carries Taken / Skip / Later buttons. Scheduling uses cron-job.org every minute plus a GitHub Actions tick as a backup: see [docs/SERVICES.md](docs/SERVICES.md).
+
 ## Repository layout
 
 ```
-apps/web/          landing and UI (Vite + React), deployed on Vercel                                                   [prototype, not verified end to end]
-apps/api/          HTTP server and auth for the bot/web surface                                                         [prototype]
-apps/cli/          `vow` CLI and HTTP launcher                                                                          [prototype]
-apps/mcp/          MCP server                                                                                           [prototype]
-packages/core/     hash-chain ledger, LLM chain, MemWal adapter + mock, write queue, decision advisor                   [legacy parts replaced by T04/T02]
-packages/presets/  medication / nutrimind preset code                                                                   [legacy: superseded, to quarantine in T12]
-examples/demo/     offline demo and tamper scripts                                                                      [prototype]
-tests/             offline test suite (94 passing, 84 at restructure, 2026-10-06, `npm test`)                              [re-measure before quoting]
-scripts/           setup, doctor, jury runners
-spikes/            T44 Manual Seal experiments (paused; MVP uses MemWal relayer mode)
-packages/core/delivery/  adaptive delivery router: presence, quick replies, escalation (T47)
-docs/              planning, audit and superseded preset docs; each starts with a reconciliation header
+apps/web/          landing, dashboard and serverless API (Vite + React, Vercel)
+apps/cli/          `vow` command-line client
+apps/mcp/          MCP bridge to the Agent API
+packages/core/     channels, memory, scheduler, trusted contact, admin, agent API
+packages/db/       Neon migrations
+packages/presets/  role presets
+packages/sdk/      JavaScript client for the Agent API
+docs/              mechanics, diagrams, services, API, testing, roadmap
 ```
 
-## Quick start (prototype; see TASKS for the target build)
+## Quick start
 
 ```bash
 git clone https://github.com/bagstreet/vow && cd vow
 npm install
-cp .env.example .env      # provider keys and MEMWAL_* are optional for the offline demo; never commit .env
-make setup                # verify + run the prototype tests (record the real result in docs/audit/ACCEPTANCE_STATUS.md)
-make demo                 # offline tamper-evident chain demo against the MemWal mock
-make jury                 # scenario runner
+npm test
 ```
-Desktop app (`desktop/`, Tauri + Ollama) and the Study/Schedule roles are tasks T37-T40 and do not exist in this repository yet. When they do, this section will list `cargo tauri dev`, the Ollama model to pull, and the device-link flow.
+Deployment on free tiers: [docs/SELF_HOST.md](docs/SELF_HOST.md). Planned desktop helper: [docs/DESKTOP_HELPER.md](docs/DESKTOP_HELPER.md).
 
 ## Verification policy
 
@@ -134,11 +137,3 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md), [`SECURITY.md`](SECURITY.md) and the h
 ---
 
 Built for [Walrus Session 8: Chatbots That Remember](https://www.deepsurge.xyz/hackathons/c0141a4a-21be-4009-bc63-7c168608c849). Rules snapshot: `docs/audit/OFFICIAL_RULES.md`. LLM disclosure: local Ollama model on desktop; cloud providers only when enabled (listed in the health endpoint). Memory: [MemWal](https://github.com/MystenLabs/MemWal) (version pinned in `package.json`; Mainnet status per `MAINNET_EVIDENCE.md`).
-
-
-## Delivery routing (T47)
-
-A reminder goes to the connected channel where you are online now, otherwise where you were active most recently, then by your priority list and the default order (desktop first). It carries quick replies (Taken / Skipped / Snooze) that are recorded as a check-in. With no reply within the ack timeout (default 10 min, configurable 2-120) it goes once to the next channel; never more than 2 sends per occurrence. If nothing is acknowledged the occurrence is `unacknowledged`, not `skipped`. Code: `packages/core/delivery/`; status: implemented and tested with mock adapters, real channels pending.
-
-## Reminder delivery limitations
-An unavailable assigned sender can miss reminders; there is no automatic takeover. Pause, withdrawal and revocation stop each device when observed; an offline sender may continue under its last allowed state until sync. Show controls-last-synced and device-may-still-send notices. Provider duplicates/drops are possible; unknown outcomes consume permits; no exactly-once delivery or instantaneous remote revocation is promised. DOMAIN_CONTRACT §§8–10 define the executable specification. Implementation and runtime gates remain unrun.

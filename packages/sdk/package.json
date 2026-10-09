@@ -1,0 +1,11 @@
+{
+  "name": "vow-agent-sdk",
+  "version": "0.1.0",
+  "description": "Zero-dependency client for the Vow Agent API",
+  "type": "module",
+  "main": "index.mjs",
+  "exports": "./index.mjs",
+  "engines": { "node": ">=18" },
+  "license": "MIT",
+  "files": ["index.mjs", "README.md"]
+}

@@ -36,7 +36,7 @@ Conventions: English only in repo, docs and commits; commit message = emoji + te
 | T19 | Multi-role critique of the matrix: product, QA, security, end user, judge, AI agent, answering model, athlete, healthy-lifestyle beginner, history-exam student, cycle and supplements tracker, admin | T12–T18 | Cheap model for drafts, one pass by the main model |
 | T20 | Group P "account combinations": login via channel or email; email login without account; channel link to an account with email; last login method; two channels of different accounts; repeated `/link`; admin by id and by email; rights loss after detach; blocked user; admin deleting an account (forbidden); email change; merge with conflicts | T10, T19 | Every pair of user types × every mechanic | (done: group P, v5)
 | T21 | Scripted dialogues per persona in `docs/testing/scripts/<persona>.md`: channel, role, user message, expected bot reply, expected side effect; no limits on length or duration | T19 | Includes delete, refusal, simultaneous writes from two channels (same message, conflicting facts), settings, contradiction check, abuse attempts, fast topic switching, every role | (done: docs/testing/scripts)
-| T22 | Freeze the matrix | T20, T21 | Diagrams and the test run are built on the frozen version |
+| T22 | Freeze the matrix | T20, T21 | Diagrams and the test run are built on the frozen version (done) |
 
 ## Phase 3 — Trusted Contact (PRE)
 | ID | Task | Depends | Notes |
@@ -58,7 +58,7 @@ Conventions: English only in repo, docs and commits; commit message = emoji + te
 |---|---|---|---|
 | T30 | README and SELF_HOST: table of every service and the settings to make (Vercel, GitHub, Neon, Brevo, cron-job.org, Slack, Discord, Telegram, MemWal), free-stack rationale, cron design, Docker alternative | T29 | Note that Slack/Discord sign-in works only inside the installer's own workspace | (done: docs/SERVICES.md)
 | T31 | Mechanics reference: account merge rules, admin role and first-admin setup, email and channel linking, write modes, Agent API, MCP, Forget | T29 | Text plus diagram for each (done: docs/MECHANICS.md) (done: docs/MECHANICS.md) |
-| T32 | Diagrams (Mermaid): account life cycles, login/link/merge flows, sequence diagrams, ER and class diagrams, reminder and trusted-contact state machines, user/admin roles, notification mechanic | T22 | Drawn after the freeze |
+| T32 | Diagrams (Mermaid): account life cycles, login/link/merge flows, sequence diagrams, ER and class diagrams, reminder and trusted-contact state machines, user/admin roles, notification mechanic | T22 | Drawn after the freeze (done) |
 | T33 | Roadmap and vision sections: this file plus post-hackathon items | — | |
 | T34 | Clean `internal/agent-pack/TASKS.md` (archive), remove outdated notes | T29 | |
 | T35 | One strong-model review of code and docs for contradictions and leftovers | T30–T34 | Warn the owner before running |

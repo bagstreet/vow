@@ -3,7 +3,7 @@
 ## Quick Start
 
 ```bash
-git clone https://github.com/aleksgleams-pixel/vow
+git clone https://github.com/bagstreet/vow
 cd vow && npm install
 make setup    # verify Node ≥ 20, run tests, check coverage
 make demo     # see the tamper-evident chain in action

@@ -9,7 +9,7 @@
 4. **Not an emergency service.** Wording in UI and docs: Vow is not a medical alert system. Crisis wording in chat keeps its own safe-response path; it does not auto-notify a guardian unless the user opted in to "share crisis flags" (default off).
 5. **No spam.** One alert per breach, then a cool-down; escalates only if the guardian also does not acknowledge.
 
-## Data model (migration 009)
+## Data model (migration 015)
 - `guardian_links(id, watched_user_id, guardian_user_id, status[pending|active|revoked|declined], created_at, accepted_at, revoked_at, revoked_by[watched|guardian], share_roles bool default false)`
 - `guardian_rules(link_id, kind[missed_checkins|silence_hours|unanswered_messages], threshold int, window_hours int, enabled bool)` — set by guardian.
 - `guardian_alerts(id, link_id, rule_kind, fired_at, ack_at, ack_channel, cooldown_until)`
