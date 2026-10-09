@@ -3,14 +3,16 @@ import { tzOffsetMin } from '../scheduler/time.mjs';
 
 const WD = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 const MON = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-export const ONCE_WORDS = /\b(?:tomorrow|tonight|today|once|one[- ]time|next\s+(?:mon|tue|wed|thu|fri|sat|sun)[a-z]*|in\s+\d{1,3}\s*(?:min(?:ute)?s?|h(?:ou)?rs?|hours?)|\d{4}-\d{2}-\d{2}|on\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2}(?:st|nd|rd|th)?)\b/gi;
+export const ONCE_WORDS = /\b(?:tomorrow|tonight|today|once|one[- ]time|next\s+(?:mon|tue|wed|thu|fri|sat|sun)[a-z]*|in\s+\d{1,3}\s*(?:min(?:ute)?s?|h(?:ou)?rs?|hours?)|day\s+after\s+tomorrow|in\s+(?:half\s+an?\s+hour|an?\s+(?:hour|minute))|on\s+\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*|\d{4}-\d{2}-\d{2}|on\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2}(?:st|nd|rd|th)?)\b/gi;
 
 const pad = (n) => String(n).padStart(2, '0');
 const ymd = (d) => `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
 
 /** Returns { date: 'YYYY-MM-DD' (user-local), time?: 'HH:MM' (only for relative "in N minutes") } or null for recurring wording. */
 export function resolveOnce(text, { now = Date.now(), tz = 'UTC', time = null } = {}) {
-  const t = String(text).toLowerCase();
+  const t = String(text).toLowerCase()
+    .replace(/\bin\s+half\s+an?\s+hour\b/g, 'in 30 minutes').replace(/\bin\s+an?\s+hour\b/g, 'in 60 minutes').replace(/\bin\s+an?\s+minute\b/g, 'in 1 minutes')
+    .replace(/\bon\s+(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*/g, 'on $2 $1');
   const local = new Date(now + tzOffsetMin(tz, now) * 60000); // UTC fields = user-local wall clock
   const day = (add) => ymd(new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate() + add)));
   let m;
@@ -30,6 +32,7 @@ export function resolveOnce(text, { now = Date.now(), tz = 'UTC', time = null } 
     return { date: day(diff) };
   }
   const past = time && time <= `${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}`;
+  if (/\bday\s+after\s+tomorrow\b/.test(t)) return { date: day(2) };
   if (/\btomorrow\b/.test(t)) return { date: day(1) };
   if (/\b(today|tonight)\b/.test(t)) return { date: day(past ? 1 : 0) };
   if (/\b(once|one[- ]time)\b/.test(t)) return { date: day(past ? 1 : 0) };

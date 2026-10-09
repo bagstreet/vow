@@ -132,3 +132,22 @@ test('create: one-time wording stores a date, recurring wording does not', async
   const c = await runIntent({ text: 'remind me in 20 minutes to check the oven', user, store, channel: 'telegram', enabled: ['fitness'] });
   assert.match(c.text, /once on/); assert.equal(added[2].title, 'check the oven');
 });
+
+import { parseIntent as __pi } from './intent.mjs';
+import { test as __t } from 'node:test';
+import __a from 'node:assert/strict';
+__t('p.m. times, weekday titles and except-days (T35)', () => {
+  __a.equal(__pi('remind me to stretch at 7 p.m.').time, '19:00');
+  __a.equal(__pi('remind me to stretch at 7 p.m.').title, 'stretch');
+  __a.equal(__pi('remind me every monday at 8 to weigh in').title, 'weigh in');
+  __a.deepEqual(__pi('remind me to stretch at 7pm every day except sunday').days, [1, 2, 3, 4, 5, 6]);
+});
+
+import { resolveOnce as __ro } from './once.mjs';
+__t('one-time phrasing variants (T35)', () => {
+  const o = { now: Date.parse('2026-10-09T10:00:00Z'), tz: 'Europe/Minsk' };
+  __a.deepEqual(__ro('remind me in half an hour', o), { date: '2026-10-09', time: '13:30' });
+  __a.deepEqual(__ro('remind me in an hour', o), { date: '2026-10-09', time: '14:00' });
+  __a.deepEqual(__ro('remind me on 12 October', o), { date: '2026-10-12' });
+  __a.deepEqual(__ro('remind me the day after tomorrow', o), { date: '2026-10-11' });
+});

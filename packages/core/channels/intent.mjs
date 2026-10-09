@@ -30,7 +30,7 @@ function applyPart(h, part, ampm) {
 }
 /** Rewrite spoken times ("noon", "half past one", "quarter to 5", "7 in the evening", "12h", "9 o'clock") to "at HH:MM". */
 export function normalizeTimeWords(text) {
-  let t = String(text);
+  let t = String(text).replace(/(?<![\p{L}\d_])([ap])\.\s?m\.?(?![\p{L}\d_])/giu, '$1m');
   t = t.replace(/(?<![\p{L}\d_])(?:at\s+)?(half|quarter)\s+(past|after|to|till|before)\s+(noon|midday|midnight)(?![\p{L}\d_])/giu, (_, a, dir, w) => {
     const amount = /^half/i.test(a) ? 30 : 15; const base = /midnight/i.test(w) ? 0 : 12;
     return /^(to|till|before)$/i.test(dir) ? ` at ${hhmm(base - 1 < 0 ? 23 : base - 1, 60 - amount)} ` : ` at ${hhmm(base, amount)} `;
@@ -76,6 +76,8 @@ export function parseDays(text) {
   const t = String(text);
   if (/(по\s+будн[\p{L}\d_]+|weekdays?|(?<![\p{L}\d_])mon(?:day)?\s*(?:-|to|до)\s*fri)/ui.test(t)) return [1, 2, 3, 4, 5];
   if (/(по\s+выходн[\p{L}\d_]+|weekends?)/ui.test(t)) return [6, 7];
+  const ex = t.match(/(?<![\p{L}\d_])(?:except|but not|excluding)\s+(.+)$/ui);
+  if (ex) { const out = DAY_NAMES.filter(([, re]) => re.test(ex[1])).map(([n]) => n); if (out.length) return ALL.filter((d) => !out.includes(d)); }
   const named = DAY_NAMES.filter(([, re]) => re.test(t)).map(([n]) => n);
   return named.length && !/(каждый день|ежедневно|every\s*day|daily)/ui.test(t) ? named : ALL;
 }
@@ -83,7 +85,7 @@ export function parseDays(text) {
 function titleOf(text) {
   return normalizeTimeWords(text)
     .replace(ONCE_WORDS, ' ').replace(CREATE, ' ').replace(/(?:(?<![\p{L}\d_])(?:в|at|к)(?![\p{L}\d_])\s*\d{1,2}(?:[:.]\d{2})?(?!\d)\s*(?:am|pm|утра|вечера|дня|ночи)?|(?<![\d.:])\d{1,2}[:.]\d{2}(?![\d])\s*(?:am|pm|утра|вечера|дня|ночи)?|(?<![\d.:])\d{1,2}\s*(?:am|pm|утра|вечера|дня|ночи)(?![\p{L}\d_]))/ugi, ' ')
-    .replace(/(каждый день|ежедневно|every\s*day|daily|по\s+будн[\p{L}\d_]+|по\s+выходн[\p{L}\d_]+|weekdays?|weekends?|мне|please|пожалуйста|on)/ugi, ' ')
+    .replace(/(каждый день|ежедневно|every\s*day|daily|по\s+будн[\p{L}\d_]+|по\s+выходн[\p{L}\d_]+|weekdays?|weekends?|(?:every|each|on)\s+(?:mon|tue|wed|thu|fri|sat|sun)[a-z]*(?:\s*(?:,|and)\s*(?:mon|tue|wed|thu|fri|sat|sun)[a-z]*)*|(?:every\s*day\s+)?except\s+(?:mon|tue|wed|thu|fri|sat|sun)[a-z]*|мне|please|пожалуйста|on)/ugi, ' ')
     .replace(/(?:^|\s)(?:о|об|про|что|to|about|that)\s+/ugi, ' ')
     .replace(/[,.!?]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
 }
