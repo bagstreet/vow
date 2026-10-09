@@ -4,6 +4,7 @@ import { createAdminStore } from '../admin/admin-store.mjs';
 export function createNeonStore(sql) {
   return {
     ...createAdminStore(sql),
+    async recordError(msg) { await sql('insert into idempotency(key) values ($1) on conflict do nothing', [`err:${Date.now()}:${msg}`]); },
     async seenUpdate(id) { const r = await sql('insert into idempotency(key) values ($1) on conflict do nothing returning key', [`tg:${id}`]); return r.length === 0; },
     async consumeLinkCode(code, channel = 'telegram') {
       const r = await sql('update link_codes set used_at = now() where code = $1 and used_at is null and expires_at > now() and channel = $2 returning user_id', [code, channel]);

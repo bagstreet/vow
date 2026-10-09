@@ -24,7 +24,8 @@ export default async function handler(req, res) {
     const r = await handleUpdate(req.body, { store: dbStore, tg, llm: buildLlmClient(), memory: buildMemory(dbStore, 'telegram'), settle, webBase: process.env.WEB_BASE_URL ?? 'https://vow-livid.vercel.app' });
     return res.status(200).json(r);
   } catch (e) {
-    console.error('telegram webhook', e.message);
+    console.error('telegram webhook', e.stack);
+    try { await dbStore.recordError?.(`tg:${e.message}`.slice(0, 200)); const chat = req.body?.message?.chat?.id; if (chat) await tg.sendMessage(chat, 'Something went wrong on my side. Please try again in a minute.'); } catch { /* best effort */ }
     return res.status(200).json({ ok: false }); // 200 so Telegram does not retry-storm; idempotency covers real retries
   }
 }
