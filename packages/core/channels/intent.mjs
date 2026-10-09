@@ -41,7 +41,7 @@ export function parseDays(text) {
 
 function titleOf(text) {
   return String(text)
-    .replace(CREATE, ' ').replace(/(?:(?<![\p{L}\d_])в(?![\p{L}\d_])|(?<![\p{L}\d_])at(?![\p{L}\d_])|(?<![\p{L}\d_])к(?![\p{L}\d_]))?\s*\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm|утра|вечера|дня|ночи)?/ugi, ' ')
+    .replace(CREATE, ' ').replace(/(?:(?<![\p{L}\d_])(?:в|at|к)(?![\p{L}\d_])\s*\d{1,2}(?:[:.]\d{2})?(?!\d)\s*(?:am|pm|утра|вечера|дня|ночи)?|(?<![\d.:])\d{1,2}[:.]\d{2}(?![\d])\s*(?:am|pm|утра|вечера|дня|ночи)?|(?<![\d.:])\d{1,2}\s*(?:am|pm|утра|вечера|дня|ночи)(?![\p{L}\d_]))/ugi, ' ')
     .replace(/(каждый день|ежедневно|every\s*day|daily|по\s+будн[\p{L}\d_]+|по\s+выходн[\p{L}\d_]+|weekdays?|weekends?|мне|please|пожалуйста|on)/ugi, ' ')
     .replace(/(?:^|\s)(?:о|об|про|что|to|about|that)\s+/ugi, ' ')
     .replace(/[,.!?]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);

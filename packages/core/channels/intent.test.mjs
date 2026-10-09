@@ -81,3 +81,10 @@ test('ack text that names another subject does not close the open check-in', () 
   assert.equal(mentionsOtherSubject('запиши, что принял', 'Vitamin D'), false);
   assert.equal(mentionsOtherSubject('took vitamin', 'Vitamin D'), false);
 });
+
+test('parse: doses and quantities in the title are kept, only the time is stripped', () => {
+  const r = parseIntent('I take magnesium 200 mg every evening, remind me at 21:00');
+  assert.equal(r.type, 'create'); assert.equal(r.time, '21:00'); assert.match(r.title, /200 mg/);
+  assert.match(parseIntent('напомни в 9 принять 200 мг магния').title, /200 мг/);
+  assert.equal(parseIntent('remind me to call mom at 7pm').title, 'call mom');
+});
