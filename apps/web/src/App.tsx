@@ -1280,7 +1280,7 @@ function CountUp({ target, active }: { target: number, active: boolean }) {
 function DevResources() {
   const resources = [
     { title: 'Agent API & MCP', desc: 'Role-scoped tokens: remember verified facts, recall by role; stdio MCP bridge included', link: 'https://github.com/bagstreet/vow/blob/main/docs/API.md', icon: Globe },
-    { title: 'JavaScript SDK', desc: 'Zero-dependency client (packages/sdk); npm publishing planned', link: 'https://github.com/bagstreet/vow/tree/main/packages/sdk', icon: Settings },
+    { title: 'JavaScript SDK', desc: 'Zero-dependency client. npm install vow-agent-sdk', link: 'https://github.com/bagstreet/vow/tree/main/packages/sdk', icon: Settings },
     { title: 'Self-host', desc: 'Free-tier stack or Docker; step-by-step guide', link: 'https://github.com/bagstreet/vow/blob/main/docs/SELF_HOST.md', icon: Monitor },
     { title: 'Services & setup', desc: 'Every service the project uses and the settings each needs', link: 'https://github.com/bagstreet/vow/blob/main/docs/SERVICES.md', icon: Bell },
   ]

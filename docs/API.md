@@ -38,7 +38,7 @@ curl -s -X POST "$VOW/api/agent?action=remember" \
 ```
 
 ## SDK
-Package `packages/sdk` (`vow-agent-sdk`), zero dependencies, Node 18+. Not published to npm yet: use it from the repository (`npm install ./packages/sdk`). Publishing is a post-hackathon step.
+Package `packages/sdk` (`vow-agent-sdk`), zero dependencies, Node 18+. Published on npm: `npm install vow-agent-sdk`.
 
 ```js
 import { VowAgent } from 'vow-agent-sdk';
