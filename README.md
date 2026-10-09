@@ -80,6 +80,10 @@ flowchart LR
 - **Revoke, forget, delete are different things** ([details](internal/agent-pack/PRIVACY_ACCESS_ROUTING.md#3-revoke-deactivate-forget-delete-four-different-operations-readme-section-required)): revoking a device or server stops new decryptions but does not recall copies already produced; `forget` hides records from recall but blobs persist until they expire or are deleted; permanent deletion of tracked blobs is an owner-wallet action (Walrus Memory Security Delete), executed per blob with per-item outcomes, and does not reach exports or texts already sent to an LLM provider you enabled. We do not use the words "crypto-shredding" or "GDPR compliant".
 - **Local LLM:** on desktop, parsing and tone use Ollama; cloud providers run only if you enable them, and the UI says which one answered.
 
+## Services and configuration
+
+The whole stack runs on free tiers by design. Every service, its limit and the settings to make are listed in [docs/SERVICES.md](docs/SERVICES.md); step-by-step setup is in [docs/SELF_HOST.md](docs/SELF_HOST.md).
+
 ## Repository layout
 
 ```

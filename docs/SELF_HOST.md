@@ -1,6 +1,6 @@
 # Run your own Vow bot
 
-Everything runs on free tiers: Vercel (functions), Neon (Postgres), cron-job.org (per-minute tick), a Telegram bot.
+Service list, limits and environment variables: [SERVICES.md](SERVICES.md). Everything runs on free tiers: Vercel (functions), Neon (Postgres), cron-job.org (per-minute tick), a Telegram bot.
 
 1. **Fork or import the repo** into your GitHub account, then import it in Vercel (root: `apps/web`).
 2. **Create a Neon project**, copy the pooled connection string. Apply migrations in order: `DATABASE_URL=<pooled-uri> node packages/db/apply.mjs` (idempotent — tracks what ran in `schema_migrations`, safe to re-run).
