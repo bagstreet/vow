@@ -19,7 +19,7 @@ flowchart LR
 | Service | Used for | Free-tier limit that matters | Settings you must make |
 |---|---|---|---|
 | **GitHub** | Source, CI (`ci.yml`), backup tick (`tick.yml`), weekly DB dump (`backup.yml`) | 2000 CI minutes/month (private repo) | Fork the repo. Optional Actions secrets: `TICK_SECRET`, `WEB_BASE_URL`, `DATABASE_URL_DIRECT` |
-| **Vercel** | Static site plus serverless API in `apps/web/api` | 12 functions per deployment (Hobby); Vow uses 7 | Import the repo, set root directory to `apps/web`, add the environment variables below |
+| **Vercel** | Static site plus serverless API in `apps/web/api` | 12 functions per deployment (Hobby); Vow uses 8 | Import the repo, set root directory to `apps/web`, add the environment variables below |
 | **Neon** | Postgres: accounts, links, reminders, check-ins, guardian links | 0.5 GB storage | Create a project, copy the pooled URI into `DATABASE_URL`, run `node packages/db/apply.mjs` |
 | **cron-job.org** | Per-minute scheduler, because Vercel Hobby cron runs once a day | Minimum interval 1 minute | New job, `POST <WEB_BASE_URL>/api/tick`, header `x-tick-secret: <TICK_SECRET>` |
 | **Brevo** | Sign-in links and notices by email | 300 mails/day | Verify a sender address, create an API key, set `BREVO_API_KEY` and `MAIL_FROM` |
