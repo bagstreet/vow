@@ -23,11 +23,23 @@
 // and keeps this module dependency-injected/offline-testable like the rest of the codebase (store/tg/llm).
 const ns = (userId) => `vow:mem:${userId}`;
 
+const DEDUPE_MS = 5000;
+const recent = new Map(); // userId + normalized text -> last write time (best effort per instance)
+const norm = (t) => String(t).replace(/^\[[a-z-]+(?:,\s*[a-z-]+)?\]\s*/i, '').trim().toLowerCase();
+/** S10: the same text sent through two channels within a few seconds becomes one memory entry. */
+export function isDuplicateWrite(userId, text, now = Date.now()) {
+  for (const [k, t] of recent) if (now - t > DEDUPE_MS) recent.delete(k);
+  const key = `${userId}|${norm(text)}`;
+  if (recent.has(key)) return true;
+  recent.set(key, now); return false;
+}
+
 export function createWalrusMemory(sdk) {
   return {
     /** Submit-only: returns a job_id string once the relayer accepts the write, or null (never throws). */
     async remember(userId, text) {
       if (!sdk) return null;
+      if (isDuplicateWrite(userId, text)) return null;
       try {
         const job = await sdk.remember(String(text).slice(0, 2000), ns(userId));
         return job?.job_id ?? null;

@@ -40,3 +40,10 @@ test('alias recall reads the absorbed namespace and de-duplicates', async () => 
   assert.deepEqual(await withAliasRecall(mem, () => ['old']).recall('new', 'q', { limit: 4 }), ['a', 'b', 'c']);
   assert.deepEqual(await withAliasRecall(mem, () => []).recall('new', 'q'), ['a', 'b']);
 });
+
+test('S10: the same text through two channels within seconds is written once', async () => {
+  const calls = []; const mem = createWalrusMemory({ remember: async (t) => { calls.push(t); return { job_id: 'j' + calls.length }; } });
+  assert.equal(await mem.remember('u-s10', '[telegram] I took magnesium 400 mg'), 'j1');
+  assert.equal(await mem.remember('u-s10', '[slack] I took magnesium 400 mg'), null);
+  assert.equal(await mem.remember('u-s10', '[slack] something else'), 'j2'); assert.equal(calls.length, 2);
+});
