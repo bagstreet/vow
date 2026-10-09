@@ -4,7 +4,7 @@
 
 **Make a commitment. Keep an honest record. And if you go quiet, someone who cares finds out.**
 
-Vow is a commitment steward that lives where you already chat: Telegram, Slack, Discord and a web dashboard. It reminds you of what you promised, records what *you* confirm, remembers across every channel through [Walrus Memory](https://github.com/MystenLabs/MemWal), and can tell a person you trust when you stop answering.
+Vow is a commitment steward that lives where you already chat: Telegram, Slack, Discord, a web dashboard and a browser extension. It reminds you of what you promised, records what *you* confirm, remembers across every channel through [Walrus Memory](https://github.com/MystenLabs/MemWal), and can tell a person you trust when you stop answering.
 
 [![CI](https://github.com/bagstreet/vow/actions/workflows/ci.yml/badge.svg)](https://github.com/bagstreet/vow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -12,6 +12,10 @@ Vow is a commitment steward that lives where you already chat: Telegram, Slack, 
 [Live app](https://vow-livid.vercel.app) · [Telegram bot](https://t.me/VoW_rebot) · [Mainnet evidence](docs/MAINNET_EVIDENCE.md) · [Run it yourself](#run-it-yourself) · [Docs](docs/)
 
 </div>
+
+![Vow live landing page](docs/assets/landing.png)
+
+*Live product. Telegram, Slack, Discord, web and a browser extension connect to the same account.*
 
 ---
 
@@ -23,11 +27,11 @@ Vow is a commitment steward that lives where you already chat: Telegram, Slack, 
 
 Vow answers each of these with one mechanism: **a reminder you must acknowledge, a memory that follows you across channels, and a trusted contact who is told when acknowledgements stop.**
 
-## Trusted contact: the feature that changes the use case
+## A trusted contact, without sharing your whole history
 
 > *You felt unwell and forgot your pills. Two check-ins pass with no answer. Your sister gets one short message: "Diana missed 2 check-ins in 24h, last reply 9 Oct 08:12." She calls you.*
 
-You name another Vow user as your trusted contact. They choose the rules (N missed check-ins in a row, or N hours of silence). You see every rule and can remove them at any time. Either side can leave.
+You name another Vow user as your trusted contact. They choose the rules (N missed check-ins in a row, or N hours of silence after an unanswered reminder). You see every rule and can remove them at any time. Either side can leave.
 
 ```mermaid
 sequenceDiagram
@@ -49,12 +53,12 @@ Minimal disclosure by design: the contact learns *that* a check-in was missed, n
 
 | Who | Pain | What Vow does |
 |---|---|---|
-| Someone taking antibiotics or insulin | Forgets doses when they feel ill, which is when it matters | Reminder with Taken / Skip / Later; a trusted contact is told after the misses you agreed |
+| Someone managing a prescribed medication routine | Forgets doses when they feel ill, which is when it matters | Reminder with Taken / Skip / Later; a trusted contact is told after the misses you agreed |
 | An adult child and an elderly parent | Worry without a way to check, calls that feel like nagging | The parent gets neutral reminders; the child is alerted only on a real pattern of silence |
 | A student before exams | Plans slip silently | Study blocks, owner-approved lessons, code-graded quizzes, a nudge when a block is missed |
 | Anyone who lives in three chat apps | Each bot knows only its own corner | One memory per person, shared by Telegram, Slack, Discord and web |
 
-## How a reminder lives
+## From a reminder to a recorded response
 
 ```mermaid
 stateDiagram-v2
@@ -76,6 +80,8 @@ stateDiagram-v2
 
 At most two reminders per occurrence across all your devices. Delivery goes to the channel where you were active most recently (or the one you picked), falls back to your other linked channels on failure, honours quiet hours and can switch to a digest mode. One-time and recurring reminders are both supported, and you can write times in words ("at 12", "half past one", "tomorrow morning").
 
+![Reminder lifecycle and memory boundaries](docs/assets/reminder-cycle.png)
+
 ## One memory, many doors
 
 ```mermaid
@@ -92,9 +98,15 @@ flowchart LR
 ```
 
 - **Five roles** (Health & Fitness, Medication, Nutritionist, Health Companion, Study & Exam). Several can be on at once; each message is routed to one of them and the reply says which. Unmatched messages go to a small classifier that sees the last turns, not to a default role. Medication and nutrition keep a hard rule: no dose advice, ever.
-- **Memory you can inspect.** Each remembered fact is a Walrus blob with a job id and a blob id, visible in History with a Walruscan link, with Forget (tombstone) and Remember now. Questions, small talk and fragments are never written.
+- **Memory you can inspect.** Each remembered fact is a Walrus blob with a job id and a blob id, visible in History with a Walruscan link, with Forget (tombstone) and Remember now. A deterministic filter rejects questions, small talk and underspecified fragments before writing; it is a guardrail, not a truth detector.
 - **Accounts that merge.** Sign in with Telegram, Discord, Slack or an email link; link the rest. Account merge follows seven explicit rules, blocked users are refused, admin has its own dashboard.
 - **Agent API and MCP.** Role-scoped tokens let other agents write verified facts and read them back ([docs/API.md](docs/API.md)).
+
+![Linked channels and browser extension in the live dashboard](docs/assets/dashboard.png)
+
+## Browser extension
+
+Keep reminders within reach while you work. The [Chrome extension](apps/extension/README.md) pairs from Dashboard → Channels, polls once a minute while the browser is running, and opens **Taken / Skip / Later** in its popup. Mute temporarily or rank it with your other channels. A response closes the same reminder across linked devices. Chat and memory search in the extension are on the [roadmap](docs/ROADMAP.md).
 
 ## Run it yourself
 
@@ -141,6 +153,7 @@ Role-scoped tokens let external AI agents write verified facts into a user's mem
 apps/web/          landing, dashboard and serverless API (Vite + React, Vercel)
 apps/cli/          `vow` command-line client
 apps/mcp/          MCP bridge to the Agent API
+apps/extension/    browser notifications, check-in popup and mute
 packages/core/     channels, memory, scheduler, trusted contact, admin, agent API
 packages/db/       Neon migrations
 packages/presets/  role presets
@@ -154,7 +167,6 @@ docs/              mechanics, diagrams, services, API, roadmap
 - Memory is written through the MemWal relayer (encrypted at rest by the relayer). Client-side Seal, hash-chained event sourcing and cold recovery are designed, not built.
 - Walrus Memory is append-only: Forget hides a record from recall but does not erase the blob.
 - Scenarios S02 (mail provider down), S03 (database down) and S09 (account merge during a firing reminder) are covered by unit tests only, not by a live run.
-- Browser extension: [apps/extension](apps/extension), reminders as browser notifications with Taken, Skip and Later; it is a channel you can rank and escalate through. The desktop helper is on the [roadmap](docs/ROADMAP.md).
 - Vow is not a medical device or an emergency service. Roles give general guidance and never doses.
 
 ## Verification
@@ -167,7 +179,7 @@ docs/              mechanics, diagrams, services, API, roadmap
 
 ## Why Walrus Memory and why an LLM
 
-Memory is justified because commitments, check-ins, corrections, schedules and consent must survive device loss and be recoverable cold with an honest receipt state; a plain note would not change a later decision. The LLM is used only where judgement or parsing is needed (free-text reminder parsing with user confirmation, lesson generation with owner approval, tone of summaries); counting, scheduling, grading MCQs, mastery and audit are deterministic.
+Walrus Memory stores user-reported facts and check-ins outside any one chat session, with a job id and a blob receipt. Recall supplies relevant context to later replies across linked channels. Neon holds operational account data, schedules and delivery state. Automated cold recovery is a planned capability, not a current guarantee. The LLM is used only where judgement or parsing is needed (free-text reminder parsing with user confirmation, lesson generation with owner approval, tone of summaries); counting, scheduling, grading MCQs, mastery and audit are deterministic.
 
 ## Contributing and security
 
@@ -177,4 +189,4 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`SECURITY.md`](SECURITY.md). Never
 
 Built for [Walrus Session 8: Chatbots That Remember](https://www.deepsurge.xyz/hackathons/c0141a4a-21be-4009-bc63-7c168608c849). LLM disclosure: hosted models via the fallback chain listed in the health endpoint. Memory: [MemWal](https://github.com/MystenLabs/MemWal) (version pinned in `package.json`; blobs in [docs/MAINNET_EVIDENCE.md](docs/MAINNET_EVIDENCE.md)).
 
-Last verified against `main` on 2026-10-09 (`npm test`: 373 pass, 0 fail).
+Last verified against `main` on 2026-10-09 (`npm test`: 378 pass, 0 fail, 1 skipped).
