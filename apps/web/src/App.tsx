@@ -81,7 +81,7 @@ function ChatWidget({ onDismiss }: { onDismiss: () => void }) {
         </div>
         <div className="p-4">
           <div className="px-3 py-2 rounded-xl rounded-bl-sm mb-3 text-sm" style={{background:T.recessed, border:`1px solid ${T.border}`, color:T.textSec}}>
-            Ready to start tracking? Pick a preset and I will remind you, seal your check-ins, and keep your streak honest.
+            Ready to start tracking? Pick a role and I will remind you, remember what you confirm, and tell your trusted contact if you go quiet.
           </div>
           <div className="flex gap-2">
             <a href="#signin" onClick={close} className="flex-1 text-center py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all hover:brightness-110" style={{background:T.accent, color:'#000'}}>
@@ -179,7 +179,7 @@ function ParticlesBg() {
 /* ── #5: SVG Workflow Diagram ── */
 function WorkflowDiagram() {
   return (
-    <div className="mx-auto max-w-3xl mb-8" role="img" aria-label="Vow workflow: User sends message, Bot processes it, Chain hashes and seals, Walrus stores blob, Receipt returned">
+    <div className="mx-auto max-w-3xl mb-8" role="img" aria-label="Vow workflow: User sends message, Bot processes it, Vow remembers on Walrus, a trusted contact is told if you go silent">
       <svg viewBox="0 0 800 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
         {/* Connecting lines */}
         <line x1="140" y1="50" x2="220" y2="50" stroke="#0E9C86" strokeWidth="2" strokeDasharray="6 3" opacity="0.4" />
@@ -192,19 +192,19 @@ function WorkflowDiagram() {
         {/* Node 1: User */}
         <rect x="20" y="20" width="120" height="60" rx="12" fill="#101214" stroke="rgba(231,239,244,0.09)" strokeWidth="1.5" />
         <text x="80" y="42" textAnchor="middle" fill="#f3f5f6" fontSize="11" fontWeight="600" fontFamily="Instrument Sans, system-ui">User</text>
-        <text x="80" y="58" textAnchor="middle" fill="#a1a9ae" fontSize="9" fontFamily="Instrument Sans, system-ui">check-in / voice</text>
+        <text x="80" y="58" textAnchor="middle" fill="#a1a9ae" fontSize="9" fontFamily="Instrument Sans, system-ui">chat or voice</text>
         {/* Node 2: Bot */}
         <rect x="230" y="20" width="120" height="60" rx="12" fill="#101214" stroke="#0E9C86" strokeWidth="1.5" opacity="0.8" />
         <text x="290" y="42" textAnchor="middle" fill="#0E9C86" fontSize="11" fontWeight="600" fontFamily="Instrument Sans, system-ui">Vow Bot</text>
-        <text x="290" y="58" textAnchor="middle" fill="#a1a9ae" fontSize="9" fontFamily="Instrument Sans, system-ui">parse + validate</text>
+        <text x="290" y="58" textAnchor="middle" fill="#a1a9ae" fontSize="9" fontFamily="Instrument Sans, system-ui">role + reminder</text>
         {/* Node 3: Chain */}
         <rect x="430" y="20" width="120" height="60" rx="12" fill="#101214" stroke="rgba(231,239,244,0.09)" strokeWidth="1.5" />
-        <text x="490" y="42" textAnchor="middle" fill="#f3f5f6" fontSize="11" fontWeight="600" fontFamily="Instrument Sans, system-ui">Hash Chain</text>
-        <text x="490" y="58" textAnchor="middle" fill="#a1a9ae" fontSize="9" fontFamily="Instrument Sans, system-ui">SHA-256 append</text>
+        <text x="490" y="42" textAnchor="middle" fill="#f3f5f6" fontSize="11" fontWeight="600" fontFamily="Instrument Sans, system-ui">Walrus Memory</text>
+        <text x="490" y="58" textAnchor="middle" fill="#a1a9ae" fontSize="9" fontFamily="Instrument Sans, system-ui">blob per fact</text>
         {/* Node 4: Walrus */}
         <rect x="630" y="20" width="150" height="60" rx="12" fill="#101214" stroke="#0E9C86" strokeWidth="1.5" opacity="0.8" />
-        <text x="705" y="42" textAnchor="middle" fill="#0E9C86" fontSize="11" fontWeight="600" fontFamily="Instrument Sans, system-ui">Walrus Memory</text>
-        <text x="705" y="58" textAnchor="middle" fill="#a1a9ae" fontSize="9" fontFamily="Instrument Sans, system-ui">blob sealed + receipt</text>
+        <text x="705" y="42" textAnchor="middle" fill="#0E9C86" fontSize="11" fontWeight="600" fontFamily="Instrument Sans, system-ui">Trusted Contact</text>
+        <text x="705" y="58" textAnchor="middle" fill="#a1a9ae" fontSize="9" fontFamily="Instrument Sans, system-ui">alert if you go silent</text>
       </svg>
     </div>
   )
@@ -213,34 +213,34 @@ function WorkflowDiagram() {
 /* ── Presets (order matches "Five presets" section) ── */
 const PRESETS = [
   { id: 'habits', Icon: Dumbbell, label: 'Health & Fitness', color: '#22c55e', img: '/mascots/fitness.png',
-    pitch: 'Track workouts and nutrition with on-chain accountability. Your gym buddy that never skips leg day.',
+    pitch: 'Workout and step check-ins, rest days and general recovery guidance, with reminders that you have to answer.',
     botMsg: 'Morning run time! Did you go today?', buttons: ['Done, 5km', 'Skipped', 'Modified'],
-    features: ['Configurable reminders (7am, 7pm)', 'Rest day rules', 'Voice check-in', 'Streak heatmap'],
-    commands: ['/checkin', '/streak', '/correct', '/rest'],
+    features: ['One-time or repeating reminders', 'Taken / Skip / Snooze buttons', 'Rest-day awareness', 'Voice messages'],
+    commands: ['remind me to stretch at 7pm', 'I did 30 minutes of cardio'],
     platform: 'web' as const },
   { id: 'medication', Icon: Pill, label: 'Medication Tracker', color: '#f59e0b', img: '/mascots/medication.png',
-    pitch: 'Never miss a dose. Cryptographic proof that you took your meds, visible to your care team.',
+    pitch: 'Reminders for the medicines you type in, with logging and an optional trusted contact if doses keep getting missed.',
     botMsg: 'Time for evening meds! Vitamin D + Omega-3', buttons: ['Taken', 'Skip', 'Snooze 1h'],
-    features: ['Cross-channel delivery (TG > Slack > Push)', 'Drug interaction checks', 'Doctor visit log', 'Refill reminders'],
-    commands: ['/take', '/skip', '/interactions', '/refill'],
+    features: ['Delivery on the channel you use now', 'Refill and doctor-visit reminders', 'Trusted contact on repeated misses', 'Never suggests doses'],
+    commands: ['remind me to take ibuprofen at 9pm', 'did I take it today?'],
     platform: 'telegram' as const },
   { id: 'nutrition', Icon: Apple, label: 'Nutritionist', color: '#ef4444', img: '/mascots/nutrition.png',
-    pitch: 'Every sober day recorded and verifiable. Build streaks that no one, not even you, can fake.',
-    botMsg: 'Daily check-in time. How are you feeling?', buttons: ['Sober today', 'Need support', 'Log journal'],
-    features: ['Daily accountability check-in', 'Streak verification on-chain', 'Support contact alerts', 'Journal with receipts'],
-    commands: ['/sober', '/journal', '/support', '/streak'],
+    pitch: 'Supplement, meal and water reminders, plus calorie and macro logging from what you report.',
+    botMsg: 'Lunch time. Did you log your protein today?', buttons: ['Taken', 'Skip', 'Snooze'],
+    features: ['Supplement and water schedules', 'Calorie and macro logging', 'Totals computed by code, not the model', 'Prescription drugs go to Medication'],
+    commands: ['I had 120g of chicken for lunch', 'remind me to drink water every 2 hours'],
     platform: 'slack' as const },
   { id: 'health', Icon: Heart, label: 'Health Companion', color: '#ec4899', img: '/mascots/health.png',
-    pitch: 'Daily check-ins, symptom logs, and wellness scores, all tamper-proof and shareable with care providers.',
-    botMsg: 'Day 30 (usually 28). Everything OK?', buttons: ['Yes, fine', 'Log symptom', 'Call doctor'],
-    features: ['Cycle prediction from history', 'Late period alerts', 'Symptom pattern analysis', 'Encrypted doctor-ready export'],
-    commands: ['/log-symptom', '/predict-next', '/alert-if-late', '/remind-before'],
+    pitch: 'Cycle and symptom logging with predictions from your own history, shown as a range and never as a diagnosis.',
+    botMsg: 'Day 30 (usually 28). Everything OK?', buttons: ['Yes, fine', 'Log symptom', 'Set a reminder'],
+    features: ['Period, flow, symptom and mood logs', 'Next-period estimate from your data', 'Late-period nudge', 'Not shared with other roles by default'],
+    commands: ['my period started today', 'when is the next one?'],
     platform: 'telegram' as const },
   { id: 'learning', Icon: BookOpen, label: 'Study & Exam', color: '#8b5cf6', img: '/mascots/study.png',
-    pitch: 'Commit to study blocks, track progress, and prove consistency to mentors or scholarship boards.',
+    pitch: 'Study blocks, deadlines, and quizzes from material you upload, graded by code.',
     botMsg: 'Study session? You have 2h left on "React hooks" this week.', buttons: ['Start now', 'Later', 'Done for today'],
-    features: ['Deadline-aware goals', 'Nudge if missed', 'Progress visualization', 'Study group sync'],
-    commands: ['/study-start', '/study-done', '/progress', '/nudge-if-missed'],
+    features: ['Deadline-aware blocks', 'Nudge when a block is missed', 'Quizzes from your own material', 'Grading is code, not the model'],
+    commands: ['exam on Friday, plan my week', 'I studied for 45 minutes'],
     platform: 'discord' as const },
 ]
 
@@ -324,8 +324,8 @@ function Nav() {
 
 /* ── Typing effect for hero headline ── */
 function TypingHeadline() {
-  const full = "The commitment journal that "
-  const accent = "can't lie"
+  const full = "The reminder that "
+  const accent = "remembers you"
   const [charIdx, setCharIdx] = useState(0)
   const totalLen = full.length + accent.length
   useEffect(() => {
@@ -367,12 +367,12 @@ function Hero() {
         {/* Top-right bubble */}
         <div className="absolute top-[22%] right-[6%] px-3 py-2 rounded-2xl rounded-br-sm text-[11px] font-mono opacity-35 animate-[float_7s_ease-in-out_infinite_1s]"
           style={{background:`${T.accentHex}10`, border:`1px solid ${T.accentHex}22`, color:T.accent}}>
-          Streak: 14 days
+          Trusted contact: on
         </div>
         {/* Mid-left */}
         <div className="absolute top-[40%] left-[4%] px-3 py-1.5 rounded-xl text-[10px] opacity-25 animate-[float_8s_ease-in-out_infinite_2s]"
           style={{background:T.surface, border:`1px solid ${T.border}`, color:T.textMuted}}>
-          Receipt: vow_0xa7...
+          Saved to Walrus
         </div>
         {/* Mid-right */}
         <div className="absolute top-[35%] right-[10%] px-3 py-1.5 rounded-xl text-[10px] opacity-20 animate-[float_5s_ease-in-out_infinite_0.5s]"
@@ -395,7 +395,7 @@ function Hero() {
         </div>
         <TypingHeadline />
         <p className="text-base leading-relaxed max-w-lg mx-auto mb-8" style={{ color: T.textSec }}>
-          Hash-chained. Tamper-proof. Yours. Every check-in sealed on Walrus, verifiable from anywhere.
+          Reminders you have to answer. A memory that follows you across Telegram, Slack and Discord. A trusted person who hears when you go silent.
         </p>
         <div className="flex flex-wrap gap-3 justify-center">
           <a href="#roles" className="px-6 py-3 rounded-xl font-semibold text-sm cursor-pointer transition-all hover:brightness-110" style={{ background: T.accent, color: '#000' }}>
@@ -440,7 +440,7 @@ function Hero() {
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[11px] font-mono" style={{color:T.textMuted}}>
           <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full" style={{background:'#22c55e'}} />Built on Walrus</span>
           <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full" style={{background:'#4da2ff'}} />Sui Mainnet</span>
-          <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full" style={{background:'#f97316'}} />Groq LLM</span>
+          <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full" style={{background:'#f97316'}} />Model fallback chain</span>
           <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full" style={{background:T.accent}} />Open Source</span>
           <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full" style={{background:'#a855f7'}} />MIT License</span>
         </div>
@@ -451,14 +451,7 @@ function Hero() {
 
 /* ═══ Block 3: Receipt ticker ═══ */
 function ReceiptTicker() {
-  const items = [
-    'vow_0x3c91...b2 sealed [Habits] streak:14d',
-    'vow_0xa7f2...e1 verified [Medication] dose:vitaminD',
-    'vow_0x91dc...44 corrected [Fitness] 5km > 2km (honest)',
-    'vow_0xbe03...f7 sealed [Health] cycle:day-12',
-    'vow_0x55a1...c9 sealed [Study] 3h "React hooks"',
-    'vow_0xd2e8...3a cold-restore 47 entries rebuilt',
-  ]
+  const items = BLOBS.map(([id, what]) => `blob ${id.slice(0, 8)}... saved to Walrus mainnet [${what}]`)
   return (
     <div className="overflow-hidden" style={{ borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}` }}>
       <div className="flex whitespace-nowrap animate-[marquee_45s_linear_infinite]">
@@ -473,6 +466,140 @@ function ReceiptTicker() {
     </div>
   )
 }
+function TrustedContactDiagram() {
+  const A = 130, V = 400, B = 670
+  const msgs: { y: number, from: number, to: number, text: string, tone?: 'warn' | 'ok' }[] = [
+    { y: 112, from: V, to: A, text: 'Reminder  [Taken / Skip / Later]' },
+    { y: 200, from: V, to: A, text: 'Last reminder, other channel if needed' },
+    { y: 330, from: V, to: B, text: '"Anna missed 2 check-ins in 24h"', tone: 'warn' },
+    { y: 372, from: B, to: V, text: '"I\'ll check on her"', tone: 'ok' },
+    { y: 414, from: V, to: B, text: '"Anna is back"', tone: 'ok' },
+  ]
+  const font = 'Instrument Sans, system-ui'
+  return (
+    <div className="mx-auto max-w-3xl" role="img" aria-label="Trusted contact flow: Vow reminds Anna twice, she does not answer, the rule set by her trusted contact Boris is met, Boris receives a short alert without any health details, acknowledges it, and is told when Anna replies.">
+      <svg viewBox="0 0 800 450" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+        {[[A, 'Anna', 'watched'], [V, 'Vow', 'reminders + rules'], [B, 'Boris', 'trusted contact']].map(([x, t, s]) => (
+          <g key={String(t)}>
+            <rect x={Number(x) - 80} y="14" width="160" height="48" rx="12" fill="#101214" stroke={t === 'Vow' ? '#0E9C86' : 'rgba(231,239,244,0.14)'} strokeWidth="1.5" />
+            <text x={Number(x)} y="35" textAnchor="middle" fill={t === 'Vow' ? '#0E9C86' : '#f3f5f6'} fontSize="13" fontWeight="600" fontFamily={font}>{t}</text>
+            <text x={Number(x)} y="51" textAnchor="middle" fill="#a1a9ae" fontSize="10" fontFamily={font}>{s}</text>
+            <line x1={x as number} y1="62" x2={x as number} y2="440" stroke="rgba(231,239,244,0.12)" strokeWidth="1.5" strokeDasharray="4 5" />
+          </g>
+        ))}
+        {msgs.map((m, i) => {
+          const dir = m.to > m.from ? 1 : -1
+          const c = m.tone === 'warn' ? '#f59e0b' : '#0E9C86'
+          const x1 = m.from + dir * 6, x2 = m.to - dir * 6
+          return (
+            <g key={i}>
+              <text x={(m.from + m.to) / 2} y={m.y - 10} textAnchor="middle" fill="#f3f5f6" fontSize="11" fontFamily={font}>{m.text}</text>
+              <line x1={x1} y1={m.y} x2={x2} y2={m.y} stroke={c} strokeWidth="2" />
+              <polygon points={`${x2},${m.y} ${x2 - dir * 9},${m.y - 5} ${x2 - dir * 9},${m.y + 5}`} fill={c} />
+            </g>
+          )
+        })}
+        <rect x="40" y="140" width="180" height="34" rx="9" fill="#ef444414" stroke="#ef444455" />
+        <text x="130" y="161" textAnchor="middle" fill="#ef4444" fontSize="11" fontFamily={font}>No answer</text>
+        <rect x="290" y="232" width="220" height="62" rx="10" fill="#0E9C8614" stroke="#0E9C8666" />
+        <text x="400" y="255" textAnchor="middle" fill="#0E9C86" fontSize="11" fontWeight="600" fontFamily={font}>Rule set by Boris is met</text>
+        <text x="400" y="273" textAnchor="middle" fill="#a1a9ae" fontSize="10" fontFamily={font}>2 missed check-ins in a row</text>
+        <text x="400" y="287" textAnchor="middle" fill="#a1a9ae" fontSize="10" fontFamily={font}>One alert, then a cool-down</text>
+        <rect x="560" y="140" width="220" height="34" rx="9" fill="#101214" stroke="rgba(231,239,244,0.14)" />
+        <text x="670" y="161" textAnchor="middle" fill="#a1a9ae" fontSize="10" fontFamily={font}>Never sees the medicine or chat text</text>
+      </svg>
+    </div>
+  )
+}
+
+/* ═══ Trusted contact ═══ */
+function TrustedContact() {
+  const points = [
+    { t: 'Both sides consent', d: 'Anna sends an invite code; Boris accepts from his own Vow account. Either of them can leave at any time.' },
+    { t: 'The contact sets the rules', d: 'N missed check-ins in a row, or N hours of silence. Anna sees every rule.' },
+    { t: 'Minimal disclosure', d: 'Boris learns that check-ins were missed. Never the medicine, the label or the chat.' },
+    { t: 'Not an emergency service', d: 'Vow says so. It is a nudge to a person who can pick up the phone.' },
+  ]
+  return (
+    <section id="trusted-contact" className="py-20 px-6" aria-label="Trusted contact">
+      <div className="max-w-4xl mx-auto">
+        <FadeIn>
+          <div className="text-center mb-8">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3" style={{ color: T.text }}>You felt unwell and forgot your pills. Someone who cares finds out.</h2>
+            <p className="max-w-xl mx-auto" style={{ color: T.textMuted }}>A reminder app fires once and nobody knows what happened next. With a trusted contact, a pattern of silence reaches a person, not a notification tray.</p>
+          </div>
+        </FadeIn>
+        <FadeIn delay={100}>
+          <div className="p-4 sm:p-6 rounded-2xl mb-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+            <TrustedContactDiagram />
+          </div>
+        </FadeIn>
+        <div className="grid sm:grid-cols-2 gap-3">
+          {points.map((p, i) => (
+            <FadeIn key={i} delay={i * 60}>
+              <div className="p-4 rounded-xl h-full" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+                <div className="flex items-center gap-2 mb-1"><Check size={13} style={{ color: T.accent }} /><h3 className="text-sm font-semibold" style={{ color: T.text }}>{p.t}</h3></div>
+                <p className="text-xs leading-relaxed" style={{ color: T.textSec }}>{p.d}</p>
+              </div>
+            </FadeIn>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ═══ Proof: real blobs on Walrus mainnet ═══ */
+const BLOBS = [
+  ['Gyhuhqv0oXhE4nD5xXxIY0mP9Pe5DRPGSVwFXJ3j8aU', 'chat: magnesium'],
+  ['yj-kBg5CpdbIjvqjiYqS2aJcCwfoN0qSQBigwuM7xPg', 'schedule: vitamin D'],
+  ['auAbtpiRgSsbFnk-vdO3hvlBYFzy65JnvLTcW_WQ2F0', 'chat: knee and stretching'],
+  ['DRv--0SaSJpR0Y5_P_I1jMj1UtDyBbnKvUfR2yNtWq0', 'chat: Rust study'],
+  ['iDTCNjmQjPyJ4IpRbXnE-h4K7DLILbO6dWeF2OBWk1s', 'chat: recall magnesium'],
+  ['rO5w22PwNA9yWGJtZSqad6U7PPPx2G7AZ8kUS5Rjtoo', 'chat: water goal'],
+  ['MtqrgKm90VuJuCjxPmnP27z3rWB3Avahcg5nzknGxXk', 'schedule: dentist'],
+  ['1Ar4WytL-Tj96Kt3tMwl0W6Psm9dFDfErm8BgZElC18', 'chat: preferences'],
+  ['ftrB1KA-7CNawvs7nnRJ8VJRCpubKaNl6CBdO5kzX0c', 'chat: sleep goal'],
+  ['jkI6Dv_O9MyunmMKoGaPTXYdcno99RvicDCMezom-OY', 'chat: Mediterranean diet'],
+  ['yH-lB3UeXOkUGGrnM4sqTebWF1DQYVT4qtHr-RXdnnU', 'chat: summary'],
+]
+function ProofBlobs() {
+  const [visible, setVisible] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = ref.current; if (!el) return
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setVisible(true) }, { threshold: 0.2 })
+    obs.observe(el); return () => obs.disconnect()
+  }, [])
+  return (
+    <section ref={ref} id="proof" className="py-16 px-6" aria-label="Blobs written to Walrus mainnet">
+      <div className="max-w-3xl mx-auto">
+        <FadeIn>
+          <div className="text-center mb-8">
+            <div className="text-5xl font-bold mb-2" style={{ color: T.accent }}><CountUp target={BLOBS.length} active={visible} /></div>
+            <h2 className="text-xl sm:text-2xl font-bold mb-2" style={{ color: T.text }}>blobs written to Walrus mainnet by the live bots</h2>
+            <p className="text-sm" style={{ color: T.textMuted }}>Every confirmed fact becomes a blob with an id. Open any of them on Walruscan.</p>
+          </div>
+        </FadeIn>
+        <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${T.border}` }}>
+          {BLOBS.map(([id, what], i) => (
+            <a key={id} href={`https://walruscan.com/mainnet/blob/${id}`} target="_blank" rel="noopener"
+              className="flex items-center gap-3 px-4 py-2 text-xs hover:bg-white/5 transition-colors"
+              style={{ background: T.surface, borderBottom: i < BLOBS.length - 1 ? `1px solid ${T.border}` : 'none' }}>
+              <span className="font-mono w-5" style={{ color: T.textMuted }}>{i + 1}</span>
+              <span className="font-mono flex-1 truncate" style={{ color: T.accent }}>{id.slice(0, 10)}...{id.slice(-6)}</span>
+              <span style={{ color: T.textSec }}>{what}</span>
+              <ChevronRight size={12} style={{ color: T.textMuted }} />
+            </a>
+          ))}
+        </div>
+        <p className="text-center mt-3 text-[11px]" style={{ color: T.textMuted }}>
+          Account and method: <a className="underline" href="https://github.com/bagstreet/vow/blob/main/docs/MAINNET_EVIDENCE.md" target="_blank" rel="noopener">MAINNET_EVIDENCE</a>
+        </p>
+      </div>
+    </section>
+  )
+}
 
 /* ═══ Block 4: Problem ═══ */
 function Problem() {
@@ -480,13 +607,13 @@ function Problem() {
     <section className="py-20 px-6 pattern-grid">
       <div className="max-w-4xl mx-auto">
         <p className="text-center text-sm mb-10 max-w-md mx-auto italic" style={{ color: T.textMuted }}>
-          &quot;Day 14. You open the app. Your streak is 0. No explanation. No receipt. Just gone.&quot;
+          &quot;Tuesday evening. The pill reminder buzzes, you swipe it away, and nobody knows what happened next.&quot;
         </p>
         <div className="grid md:grid-cols-3 gap-5">
           {[
-            { stat: '74%', text: 'of habit app users quit within 2 weeks. The app said they were "on track."' },
-            { stat: '0', text: 'streak apps prove their data is unmodified. They store numbers in a database they control.' },
-            { stat: '\u221E', text: 'silent resets. Server migration, database update, streak gone. No receipt. No proof.' },
+            { stat: '1', text: 'swipe is all it takes to dismiss a reminder. Nothing asks whether you actually did it, and nobody else hears about it.' },
+            { stat: '0', text: 'memory in a typical AI chat on Tuesday of what you said on Monday, and a different bot on Slack knows nothing at all.' },
+            { stat: '2', text: 'missed check-ins in a row is the pattern Vow watches for. The people who would help are usually never told.' },
           ].map((item, i) => (
             <FadeIn key={i} delay={i * 100}>
               <div className="p-5 rounded-2xl" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
@@ -500,7 +627,7 @@ function Problem() {
         <FadeIn delay={300}>
           <div className="mt-8 text-center">
             <a href="#signin" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all hover:brightness-110" style={{background:T.accent, color:'#000'}}>
-              Start tracking honestly <ChevronRight size={14} />
+              Set up your first reminder <ChevronRight size={14} />
             </a>
           </div>
         </FadeIn>
@@ -512,15 +639,15 @@ function Problem() {
 /* ═══ Block 5: Solution ═══ */
 function Solution() {
   const steps = [
-    { icon: Shield, title: 'Commit', desc: 'State your goal. Bot seals it with a SHA-256 hash on Walrus. You get a receipt.' },
-    { icon: Link2, title: 'Chain', desc: 'Each check-in links to the previous by hash. Edit one and every subsequent hash breaks.' },
-    { icon: FileCheck, title: 'Prove', desc: 'Your streak is a chain of receipts, not a number. Verify any entry on Walruscan.' },
+    { icon: Bell, title: 'Remind', desc: 'Say it in your own words: "remind me at half past noon", "every weekday at 8". One-time or repeating, delivered where you are online.' },
+    { icon: Link2, title: 'Remember', desc: 'What you confirm becomes a Walrus blob in one memory shared by every channel. Ask on Slack what you said on Telegram.' },
+    { icon: Shield, title: 'Notify', desc: 'Miss the agreed number of check-ins and your trusted contact gets one short message, with no health details.' },
   ]
   return (
     <section className="py-14 sm:py-20 px-6">
       <div className="max-w-4xl mx-auto text-center">
         <h2 className="text-2xl sm:text-3xl font-bold mb-3" style={{ color: T.text }}>How Vow fixes this</h2>
-        <p className="mb-6 sm:mb-8" style={{ color: T.textMuted }}>Three steps. Zero trust required.</p>
+        <p className="mb-6 sm:mb-8" style={{ color: T.textMuted }}>Three steps. No account juggling.</p>
         <WorkflowDiagram />
         {/* Desktop: 3-col grid. Mobile: compact horizontal rows */}
         <div className="hidden sm:grid sm:grid-cols-3 gap-6">
@@ -565,28 +692,28 @@ const SCENARIOS: Record<string, {from:string, text?:string, buttons?:string[], v
     { from: 'bot', text: 'Evening meds time! Vitamin D + Omega-3' },
     { from: 'bot', buttons: ['Taken', 'Skip', 'Snooze 1h'] },
     { from: 'user', text: 'I took both but forgot the magnesium earlier' },
-    { from: 'bot', text: 'Got it. Vitamin D + Omega-3 logged as taken.\nMagnesium marked as missed for 2pm slot. Want to take it now?\n\nReceipt: vow_0xa7f2...e1' },
+    { from: 'bot', text: 'Got it. Vitamin D + Omega-3 logged as taken.\nMagnesium marked as missed for 2pm slot. Want to take it now?' },
     { from: 'bot', buttons: ['Take magnesium now', 'Skip it', 'View full schedule'] },
   ],
   discord: [
     { from: 'bot', text: 'Study session reminder! 2h left on "React hooks" this week.' },
     { from: 'bot', buttons: ['Start now', 'Later', 'Done for today'] },
     { from: 'user', text: 'actually I switched to studying TypeScript generics instead, did about 45 min this morning' },
-    { from: 'bot', text: 'Updated your plan. Logged: 45 min TypeScript generics.\n"React hooks" deadline is Friday; you still need 2h.\n\nStreak: 4/7 days. Chain position: #5.' },
+    { from: 'bot', text: 'Updated your plan. Logged: 45 min TypeScript generics.\n"React hooks" deadline is Friday; you still need 2h.\n\nSaved to your memory.' },
   ],
   slack: [
     { from: 'bot', text: 'Day 30 (usually 28). Your period may be late. Everything OK?' },
     { from: 'bot', buttons: ['Yes, fine', 'Log symptom', 'Call doctor'] },
     { from: 'user', text: 'yeah I have cramps and a headache, also feeling pretty tired since yesterday' },
-    { from: 'bot', text: 'Logged (encrypted): cramps, headache, fatigue (onset: yesterday).\n\nPattern detected: cramps + headache on day 28-30 in 3 of last 4 cycles. This is consistent with your history.\n\nReceipt: vow_0xbe03...f7' },
-    { from: 'bot', buttons: ['View pattern history', 'Set doctor reminder', 'Export for doctor'] },
+    { from: 'bot', text: 'Logged: cramps, headache, fatigue (onset: yesterday).\n\nPattern detected: cramps + headache on day 28-30 in 3 of last 4 cycles. This is consistent with your history.' },
+    { from: 'bot', buttons: ['View pattern history', 'Set doctor reminder', 'Set a reminder'] },
   ],
   web: [
     { from: 'bot', text: 'Good morning! Did you get your run in today?' },
     { from: 'bot', buttons: ['Done, 5km', 'Skipped', 'Modified'] },
     { from: 'user', text: 'I ran but only 3k, my knee was bothering me so I walked the last bit', voice: true },
-    { from: 'bot', text: 'Logged: 3km run + walk (knee issue noted). Honest correction recorded; your chain stays intact.\n\nStreak: 14 days. Receipt: vow_0x3c91...b2\n\nNote: you mentioned knee pain 3 times this month. Consider a rest day?' },
-    { from: 'bot', buttons: ['Schedule rest day', 'View injury log', 'Share with trainer'] },
+    { from: 'bot', text: 'Logged: 3km run + walk (knee issue noted). Correction saved.\n\nNote: you mentioned knee pain 3 times this month. Consider a rest day?' },
+    { from: 'bot', buttons: ['Schedule rest day', 'View injury log', 'Add a rest day'] },
   ],
 }
 
@@ -842,19 +969,19 @@ function NotificationFlow() {
 /* ═══ Block 9: Architecture ═══ */
 function Architecture() {
   const items = [
-    { icon: Shield, title: 'Hash Chain', desc: 'Each entry includes SHA-256 of the previous. Change one and every subsequent hash breaks.' },
-    { icon: Link2, title: 'Walrus Blobs', desc: 'Entries sealed on Sui mainnet. No server, no database, no single point of failure.' },
-    { icon: Key, title: 'Delegate Keys', desc: 'Owner key stays offline. Delegate key handles daily ops. Compromise it? Revoke. History untouched.' },
-    { icon: FileCheck, title: 'Honest Receipts', desc: 'Every check-in returns blob ID + hash + timestamp. Verify on Walruscan. Zero trust.' },
-    { icon: RotateCcw, title: 'Cold Restore', desc: 'Lost your device? New install rebuilds full chain from Walrus. Zero data loss.' },
-    { icon: Settings, title: 'Role Engine', desc: 'System prompts, slash commands, reminder schedules, check-in types. Community roles via PR.' },
+    { icon: Link2, title: 'Walrus Memory', desc: 'Each confirmed fact is a blob in one namespace per person, shared by every linked channel. Open it on Walruscan by its blob id.' },
+    { icon: RotateCcw, title: 'Forget', desc: 'History in the dashboard lists every memory with its blob id. Press Forget and it is no longer recalled.' },
+    { icon: Key, title: 'Delegate Keys', desc: 'The server holds a delegate key for daily work. The owner key is never stored. Revoke the delegate and the server loses access.' },
+    { icon: Settings, title: 'Schedule in Postgres', desc: 'Reminders, channels and trusted-contact rules live in a database, so ticks, retries and escalation are plain, testable code.' },
+    { icon: FileCheck, title: 'Code does the arithmetic', desc: 'Times, totals, cycle predictions and quiz grades are computed by code. The model only talks.' },
+    { icon: Shield, title: 'Roles are files', desc: 'Each role is a plain file in the repo: prompt, scope and what it must never do. Adding one is a pull request away.' },
   ]
   return (
     <section id="architecture" className="py-20 px-6 pattern-diagonal" aria-label="Architecture">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-10">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-2" style={{color:T.text}}>How your data stays yours</h2>
-          <p style={{color:T.textMuted}}>Six layers between your commitment and anyone who would change it.</p>
+          <h2 className="text-2xl sm:text-3xl font-bold mb-2" style={{color:T.text}}>How it holds together</h2>
+          <p style={{color:T.textMuted}}>Memory on Walrus, schedule in Postgres, arithmetic in code.</p>
         </div>
         <div className="grid md:grid-cols-2 gap-4">
           {items.map(({icon:Icon,title,desc}, i) => (
@@ -871,21 +998,20 @@ function Architecture() {
     </section>
   )
 }
-
 /* ═══ Block 10: Comparison ═══ */
 function Comparison() {
   const rows = [
-    { feature: 'Streak storage', trad: 'Database row', vow: 'Hash-chained Walrus blobs' },
-    { feature: 'Data ownership', trad: 'Company owns it', vow: 'Your keys, your data' },
-    { feature: 'Proof of completion', trad: 'None', vow: 'Cryptographic receipt' },
-    { feature: 'Server goes down', trad: 'Data lost', vow: 'Cold restore from chain' },
-    { feature: 'Admin edits your data', trad: 'Possible, silent', vow: 'Impossible, hash breaks' },
-    { feature: 'Cross-platform sync', trad: 'Account login', vow: 'Same chain, any client' },
+    { feature: 'Missed reminder', trad: 'Swiped away, forgotten', vow: 'Retried on another channel, then your trusted contact' },
+    { feature: 'Memory across chats', trad: 'Each bot knows its own corner', vow: 'One memory shared by Telegram, Slack, Discord and web' },
+    { feature: 'Where memory lives', trad: 'Vendor database', vow: 'Walrus blobs with ids you can open' },
+    { feature: 'Times and totals', trad: 'Model guesses', vow: 'Computed by code' },
+    { feature: 'Saying when', trad: 'Pickers and forms', vow: '"Half past noon", "every weekday at 8"' },
+    { feature: 'Cost to run', trad: 'Subscription', vow: 'Free-tier stack, self-hostable' },
   ]
   return (
     <section className="py-20 px-6">
       <div className="max-w-3xl mx-auto">
-        <h2 className="text-2xl sm:text-3xl font-bold mb-8 text-center" style={{color:T.text}}>Why Vow wins</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold mb-8 text-center" style={{color:T.text}}>Why Vow is different</h2>
         <div className="rounded-2xl overflow-hidden" style={{border:`1px solid ${T.border}`}}>
           <div className="grid grid-cols-3 text-xs font-semibold py-2 px-4" style={{background:T.surface,borderBottom:`1px solid ${T.border}`}}>
             <span style={{color:T.textMuted}}>Feature</span>
@@ -971,11 +1097,13 @@ function Deploy() {
 function FAQ() {
   const [open, setOpen] = useState<number|null>(null)
   const items = [
-    { q: 'What happens if Vow shuts down?', a: 'Nothing. Your data lives on Walrus. Any client that speaks the Vow protocol can read and verify your chain. We publish the spec.' },
-    { q: 'Can the bot see my health data?', a: 'The LLM processes your messages for responses. Sealed entries are encrypted with your delegate key. The bot sees chat; the chain stores commitments.' },
-    { q: 'How do I verify my streak?', a: 'Every receipt has a blob ID. Paste it into Walruscan. The hash chain is public and independently verifiable.' },
-    { q: 'Why not just use a regular database?', a: 'A database admin can edit your streak. A migration can reset it. A server outage loses it. Walrus blobs are immutable, replicated, and owned by your keys.' },
-    { q: 'What LLM powers the bot?', a: 'Groq (Llama 3.3 70B) primary, Cerebras (Qwen 3 32B) fallback. No OpenAI, no Anthropic. The model is the companion voice; it never decides what the ledger says.' },
+    { q: 'Why another chatbot, and with AI?', a: 'The model only understands what you wrote and answers in your words. Reminder times, check-ins, escalation and totals are code. Without the model you would need forms and slash commands for everything.' },
+    { q: 'Why an alarm with AI? My phone already has alarms.', a: 'An alarm rings once and forgets. Vow asks whether you did it, retries on another channel, remembers the answer across Telegram, Slack and Discord, and can tell a person you trust when answers stop.' },
+    { q: 'I have a fitness band. Why tell a bot I ran?', a: 'You do not have to. Vow is not a tracker. It handles what a band cannot: promises, reminders you must answer, and the people around you.' },
+    { q: 'Why Walrus and not a database?', a: 'The schedule lives in Postgres. Memory lives on Walrus through MemWal, so it is one shared memory per person across channels and agents, every item has a blob id you can open, and you can Forget it.' },
+    { q: 'What happens if Vow shuts down?', a: 'Your memory stays on Walrus. The code is MIT and the self-host guide runs on free tiers; reminders and schedule are restored from your own database.' },
+    { q: 'Can the bot see my health data?', a: 'The model provider receives your messages to write replies. Questions and small talk are not stored. Your trusted contact never sees content, only that check-ins were missed.' },
+    { q: 'What models power it?', a: 'gpt-oss-120b on Groq first, then Cerebras, NVIDIA and OpenRouter as fallbacks. The model never decides times, totals or what is stored.' },
   ]
   return (
     <section id="faq" className="py-20 px-6" aria-label="Frequently asked questions">
@@ -997,7 +1125,6 @@ function FAQ() {
     </section>
   )
 }
-
 /* ═══ Tamper Challenge (wow) ═══ */
 function TamperChallenge() {
   const [state, setState] = useState<'idle'|'editing'|'rejected'>('idle')
@@ -1012,16 +1139,16 @@ function TamperChallenge() {
       <div className="max-w-2xl mx-auto">
         <FadeIn>
           <div className="text-center mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-2" style={{color:T.text}}>Try to tamper</h2>
-            <p style={{color:T.textMuted}}>Edit a sealed entry. See what happens.</p>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2" style={{color:T.text}}>Ledger demo (CLI)</h2>
+            <p style={{color:T.textMuted}}>The optional CLI and Agent API ledger chains entries by hash. Edit one and verification fails.</p>
           </div>
         </FadeIn>
         <FadeIn delay={100}>
           <div className="rounded-2xl p-6" style={{background:T.surface, border:`1px solid ${T.border}`}}>
             <div className="flex items-center gap-2 mb-4">
               <FileCheck size={16} style={{color:T.accent}} />
-              <span className="text-xs font-mono" style={{color:T.textMuted}}>Entry #14 - sealed 2h ago</span>
-              <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full" style={{background:`${T.accentHex}15`, color:T.accent}}>verified</span>
+              <span className="text-xs font-mono" style={{color:T.textMuted}}>Ledger entry #14</span>
+              <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full" style={{background:`${T.accentHex}15`, color:T.accent}}>CLI ledger</span>
             </div>
             <div className="p-3 rounded-lg mb-4" style={{background:T.recessed, border:`1px solid ${state === 'rejected' ? '#ef4444' : T.border}`}}>
               {state === 'idle' && <div className="text-sm" style={{color:T.textSec}}>5km run completed</div>}
@@ -1066,36 +1193,34 @@ function TamperChallenge() {
 
 /* ═══ Who Uses This (testimonial-style quote cards) ═══ */
 function WhoUsesThis() {
-  const personas = [
-    { icon: Dumbbell, title: 'Athletes', quote: 'My coach can verify every training session. No more "trust me, I ran."', who: 'Marathon runner, 14-day streak', color: '#22c55e' },
-    { icon: Heart, title: 'Patients', quote: 'My doctor sees my medication log with receipts. Not a spreadsheet I could have edited.', who: 'Chronic condition management', color: '#ec4899' },
-    { icon: BookOpen, title: 'Students', quote: 'My scholarship board asked for proof of study hours. I gave them a hash chain.', who: 'Grad student, Study & Exam preset', color: '#8b5cf6' },
-    { icon: Shield, title: 'Recovery Groups', quote: 'My sobriety streak is real. Not because I say so; because the chain says so.', who: 'Recovery community member', color: '#ef4444' },
+  const cases = [
+    { icon: Pill, title: 'Family', quote: 'Make sure my grandmother takes her pills on schedule, and tell me if she goes quiet.', color: '#f59e0b' },
+    { icon: Heart, title: 'Long-term treatment', quote: 'Remind me about antibiotics on a course, and keep asking until I answer.', color: '#ec4899' },
+    { icon: Apple, title: 'Supplements and meals', quote: 'Remind me about magnesium in the evening and water every two hours, and remember what I took.', color: '#ef4444' },
+    { icon: Dumbbell, title: 'Training', quote: 'Check in after my morning run and keep a rest day in the week.', color: '#22c55e' },
+    { icon: BookOpen, title: 'Exams', quote: 'Plan my study blocks before Friday, nudge me when I skip one, and quiz me on my notes.', color: '#8b5cf6' },
+    { icon: MessageCircle, title: 'Every chat app', quote: 'I write on Telegram at home and Slack at work. I want one assistant that knows both.', color: '#4da2ff' },
   ]
   return (
     <section className="py-20 px-6">
       <div className="max-w-4xl mx-auto">
         <FadeIn>
           <div className="text-center mb-10">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-2" style={{color:T.text}}>Who uses Vow</h2>
-            <p style={{color:T.textMuted}}>Proof, not promises.</p>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2" style={{color:T.text}}>What people use Vow for</h2>
+            <p style={{color:T.textMuted}}>Real situations it is built for.</p>
           </div>
         </FadeIn>
         <div className="grid md:grid-cols-2 gap-4">
-          {personas.map((p, i) => (
+          {cases.map((p, i) => (
             <FadeIn key={i} delay={i * 80}>
-              <div className="p-6 rounded-2xl relative hover:translate-y-[-2px] transition-transform" style={{background:T.surface, border:`1px solid ${T.border}`}}>
-                <div className="text-3xl mb-3" style={{color:`${p.color}30`}}>&ldquo;</div>
-                <p className="text-sm leading-relaxed mb-4 italic" style={{color:T.textSec}}>{p.quote}</p>
-                <div className="flex items-center gap-3">
+              <div className="p-6 rounded-2xl relative hover:translate-y-[-2px] transition-transform h-full" style={{background:T.surface, border:`1px solid ${T.border}`}}>
+                <div className="flex items-center gap-3 mb-3">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{background:`${p.color}15`}}>
                     <p.icon size={14} style={{color:p.color}} />
                   </div>
-                  <div>
-                    <div className="text-xs font-semibold" style={{color:T.text}}>{p.title}</div>
-                    <div className="text-[10px]" style={{color:T.textMuted}}>{p.who}</div>
-                  </div>
+                  <div className="text-xs font-semibold" style={{color:T.text}}>{p.title}</div>
                 </div>
+                <p className="text-sm leading-relaxed" style={{color:T.textSec}}>&ldquo;{p.quote}&rdquo;</p>
               </div>
             </FadeIn>
           ))}
@@ -1104,16 +1229,15 @@ function WhoUsesThis() {
     </section>
   )
 }
-
 /* ═══ Block 13: CTA ═══ */
 function CTA() {
   return (
     <section className="py-20 px-6">
       <div className="max-w-xl mx-auto text-center p-8 rounded-2xl pattern-dots" style={{background:T.surface,border:`1px solid ${T.border}`}}>
         <h2 className="text-2xl font-bold mb-3" style={{color:T.text}}>Make your first vow</h2>
-        <p className="text-sm mb-6" style={{color:T.textSec}}>Pick a preset. Connect a channel. Your first check-in is a receipt you own forever.</p>
+        <p className="text-sm mb-6" style={{color:T.textSec}}>Pick a role. Connect a channel. Your first confirmed fact becomes a blob you can open on Walruscan.</p>
         <div className="flex flex-wrap gap-3 justify-center">
-          <a href="#signin" className="px-6 py-3 rounded-xl font-semibold text-sm cursor-pointer hover:brightness-110" style={{background:T.accent,color:'#000'}}>Seal your first commitment</a>
+          <a href="#signin" className="px-6 py-3 rounded-xl font-semibold text-sm cursor-pointer hover:brightness-110" style={{background:T.accent,color:'#000'}}>Set up your first reminder</a>
           <a href="https://github.com/bagstreet/vow" target="_blank" rel="noopener" className="px-6 py-3 rounded-xl font-semibold text-sm border cursor-pointer hover:bg-white/5" style={{borderColor:T.borderVis,color:T.text}}>View source</a>
         </div>
       </div>
@@ -1238,9 +1362,9 @@ function AnimatedCounter() {
   const counters = [
     /* Only show provable numbers; fake social proof hurts credibility */
     { target: 5, label: 'Roles available', suffix: '' },
-    { target: 4, label: 'Platforms supported', suffix: '' },
-    { target: 6, label: 'Integrations', suffix: '' },
-    { target: 256, label: 'Bit hash chain', suffix: '' },
+    { target: 4, label: 'Channels: Telegram, Slack, Discord, web', suffix: '' },
+    { target: 3, label: 'Fallback providers behind the model', suffix: '' },
+    { target: 0, label: 'Cost to run on free tiers', suffix: '' },
   ]
   return (
     <section ref={ref} className="py-16 px-6">
@@ -1280,7 +1404,7 @@ function CountUp({ target, active }: { target: number, active: boolean }) {
 function DevResources() {
   const resources = [
     { title: 'Agent API & MCP', desc: 'Role-scoped tokens: remember verified facts, recall by role; stdio MCP bridge included', link: 'https://github.com/bagstreet/vow/blob/main/docs/API.md', icon: Globe },
-    { title: 'JavaScript SDK', desc: 'Zero-dependency client. npm install vow-agent-sdk', link: 'https://github.com/bagstreet/vow/tree/main/packages/sdk', icon: Settings },
+    { title: 'JavaScript SDK', desc: 'Zero-dependency client. npm install vow-agent-sdk', link: 'https://www.npmjs.com/package/vow-agent-sdk', icon: Settings },
     { title: 'Self-host', desc: 'Free-tier stack or Docker; step-by-step guide', link: 'https://github.com/bagstreet/vow/blob/main/docs/SELF_HOST.md', icon: Monitor },
     { title: 'Services & setup', desc: 'Every service the project uses and the settings each needs', link: 'https://github.com/bagstreet/vow/blob/main/docs/SERVICES.md', icon: Bell },
   ]
@@ -1400,9 +1524,11 @@ export default function App() {
         <ReceiptTicker />
         <Problem />
         <Solution />
+        <TrustedContact />
         <PresetsDemoMerged />
         <VideoSection />
         <TamperChallenge />
+        <ProofBlobs />
         <AnimatedCounter />
         <NotificationFlow />
         <WhoUsesThis />

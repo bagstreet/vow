@@ -154,7 +154,7 @@ docs/              mechanics, diagrams, services, API, roadmap
 - Memory is written through the MemWal relayer (encrypted at rest by the relayer). Client-side Seal, hash-chained event sourcing and cold recovery are designed, not built.
 - Walrus Memory is append-only: Forget hides a record from recall but does not erase the blob.
 - Scenarios S02 (mail provider down), S03 (database down) and S09 (account merge during a firing reminder) are covered by unit tests only, not by a live run.
-- The desktop helper and browser extension are on the [roadmap](docs/ROADMAP.md). The SDK is not published to npm.
+- The desktop helper and browser extension are on the [roadmap](docs/ROADMAP.md).
 - Vow is not a medical device or an emergency service. Roles give general guidance and never doses.
 
 ## Verification
