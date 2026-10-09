@@ -1,7 +1,7 @@
 // Pure request handling for the account/link-code/login endpoints (T54). Store is injected
 // (createAccountStore(sql) in prod, a plain object in tests) so every branch is testable offline,
 // same pattern as telegram-webhook.mjs.
-const CHANNELS = ['telegram', 'slack', 'discord'];
+const CHANNELS = ['telegram', 'slack', 'discord', 'extension'];
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function createAccount(store, { displayName } = {}) {

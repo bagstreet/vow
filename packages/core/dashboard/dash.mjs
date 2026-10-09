@@ -8,7 +8,7 @@ import { manageTokens } from '../agent/agent.mjs';
 import { handleGuardian, notifyBeforeDelete } from '../guardian/guardian.mjs';
 import { handleAdmin, isAdmin } from '../admin/admin.mjs';
 
-export const CHANNELS = ['telegram', 'slack', 'discord'];
+export const CHANNELS = ['telegram', 'slack', 'discord', 'extension'];
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,255}\.[^\s@]{2,}$/;
 const TONES = ['friendly', 'neutral', 'concise', 'strict'];
@@ -128,7 +128,7 @@ export async function handleDash({ store, op, method, body = {}, userId, deps = 
   if (op === 'email' && method === 'DELETE') {
     const p = await store.getProfile(userId);
     if (!p.email) return err(404, 'no_email');
-    if (!(await store.listChannels(userId)).some((c) => c.enabled)) return err(409, 'last_login_method');
+    if (!(await store.listChannels(userId)).some((c) => c.enabled && c.channel !== 'extension')) return err(409, 'last_login_method'); // the extension cannot sign you in
     await store.clearEmail(userId); // admin rights derived from the email vanish on the next request
     return ok({});
   }
@@ -165,7 +165,7 @@ export async function handleDash({ store, op, method, body = {}, userId, deps = 
     const list = await store.listChannels(userId);
     const target = list.find((c) => c.id === body.id); if (!target) return err(404, 'not_found');
     const profile = await store.getProfile(userId);
-    if (list.filter((c) => c.enabled).length <= 1 && !profile.email) return err(409, 'last_login_method');
+    if (target.channel !== 'extension' && list.filter((c) => c.enabled && c.channel !== 'extension').length <= 1 && !profile.email) return err(409, 'last_login_method');
     await store.unlinkChannel(userId, target.id);
     return ok({});
   }

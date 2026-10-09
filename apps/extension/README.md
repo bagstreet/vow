@@ -1,10 +1,18 @@
 # Vow browser extension
 
-Select text on any page, right-click **Remember in Vow**, and it is saved as a verified fact to your Walrus-backed memory through the [Agent API](../../docs/API.md). The popup lets you save a note and recall what Vow knows.
+A delivery channel, like Telegram or Slack. Vow reminders arrive as browser notifications with the same quick-reply buttons (Taken, Skip, Later), and the popup lists everything still waiting. Answering here marks the reminder handled in every other channel.
 
-1. Chrome: `chrome://extensions` > Developer mode > **Load unpacked** > pick this folder.
-2. In the Vow dashboard create an agent token, open the extension popup, paste the token and a role you allowed for it.
+## Install and connect
 
-The token stays in `chrome.storage.local`. Only the text you select is sent, and only when you ask.
+1. Chrome: `chrome://extensions`, turn on Developer mode, **Load unpacked**, pick this folder.
+2. Vow dashboard: **Channels**, **Browser extension**, **Connect**. A pairing code appears (valid 10 minutes, one use).
+3. Open the extension popup, enter the code, press **Connect**.
+4. Press **Test notification** to confirm your browser allows notifications.
 
-Notes: the extension does not show reminder notifications yet; it saves selected text and recalls memory. Reminders arrive in your chat channels.
+The extension appears in **Where Vow reaches you first**, so you can rank it against the other channels. One browser is paired per account; pairing again replaces the old one.
+
+## How it works
+
+The extension polls `/api/ext` once a minute (Chrome alarms), so it works only while the browser is running. If you do not answer within the escalation wait, Vow moves on to your next channel. The pairing secret is stored in `chrome.storage.local`, and only its hash is stored on the server. Mute for an hour, until tomorrow, or until you switch it back on; muted reminders wait in the popup.
+
+Self-hosted? Open **Self-hosted?** in the popup and enter your server URL.

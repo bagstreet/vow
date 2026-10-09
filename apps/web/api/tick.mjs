@@ -43,6 +43,7 @@ export default async function handler(req, res) {
   const senders = {
     ...(tgToken ? { telegram: ({ externalId, text, buttons, outboxId }) => createTelegramAdapter({ token: tgToken, chatId: externalId }).send({ occurrenceId: outboxId, text, buttons }).then(r => ({ ref: `${externalId}:${r.message_id}` })) } : {}),
     ...(dcToken ? { discord: ({ externalId, text, buttons, outboxId }) => createDiscordAdapter({ token: dcToken, userId: externalId, dmChannelCache: discordDmCache }).send({ occurrenceId: outboxId, text, buttons }).then(r => ({ ref: `${r.channel_id}:${r.id}` })) } : {}),
+    extension: async () => ({ ref: 'extension' }), // pull channel: the outbox row is the inbox item the extension polls
     ...(slToken ? { slack: ({ externalId, text, buttons, outboxId }) => createSlackAdapter({ token: slToken, channelId: externalId }).send({ occurrenceId: outboxId, text, buttons }).then(r => ({ ref: `${r.channel}:${r.ts}` })) } : {}),
   };
   const llm = buildLlmClient();

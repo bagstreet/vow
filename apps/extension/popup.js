@@ -1,19 +1,34 @@
-import { getSettings, saveSettings, whoami, recall, remember } from './lib.js';
+import { get, set, call, isMuted, muteUntil, badge, DEFAULT_BASE } from './lib.js';
 const $ = (id) => document.getElementById(id);
-const msg = (t) => { $('msg').textContent = t; };
-const run = async (fn) => { try { await fn(); } catch (e) { msg(e.message); } };
+const msg = (t) => { $('msg').textContent = t ?? ''; };
 
-(async () => {
-  const s = await getSettings();
-  $('base').value = s.base; $('token').value = s.token; $('role').value = s.role;
-  if (!s.token) $('cfg').open = true;
-  else run(async () => { const me = await whoami(); $('who').textContent = me.label; if (!s.role && me.roles?.[0]) { $('role').value = me.roles[0]; await saveSettings({ role: me.roles[0] }); } });
-})();
+async function render() {
+  const { secret, items = [], mutedUntil, muteKind, authLost, base } = await get(['secret', 'items', 'mutedUntil', 'muteKind', 'authLost', 'base']);
+  $('pair').hidden = !!secret; $('main').hidden = !secret;
+  $('base').value = base ?? DEFAULT_BASE;
+  $('state').textContent = secret ? (isMuted(mutedUntil) ? 'muted' : 'connected') : '';
+  if (authLost) msg('This browser was disconnected in the dashboard. Pair it again.');
+  $('mute').value = isMuted(mutedUntil) ? (muteKind ?? 'off') : '';
+  $('empty').hidden = items.length > 0;
+  $('items').replaceChildren(...items.map((i) => {
+    const li = document.createElement('li'); const t = document.createElement('div'); t.textContent = `${i.title} (${i.role})`; li.append(t);
+    for (const b of i.buttons) { const x = document.createElement('button'); x.textContent = b.label; x.onclick = async () => { const r = await call('reply', { method: 'POST', body: { id: i.id, button: b.id } }); if (r.ok) { const next = items.filter((y) => y.id !== i.id); await set({ items: next }); await badge(next.length); chrome.notifications.clear(i.id); await render(); } else msg('Could not send the answer. Try again.'); }; li.append(x); }
+    return li;
+  }));
+}
 
-$('store').onclick = () => run(async () => { await saveSettings({ base: $('base').value.trim(), token: $('token').value.trim(), role: $('role').value.trim() }); msg('Settings saved.'); });
-$('save').onclick = () => run(async () => { const t = $('text').value.trim(); if (!t) return; await remember(t); $('text').value = ''; msg('Saved to your Vow memory.'); });
-$('find').onclick = () => run(async () => {
-  const r = await recall($('q').value.trim()); $('out').replaceChildren();
-  for (const x of r.results ?? []) { const li = document.createElement('li'); li.textContent = x.text ?? String(x); $('out').append(li); }
-  msg((r.results ?? []).length ? '' : 'Nothing found.');
-});
+$('go').onclick = async () => {
+  msg('');
+  const base = $('base').value.trim().replace(/\/+$/, '') || DEFAULT_BASE;
+  if (base !== DEFAULT_BASE) { const ok = await chrome.permissions.request({ origins: [`${new URL(base).origin}/*`] }); if (!ok) return msg('Permission for that server was not granted.'); }
+  const r = await call('pair', { method: 'POST', body: { code: $('code').value.trim() }, base });
+  if (!r.ok) return msg(r.error === 'invalid_or_expired_code' ? 'That code is invalid or expired. Create a new one in the dashboard.' : 'Could not connect. Check the code.');
+  await set({ secret: r.secret, base, items: [], notified: [], authLost: false, mutedUntil: 0 });
+  chrome.alarms.create('poll', { periodInMinutes: 1 });
+  chrome.runtime.sendMessage({ type: 'poll' }).catch(() => {}); // fetch the first reminders right away
+  msg('Connected. Reminders arrive here and as notifications.'); await render();
+};
+$('mute').onchange = async () => { const v = $('mute').value; await set({ mutedUntil: muteUntil(v), muteKind: v || null }); await render(); };
+$('test').onclick = () => chrome.notifications.create('vow-test', { type: 'basic', iconUrl: 'icons/128.png', title: 'Vow', message: 'Notifications work. Real reminders show Taken, Skip and Later.' });
+$('unpair').onclick = async () => { await set({ secret: null, items: [], notified: [] }); await badge(0); msg('Disconnected here. Remove the channel in the dashboard to stop reminders being sent to it.'); await render(); };
+void render();

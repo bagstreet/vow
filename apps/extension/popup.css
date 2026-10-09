@@ -1,5 +1,7 @@
 body{width:320px;margin:0;padding:12px;background:#0c1514;color:#f4f7f6;font:13px system-ui}
-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}header b{font:700 18px Georgia,serif}#who{margin-left:auto;color:#12a58c;font-size:11px}
+header{display:flex;align-items:center;gap:8px;margin-bottom:8px}header b{font:700 18px Georgia,serif}#state{margin-left:auto;color:#12a58c;font-size:11px}
 label{display:block;margin:8px 0 4px;color:#9fb3af;font-size:11px}textarea,input{width:100%;box-sizing:border-box;background:#132220;border:1px solid #24413d;color:inherit;border-radius:6px;padding:6px}
 button{margin-top:6px;background:#12a58c;color:#04100e;border:0;border-radius:6px;padding:6px 10px;font-weight:600;cursor:pointer}
 .row{display:flex;gap:6px}.row button{margin:0}ul{padding-left:16px;margin:6px 0}details{margin-top:8px}#msg{color:#12a58c;min-height:16px;font-size:12px}
+
+select{width:100%;background:#132220;border:1px solid #24413d;color:inherit;border-radius:6px;padding:6px}ul{list-style:none;padding:0}li{background:#132220;border:1px solid #24413d;border-radius:8px;padding:8px;margin-bottom:6px}li button{margin-right:6px}.ghost{background:transparent;color:#9fb3af;border:1px solid #24413d;margin-top:10px}p{color:#9fb3af;font-size:12px;margin:6px 0}

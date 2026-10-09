@@ -5,7 +5,7 @@
 import { DEFAULT_ORDER } from './registry.mjs';
 
 const idx = (list, id) => { const i = list.indexOf(id); return i < 0 ? list.length : i; };
-export const KNOWN_CHANNELS = ['telegram', 'discord', 'slack'];
+export const KNOWN_CHANNELS = ['telegram', 'discord', 'slack', 'extension'];
 
 export function orderChannels(channels, priority = []) {
   return [...channels].sort((a, b) =>

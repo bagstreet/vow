@@ -1,6 +1,6 @@
 // Channel adapter registry (T47). Adapter contract:
 //   { id, send(msg) -> Promise, presence() -> {state:'online'|'last_seen'|'unknown', ts?}, supportsButtons }
-export const DEFAULT_ORDER = ['desktop', 'telegram', 'web', 'slack', 'discord', 'push'];
+export const DEFAULT_ORDER = ['desktop', 'telegram', 'web', 'extension', 'slack', 'discord', 'push'];
 
 export function assertAdapter(a) {
   if (!a || typeof a.id !== 'string' || !a.id) throw new TypeError('adapter.id required');

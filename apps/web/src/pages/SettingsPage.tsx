@@ -44,7 +44,7 @@ const TONES = [
   { id: 'strict', label: 'Strict', hint: 'No fluff, direct accountability language' },
 ]
 const LABELS = [{ v: 'always', t: 'Always' }, { v: 'on_change', t: 'On change' }, { v: 'off', t: 'Off' }]
-const CHANNEL_ICONS: Record<string, typeof Globe> = { telegram: MessageCircle, discord: Hash, slack: Monitor }
+const CHANNEL_ICONS: Record<string, typeof Globe> = { telegram: MessageCircle, discord: Hash, slack: Monitor, extension: Globe }
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] // index + 1 = ISO weekday stored in the DB
 
 interface Reminder { id: string; title: string; role: string; time: string; days: number[]; channel: string | null; enabled: boolean; source?: string; date?: string | null }
@@ -298,7 +298,7 @@ export default function SettingsPage() {
               <input type="date" value={draft.date} onChange={e => setDraft(p => ({ ...p, date: e.target.value }))} aria-label="One-time date (leave empty to repeat daily)" title="One-time date (leave empty to repeat daily)" className="px-3 py-2 rounded-lg text-sm outline-none" style={field} />
               <input type="time" value={draft.time} onChange={e => setDraft(p => ({ ...p, time: e.target.value }))} aria-label="New reminder time" className="px-3 py-2 rounded-lg text-sm outline-none" style={{ ...field, background: 'var(--surface)' }} />
               <select value={draft.channel} onChange={e => setDraft(p => ({ ...p, channel: e.target.value }))} aria-label="New reminder channel" className="px-3 py-2 rounded-lg text-sm outline-none cursor-pointer" style={{ ...field, background: 'var(--surface)' }}>
-                <option value="">Auto (best channel)</option><option value="telegram">Telegram</option><option value="slack">Slack</option><option value="discord">Discord</option>
+                <option value="">Auto (best channel)</option><option value="telegram">Telegram</option><option value="slack">Slack</option><option value="discord">Discord</option><option value="extension">Browser extension</option>
               </select>
               <select value={draft.role} onChange={e => setDraft(p => ({ ...p, role: e.target.value }))} aria-label="New reminder role" className="px-3 py-2 rounded-lg text-sm outline-none cursor-pointer sm:col-span-3" style={{ ...field, background: 'var(--surface)' }}>
                 <option value="">Role: let Vow pick from the name</option>{roles.map(x => <option key={x} value={x}>Role: {x}</option>)}

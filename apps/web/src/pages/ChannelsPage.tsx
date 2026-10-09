@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
-import { MessageCircle, Hash, Monitor, Laptop, Smartphone, ArrowDown, ArrowUp, Copy, Check } from 'lucide-react'
+import { MessageCircle, Hash, Monitor, Laptop, Puzzle, Smartphone, ArrowDown, ArrowUp, Copy, Check } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 import { api } from '../lib/api'
 
-type Bot = 'telegram' | 'slack' | 'discord'
+type Bot = 'telegram' | 'slack' | 'discord' | 'extension'
 const BOTS: { id: Bot; name: string; icon: typeof Hash; note: string; cmd: string }[] = [
   { id: 'telegram', name: 'Telegram', icon: MessageCircle, note: 'Quick-reply buttons work. Telegram bots cannot see your online status, so last activity is used.', cmd: '/link CODE' },
   { id: 'slack', name: 'Slack', icon: Monitor, note: 'DM the app. Vow also checks whether you are active in Slack right now.', cmd: '/link CODE' },
+  { id: 'extension', name: 'Browser extension', icon: Puzzle, note: 'Reminders as browser notifications with Taken, Skip and Later buttons. Works while the browser is running; otherwise Vow escalates to your next channel.', cmd: 'CODE' },
   { id: 'discord', name: 'Discord', icon: Hash, note: 'Add the app to your account, then run the command anywhere or in DM.', cmd: '/link code:CODE' },
 ]
-const OPEN: Record<Bot, { label: string; url: (code: string) => string; hint: string }> = {
+const OPEN: Record<Exclude<Bot, 'extension'>, { label: string; url: (code: string) => string; hint: string }> = {
   telegram: { label: 'Open in Telegram', url: (c) => `https://t.me/VoW_rebot?start=${c}`, hint: 'Press Start in the chat: the code is sent for you.' },
   slack: { label: 'Open in Slack', url: () => 'https://slack.com/app_redirect?app=A0C6WKX1SNB&team=T0BA1NY055L', hint: 'Slack cannot pre-fill the message: paste the command below.' },
   discord: { label: 'Add Vow to Discord', url: () => 'https://discord.com/oauth2/authorize?client_id=1557286978905571428&scope=bot+applications.commands&permissions=412317240384&response_type=code&redirect_uri=https%3A%2F%2Fvow-livid.vercel.app%2Fapi%2Fdash%2Foauth-callback', hint: 'Add the app, then run the command in any channel or DM.' },
@@ -89,13 +90,13 @@ export default function ChannelsPage() {
                 </div>
                 {link?.bot === b.id && (
                   <div className="mt-1 p-3 rounded-xl text-xs space-y-2" style={{ background: 'var(--recessed)', border: '1px solid #0E9C8633' }}>
-                    <div style={{ color: 'var(--text-muted)' }}>In {b.name} send <code className="font-mono">{b.cmd.replace('CODE', link.code)}</code> (valid 10 minutes, one use).</div>
+                    <div style={{ color: 'var(--text-muted)' }}>{b.id === 'extension' ? <>Install the extension (<a href="https://github.com/bagstreet/vow/tree/main/apps/extension" target="_blank" rel="noreferrer" className="underline" style={{ color: '#0E9C86' }}>setup</a>), open its popup and enter this code (valid 10 minutes, one use).</> : <>In {b.name} send <code className="font-mono">{b.cmd.replace('CODE', link.code)}</code> (valid 10 minutes, one use).</>}</div>
                     <div className="flex items-center gap-2">
                       <code className="px-2 py-1 rounded font-mono text-sm tracking-wider" style={card}>{link.code}</code>
                       <button onClick={() => { void navigator.clipboard?.writeText(link.code); setCopied(true); setTimeout(() => setCopied(false), 1500) }} className="p-1.5 rounded cursor-pointer hover:bg-white/10" aria-label="Copy code" style={{ color: 'var(--text-muted)' }}>{copied ? <Check size={14} /> : <Copy size={14} />}</button>
-                      <a href={link.deepLink ?? OPEN[b.id].url(link.code)} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: '#0E9C86', color: '#000' }}>{OPEN[b.id].label}</a>
+                      {b.id !== 'extension' && <a href={link.deepLink ?? OPEN[b.id].url(link.code)} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: '#0E9C86', color: '#000' }}>{OPEN[b.id].label}</a>}
                     </div>
-                    <div style={{ color: 'var(--text-muted)' }}>{OPEN[b.id].hint}</div>
+                    {b.id !== 'extension' && <div style={{ color: 'var(--text-muted)' }}>{OPEN[b.id].hint}</div>}
                     <div style={{ color: 'var(--text-muted)' }}>Waiting for confirmation…</div>
                   </div>
                 )}

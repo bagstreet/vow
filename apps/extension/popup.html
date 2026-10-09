@@ -1,9 +1,14 @@
 <!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="popup.css"></head><body>
-<header><img src="icons/32.png" alt=""><b>vow</b><span id="who"></span></header>
-<section><label>Remember</label><textarea id="text" rows="3" placeholder="A fact you want Vow to keep"></textarea>
-<button id="save">Save to memory</button></section>
-<section><label>Recall</label><div class="row"><input id="q" placeholder="What did I note about..."><button id="find">Find</button></div><ul id="out"></ul></section>
-<details id="cfg"><summary>Settings</summary>
-<label>Vow URL</label><input id="base"><label>Agent token</label><input id="token" type="password"><label>Role</label><input id="role" placeholder="e.g. study">
-<button id="store">Save settings</button></details>
+<header><img src="icons/32.png" alt=""><b>vow</b><span id="state"></span></header>
+<section id="pair" hidden>
+  <p>Open the Vow dashboard, Channels, Browser extension, press Connect, and enter the code here.</p>
+  <div class="row"><input id="code" placeholder="Pairing code" autocomplete="off"><button id="go">Connect</button></div>
+  <details><summary>Self-hosted?</summary><label>Server URL</label><input id="base"></details>
+</section>
+<section id="main" hidden>
+  <ul id="items"></ul><p id="empty">No reminders waiting.</p>
+  <label>Notifications</label>
+  <select id="mute"><option value="">On</option><option value="hour">Mute for 1 hour</option><option value="tomorrow">Mute until tomorrow 07:00</option><option value="off">Mute until I turn it on</option></select>
+  <div class="row"><button id="test" class="ghost">Test notification</button><button id="unpair" class="ghost">Disconnect</button></div>
+</section>
 <p id="msg"></p><script type="module" src="popup.js"></script></body></html>

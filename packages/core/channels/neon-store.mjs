@@ -15,6 +15,11 @@ export function createNeonStore(sql) {
     // user adding another channel" so the bot can say it recognizes them, not just silently continue.
     async listChannels(userId) { return (await sql('select channel from channel_links where user_id = $1 and enabled', [userId])).map((x) => x.channel); },
     async userByChat(chat, channel = 'telegram') { const r = await sql('select l.user_id, u.default_role, u.role_label, u.last_role, u.tone, u.blocked_at from channel_links l join users u on u.id = l.user_id where l.channel = $2 and l.external_id = $1 and l.enabled', [chat, channel]); return r[0] ? { id: r[0].user_id, default_role: r[0].default_role, role_label: r[0].role_label, last_role: r[0].last_role, tone: r[0].tone, blocked: !!r[0].blocked_at } : null; },
+    // Browser extension channel: one paired browser per account; the outbox row (channel = 'extension') is the inbox item.
+    async pairExtension(userId, hash) { await sql("delete from channel_links where user_id = $1 and channel = 'extension'", [userId]); await sql("insert into channel_links(user_id, channel, external_id, last_seen_at) values ($1,'extension',$2,now())", [userId, hash]); },
+    async extensionInbox(userId) {
+      return sql("select o.id, rem.title, rem.role, o.status, o.send_at from outbox o join reminders rem on rem.id = o.reminder_id where o.user_id = $1 and o.channel = 'extension' and o.status in ('sent','escalated') and o.send_at > now() - interval '12 hours' order by o.send_at", [userId]);
+    },
     async listRoles(u) { return (await sql('select role from user_roles where user_id = $1 and enabled order by role', [u])).map((x) => x.role); },
     async setLastRole(u, role) { await sql('update users set last_role = $2 where id = $1', [u, role]); },
     async setDefaultRole(u, role) { await sql('update users set default_role = $2 where id = $1', [u, role]); },
