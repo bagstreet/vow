@@ -65,6 +65,17 @@ const DAYS_EN = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 export const fmtDays = (d) => (!d || d.length === 7 ? 'daily' : d.join() === '1,2,3,4,5' ? 'weekdays' : d.map((x) => DAYS_EN[x]).join(', '));
 export const fmtReminder = (r, i) => `${i + 1}. ${r.title} — ${r.time} ${fmtDays(r.days)} (${r.role})${r.enabled === false ? ' [off]' : ''}`;
 
+const FILLER = new Set(['record', 'log', 'note', 'mark', 'save', 'that', 'this', 'just', 'already', 'today', 'now', 'thanks', 'thank', 'please', 'the', 'and', 'it', 'my', 'all', 'as', 'was', 'have', 'had', 'did', 'done', 'took', 'taken', 'finished', 'completed', 'ok', 'okay', 'yes', 'yep',
+  'запиши', 'записать', 'отметь', 'что', 'это', 'уже', 'как', 'мои', 'мой', 'сегодня', 'принял', 'принята', 'готово', 'выполнено', 'сделал', 'выпил', 'съел', 'спасибо', 'пожалуйста', 'все', 'всё', 'да']);
+/** True when the message names something that is clearly not the open check-in (e.g. a different supplement). */
+export function mentionsOtherSubject(text, title) {
+  const words = String(text).toLowerCase().match(/[\p{L}]{3,}/gu) ?? [];
+  const extra = words.filter((w) => !FILLER.has(w));
+  if (!extra.length) return false;
+  const t = String(title).toLowerCase();
+  return !extra.some((w) => t.includes(w.slice(0, 4)));
+}
+
 /** Execute an action intent. Returns { text, role? } or null when the text is not an action. */
 export async function runIntent({ text, user, store, memory, settle, channel, enabled = [] }) {
   const it = parseIntent(text);
@@ -72,6 +83,7 @@ export async function runIntent({ text, user, store, memory, settle, channel, en
   if (it.type === 'ack') {
     const occ = await store.latestOpenOccurrence?.(user.id);
     if (!occ) return null; // nothing pending: let the model treat it as an ordinary message/fact
+    if (it.status === 'taken' && mentionsOtherSubject(text, occ.title)) return null; // "took magnesium" must not close "drink water"
     const info = await store.ackOccurrence(occ.id, it.status === 'snooze' ? 'later' : it.status);
     if (info && settle) await settle({ ...info, status: it.status === 'snooze' ? 'later' : it.status, via: channel });
     const label = { taken: 'taken', skip: 'skipped', snooze: 'snoozed' }[it.status];

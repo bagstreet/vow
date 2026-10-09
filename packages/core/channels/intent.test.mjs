@@ -72,3 +72,12 @@ test('open check-in adds a reply-disambiguation hint; closed one does not', () =
   assert.match(scheduleContext([], { title: 'Pills', role: 'medication', status: 'sent' }), /still open/);
   assert.doesNotMatch(scheduleContext([], { title: 'Pills', role: 'medication', status: 'acked' }), /still open/);
 });
+
+import { mentionsOtherSubject } from './intent.mjs';
+test('ack text that names another subject does not close the open check-in', () => {
+  assert.equal(mentionsOtherSubject('I took magnesium 200 mg at 9:00 today', 'drink water'), true);
+  assert.equal(mentionsOtherSubject('took it', 'drink water'), false);
+  assert.equal(mentionsOtherSubject('drank the water, done', 'drink water'), false);
+  assert.equal(mentionsOtherSubject('запиши, что принял', 'Vitamin D'), false);
+  assert.equal(mentionsOtherSubject('took vitamin', 'Vitamin D'), false);
+});
