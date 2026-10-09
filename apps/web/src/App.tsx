@@ -451,10 +451,13 @@ function Hero() {
 
 /* ═══ Block 3: Receipt ticker ═══ */
 function ReceiptTicker() {
-  const items = BLOBS.map(([id, what]) => `blob ${id.slice(0, 8)}... saved to Walrus mainnet [${what}]`)
+  const items = BLOBS.map(([id]) => `blob ${id.slice(0, 8)}... stored on Walrus mainnet`)
   return (
-    <div className="overflow-hidden" style={{ borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}` }}>
-      <div className="flex whitespace-nowrap animate-[marquee_45s_linear_infinite]">
+    <div className="flex items-stretch overflow-hidden" style={{ borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}` }}>
+      <div className="flex items-center gap-2 px-4 flex-shrink-0 text-[11px] font-mono z-10" style={{ background: T.surface, borderRight: `1px solid ${T.border}`, color: T.text }}>
+        <span className="font-bold" style={{ color: T.accent }}>{BLOBS.length}</span> records on mainnet
+      </div>
+      <div className="flex-1 overflow-hidden"><div className="flex whitespace-nowrap animate-[marquee_45s_linear_infinite]">
         {[...items, ...items].map((r, i) => (
           <span key={i} className="inline-flex items-center gap-2 text-[11px] font-mono" style={{ color: T.textMuted }}>
             <span className="px-3 text-white/30">|</span>
@@ -462,7 +465,7 @@ function ReceiptTicker() {
             <span className="py-2.5">{r}</span>
           </span>
         ))}
-      </div>
+      </div></div>
     </div>
   )
 }
@@ -471,15 +474,15 @@ function TrustedContactDiagram() {
   const msgs: { y: number, from: number, to: number, text: string, tone?: 'warn' | 'ok' }[] = [
     { y: 112, from: V, to: A, text: 'Reminder  [Taken / Skip / Later]' },
     { y: 200, from: V, to: A, text: 'Last reminder, other channel if needed' },
-    { y: 330, from: V, to: B, text: '"Anna missed 2 check-ins in 24h"', tone: 'warn' },
+    { y: 330, from: V, to: B, text: '"Diana missed 2 check-ins in 24h"', tone: 'warn' },
     { y: 372, from: B, to: V, text: '"I\'ll check on her"', tone: 'ok' },
-    { y: 414, from: V, to: B, text: '"Anna is back"', tone: 'ok' },
+    { y: 414, from: V, to: B, text: '"Diana is back"', tone: 'ok' },
   ]
   const font = 'Instrument Sans, system-ui'
   return (
-    <div className="mx-auto max-w-3xl" role="img" aria-label="Trusted contact flow: Vow reminds Anna twice, she does not answer, the rule set by her trusted contact Boris is met, Boris receives a short alert without any health details, acknowledges it, and is told when Anna replies.">
+    <div className="mx-auto max-w-3xl" role="img" aria-label="Trusted contact flow: Vow reminds Diana twice, she does not answer, the rule set by her trusted contact Boris is met, Boris receives a short alert without any health details, acknowledges it, and is told when Diana replies.">
       <svg viewBox="0 0 800 450" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
-        {[[A, 'Anna', 'watched'], [V, 'Vow', 'reminders + rules'], [B, 'Boris', 'trusted contact']].map(([x, t, s]) => (
+        {[[A, 'Diana', 'watched'], [V, 'Vow', 'reminders + rules'], [B, 'Boris', 'trusted contact']].map(([x, t, s]) => (
           <g key={String(t)}>
             <rect x={Number(x) - 80} y="14" width="160" height="48" rx="12" fill="#101214" stroke={t === 'Vow' ? '#0E9C86' : 'rgba(231,239,244,0.14)'} strokeWidth="1.5" />
             <text x={Number(x)} y="35" textAnchor="middle" fill={t === 'Vow' ? '#0E9C86' : '#f3f5f6'} fontSize="13" fontWeight="600" fontFamily={font}>{t}</text>
@@ -515,8 +518,8 @@ function TrustedContactDiagram() {
 /* ═══ Trusted contact ═══ */
 function TrustedContact() {
   const points = [
-    { t: 'Both sides consent', d: 'Anna sends an invite code; Boris accepts from his own Vow account. Either of them can leave at any time.' },
-    { t: 'The contact sets the rules', d: 'N missed check-ins in a row, or N hours of silence. Anna sees every rule.' },
+    { t: 'Both sides consent', d: 'Diana sends an invite code; Boris accepts from his own Vow account. Either of them can leave at any time.' },
+    { t: 'The contact sets the rules', d: 'N missed check-ins in a row, or N hours of silence. Diana sees every rule.' },
     { t: 'Minimal disclosure', d: 'Boris learns that check-ins were missed. Never the medicine, the label or the chat.' },
     { t: 'Not an emergency service', d: 'Vow says so. It is a nudge to a person who can pick up the phone.' },
   ]
@@ -551,17 +554,17 @@ function TrustedContact() {
 
 /* ═══ Proof: real blobs on Walrus mainnet ═══ */
 const BLOBS = [
-  ['Gyhuhqv0oXhE4nD5xXxIY0mP9Pe5DRPGSVwFXJ3j8aU', 'chat: magnesium'],
-  ['yj-kBg5CpdbIjvqjiYqS2aJcCwfoN0qSQBigwuM7xPg', 'schedule: vitamin D'],
-  ['auAbtpiRgSsbFnk-vdO3hvlBYFzy65JnvLTcW_WQ2F0', 'chat: knee and stretching'],
-  ['DRv--0SaSJpR0Y5_P_I1jMj1UtDyBbnKvUfR2yNtWq0', 'chat: Rust study'],
-  ['iDTCNjmQjPyJ4IpRbXnE-h4K7DLILbO6dWeF2OBWk1s', 'chat: recall magnesium'],
-  ['rO5w22PwNA9yWGJtZSqad6U7PPPx2G7AZ8kUS5Rjtoo', 'chat: water goal'],
-  ['MtqrgKm90VuJuCjxPmnP27z3rWB3Avahcg5nzknGxXk', 'schedule: dentist'],
-  ['1Ar4WytL-Tj96Kt3tMwl0W6Psm9dFDfErm8BgZElC18', 'chat: preferences'],
-  ['ftrB1KA-7CNawvs7nnRJ8VJRCpubKaNl6CBdO5kzX0c', 'chat: sleep goal'],
-  ['jkI6Dv_O9MyunmMKoGaPTXYdcno99RvicDCMezom-OY', 'chat: Mediterranean diet'],
-  ['yH-lB3UeXOkUGGrnM4sqTebWF1DQYVT4qtHr-RXdnnU', 'chat: summary'],
+  ['Gyhuhqv0oXhE4nD5xXxIY0mP9Pe5DRPGSVwFXJ3j8aU'],
+  ['yj-kBg5CpdbIjvqjiYqS2aJcCwfoN0qSQBigwuM7xPg'],
+  ['auAbtpiRgSsbFnk-vdO3hvlBYFzy65JnvLTcW_WQ2F0'],
+  ['DRv--0SaSJpR0Y5_P_I1jMj1UtDyBbnKvUfR2yNtWq0'],
+  ['iDTCNjmQjPyJ4IpRbXnE-h4K7DLILbO6dWeF2OBWk1s'],
+  ['rO5w22PwNA9yWGJtZSqad6U7PPPx2G7AZ8kUS5Rjtoo'],
+  ['MtqrgKm90VuJuCjxPmnP27z3rWB3Avahcg5nzknGxXk'],
+  ['1Ar4WytL-Tj96Kt3tMwl0W6Psm9dFDfErm8BgZElC18'],
+  ['ftrB1KA-7CNawvs7nnRJ8VJRCpubKaNl6CBdO5kzX0c'],
+  ['jkI6Dv_O9MyunmMKoGaPTXYdcno99RvicDCMezom-OY'],
+  ['yH-lB3UeXOkUGGrnM4sqTebWF1DQYVT4qtHr-RXdnnU'],
 ]
 function ProofBlobs() {
   const [visible, setVisible] = useState(false)
@@ -578,17 +581,17 @@ function ProofBlobs() {
           <div className="text-center mb-8">
             <div className="text-5xl font-bold mb-2" style={{ color: T.accent }}><CountUp target={BLOBS.length} active={visible} /></div>
             <h2 className="text-xl sm:text-2xl font-bold mb-2" style={{ color: T.text }}>blobs written to Walrus mainnet by the live bots</h2>
-            <p className="text-sm" style={{ color: T.textMuted }}>Every confirmed fact becomes a blob with an id. Open any of them on Walruscan.</p>
+            <p className="text-sm" style={{ color: T.textMuted }}>Every confirmed fact becomes a blob with an id. Only the id is public; what is inside stays private to its owner.</p>
           </div>
         </FadeIn>
         <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${T.border}` }}>
-          {BLOBS.map(([id, what], i) => (
+          {BLOBS.map(([id], i) => (
             <a key={id} href={`https://walruscan.com/mainnet/blob/${id}`} target="_blank" rel="noopener"
               className="flex items-center gap-3 px-4 py-2 text-xs hover:bg-white/5 transition-colors"
               style={{ background: T.surface, borderBottom: i < BLOBS.length - 1 ? `1px solid ${T.border}` : 'none' }}>
               <span className="font-mono w-5" style={{ color: T.textMuted }}>{i + 1}</span>
               <span className="font-mono flex-1 truncate" style={{ color: T.accent }}>{id.slice(0, 10)}...{id.slice(-6)}</span>
-              <span style={{ color: T.textSec }}>{what}</span>
+              <span style={{ color: T.textSec }}>mainnet</span>
               <ChevronRight size={12} style={{ color: T.textMuted }} />
             </a>
           ))}
@@ -1036,21 +1039,19 @@ function Deploy() {
   const [copied, setCopied] = useState(-1)
   const lines = [
     { prompt: true, cmd: 'git clone https://github.com/bagstreet/vow && cd vow' },
-    { output: 'Cloning into \'vow\'... done.' },
-    { prompt: true, cmd: 'cp .env.example .env' },
-    { output: '# Edit .env: add GROQ_API_KEY, MEMWAL_PRIVATE_KEY, MEMWAL_ACCOUNT_ID' },
-    { prompt: true, cmd: 'make setup' },
-    { output: 'Installing dependencies... done.\nConfiguring Walrus Memory... connected.\nRoles loaded: 5' },
     { prompt: true, cmd: 'make demo' },
-    { output: 'Starting Vow bot on http://localhost:3000\nTelegram webhook: ready\nWalrus Memory: mainnet\n\n  Ready. Try: /checkin or just say "I ran 5km today"' },
+    { output: '# offline: vow, check-ins, tamper caught, honest correction. No keys, no network.' },
+    { prompt: true, cmd: 'make test' },
+    { output: '# full offline test suite' },
+    { output: '# Own bot: docs/SELF_HOST.md (Vercel + Neon + Telegram, free tiers)' },
   ]
   const copy = (i: number, text: string) => { navigator.clipboard?.writeText(text); setCopied(i); setTimeout(() => setCopied(-1), 2000) }
   return (
     <section id="deploy" className="py-20 px-6" aria-label="Deploy instructions">
       <div className="max-w-3xl mx-auto">
         <FadeIn>
-          <h2 className="text-2xl sm:text-3xl font-bold mb-3 text-center" style={{color:T.text}}>Ship in 3 minutes</h2>
-          <p className="text-center mb-8" style={{color:T.textMuted}}>Clone. Configure. Launch.</p>
+          <h2 className="text-2xl sm:text-3xl font-bold mb-3 text-center" style={{color:T.text}}>Try it in a minute. Host it in fifteen.</h2>
+          <p className="text-center mb-8" style={{color:T.textMuted}}>Run the offline demo first, then follow the self-host guide.</p>
         </FadeIn>
         <FadeIn delay={100}>
           <div className="rounded-2xl overflow-hidden" style={{border:`1px solid ${T.borderVis}`}}>

@@ -5,7 +5,7 @@
 ## Principles
 1. **Mutual consent, nothing silent.** The watched person is told who watches them and under which rules, at invite time and on every rule change.
 2. **The guardian owns the rules** (thresholds), the watched person owns the link (can revoke any time).
-3. **Minimal disclosure.** The guardian is told *that* a check-in was missed ("Anna missed 2 check-ins in 24h, last reply 9 Oct 08:12"), never memory contents or chat text. Role names are shown only if the watched user ticks "share role names".
+3. **Minimal disclosure.** The guardian is told *that* a check-in was missed ("Diana missed 2 check-ins in 24h, last reply 9 Oct 08:12"), never memory contents or chat text. Role names are shown only if the watched user ticks "share role names".
 4. **Not an emergency service.** Wording in UI and docs: Vow is not a medical alert system. Crisis wording in chat keeps its own safe-response path; it does not auto-notify a guardian unless the user opted in to "share crisis flags" (default off).
 5. **No spam.** One alert per breach, then a cool-down; escalates only if the guardian also does not acknowledge.
 
@@ -18,11 +18,11 @@
 
 ## Flow
 1. **Invite.** Watched user: Dashboard → Trusted contact → "Add" → gets a code and deep links (`t.me/<bot>?start=g_CODE`, Slack/Discord command `/guardian CODE`). The invite can also be sent as a link by the user themselves. Vow never contacts the invitee on its own initiative (no unsolicited messages to non-users).
-2. **Accept.** Invitee (must already be a Vow user, or signs up via the same link) sends the code. Vow shows: *"Anna asks you to be her trusted contact. You will get alerts only when she misses check-ins. Accept / Decline."* Accept → link `active`; Anna gets "Boris accepted".
+2. **Accept.** Invitee (must already be a Vow user, or signs up via the same link) sends the code. Vow shows: *"Diana asks you to be her trusted contact. You will get alerts only when she misses check-ins. Accept / Decline."* Accept → link `active`; Diana gets "Boris accepted".
 3. **Configure.** Guardian picks rules in dashboard or chat (`/guardian rules`): missed check-ins (N in a row), silence (N hours with no reply to Vow's messages), unanswered Vow messages (N). Defaults suggested: 2 missed in a row, 24 h silence. The watched user sees the rules read-only.
 4. **Detect.** The existing 1-minute tick evaluates active links: counts `outbox` rows by status (`expired`/`escalated` without ack = missed), last inbound `chat_messages.created_at`, unanswered outbound count. Quiet hours of the *watched* user pause the silence clock.
 5. **Alert.** Delivered with the same channel-choice logic as reminders (priority > presence > last seen), buttons **I'll check on her** / **Snooze 6h** / **Stop watching**. Acked in one channel → copies in other channels edited to "✓ handled" (reuses `handled.mjs`).
-6. **Resolve.** When the watched user replies/acks, the guardian gets a short "Anna is back" (optional, default on).
+6. **Resolve.** When the watched user replies/acks, the guardian gets a short "Diana is back" (optional, default on).
 7. **Leave.** Guardian: dashboard "Stop watching" or `/guardian leave` → status `revoked`, watched user is notified immediately ("Boris stopped being your trusted contact") and their dashboard card updates. Watched user can revoke too; guardian is notified. Account deletion of either side revokes all its links and notifies the other side.
 
 ## UX requirements
@@ -34,7 +34,7 @@
 Guardian deletes account (see Deletion semantics); both are the same person on two channels (reject: same user id); invite code leaked (guardian must be a different, logged-in user; code one-use, 10 min); guardian never answers (second alert after 2× window, then stop and show "unreachable" on the watched user's card); watched user changes timezone/quiet hours; rapid revoke/accept; duplicate alerts on tick retry (idempotency key = link+rule+window); guardian on a channel that is later unlinked (fall back to remaining channels, else mark link "guardian unreachable").
 
 ## Scope
-Built: tables, invite/accept/revoke, rule `missed_checkins` + `silence_hours`, alert delivery with buttons, both dashboard cards, notifications on revoke, tests. Planned ([roadmap](ROADMAP.md)): `unanswered_messages`, crisis-flag opt-in, "Anna is back".
+Built: tables, invite/accept/revoke, rule `missed_checkins` + `silence_hours`, alert delivery with buttons, both dashboard cards, notifications on revoke, tests. Planned ([roadmap](ROADMAP.md)): `unanswered_messages`, crisis-flag opt-in, "Diana is back".
 
 ## Guardian must be a Vow user
 A guardian is always a registered Vow user (accepts the invite from their own logged-in session). No anonymous guardians.

@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Vow",
+  "version": "0.1.0",
+  "description": "Save selected text to your Vow memory on Walrus and recall it from any page.",
+  "icons": { "16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png", "128": "icons/128.png" },
+  "action": { "default_title": "Vow", "default_popup": "popup.html", "default_icon": { "16": "icons/16.png", "32": "icons/32.png" } },
+  "background": { "service_worker": "background.js" },
+  "permissions": ["storage", "contextMenus", "notifications"],
+  "host_permissions": ["https://*.vercel.app/*", "http://localhost/*"],
+  "optional_host_permissions": ["https://*/*"]
+}

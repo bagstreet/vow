@@ -25,13 +25,13 @@ Vow answers each of these with one mechanism: **a reminder you must acknowledge,
 
 ## Trusted contact: the feature that changes the use case
 
-> *You felt unwell and forgot your pills. Two check-ins pass with no answer. Your sister gets one short message: "Anna missed 2 check-ins in 24h, last reply 9 Oct 08:12." She calls you.*
+> *You felt unwell and forgot your pills. Two check-ins pass with no answer. Your sister gets one short message: "Diana missed 2 check-ins in 24h, last reply 9 Oct 08:12." She calls you.*
 
 You name another Vow user as your trusted contact. They choose the rules (N missed check-ins in a row, or N hours of silence). You see every rule and can remove them at any time. Either side can leave.
 
 ```mermaid
 sequenceDiagram
-    participant A as Anna (watched)
+    participant A as Diana (watched)
     participant V as Vow
     participant B as Boris (trusted contact)
     V->>A: Reminder: "Evening pill" [Taken / Skip / Later]
@@ -39,10 +39,10 @@ sequenceDiagram
     V->>A: Second and last reminder, other channel if the first failed
     Note over V: occurrence = unacknowledged (not counted as taken)
     V->>V: 2 missed check-ins in a row, rule met
-    V->>B: "Anna missed 2 check-ins in 24h" [I'll check on her / Snooze 6h / Stop watching]
+    V->>B: "Diana missed 2 check-ins in 24h" [I'll check on her / Snooze 6h / Stop watching]
     B->>V: I'll check on her
-    V->>A: Anna replies later
-    V->>B: "Anna is back"
+    V->>A: Diana replies later
+    V->>B: "Diana is back"
 ```
 
 Minimal disclosure by design: the contact learns *that* a check-in was missed, never the medicine, the label or the chat text. One alert per breach, then a cool-down. Vow is not an emergency service and says so. Use cases:
@@ -154,7 +154,7 @@ docs/              mechanics, diagrams, services, API, roadmap
 - Memory is written through the MemWal relayer (encrypted at rest by the relayer). Client-side Seal, hash-chained event sourcing and cold recovery are designed, not built.
 - Walrus Memory is append-only: Forget hides a record from recall but does not erase the blob.
 - Scenarios S02 (mail provider down), S03 (database down) and S09 (account merge during a firing reminder) are covered by unit tests only, not by a live run.
-- The desktop helper and browser extension are on the [roadmap](docs/ROADMAP.md).
+- Browser extension: [apps/extension](apps/extension), save selected text to your memory and recall it. The desktop helper is on the [roadmap](docs/ROADMAP.md).
 - Vow is not a medical device or an emergency service. Roles give general guidance and never doses.
 
 ## Verification

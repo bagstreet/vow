@@ -20,7 +20,7 @@ What Vow does today, and where it goes next.
 |---|---|
 | Bring your own MemWal account | The user supplies an account id and delegate key, stored encrypted with a server master key and never returned by any API. Rotation registers a new delegate key on chain. |
 | Seal encryption | Client-side keys, so not even the operator can read memories. |
-| Browser extension | Reminders and chat from the toolbar, with mute for a while or for good. |
+| Extension: reminders and mute | Reminders in the toolbar, with mute for a while or for good (saving and recall are already shipped). |
 | Desktop helper | Tray app: reminders, chat, mute controls, talking to the same API. |
 | Trusted Contact, phase 2 | Richer conditions, quiet hours for guardians, an escalation chain. |
 | Admin provider panel | API keys, model choice and routing managed in the UI instead of environment variables. |
