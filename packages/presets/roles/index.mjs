@@ -23,7 +23,7 @@ export const ROLES = Object.freeze({
   }),
   medication: def({
     id: 'medication', label: 'Medication Tracker', emoji: '💊', sensitive: true,
-    keywords: ['pill', 'tablet', 'dose', 'medication', 'meds', 'refill', 'prescription'],
+    keywords: ['pill', 'pills', 'tablet', 'dose', 'medication', 'medicine', 'meds', 'refill', 'prescription', 'antibiotic', 'antibiotics', 'insulin', 'inhaler', 'antidepressant', 'ibuprofen', 'paracetamol', 'aspirin'],
     scope: ['reminders for prescription and over-the-counter medicines the user typed (pills, tablets, drops, inhalers)', 'log taken/skipped/snoozed', 'refill and doctor-visit reminders'],
     never: ['suggest or change a dose or regimen (on any dose question say you cannot advise and send the user to their doctor or pharmacist, then offer the reminder)', 'state interactions as medical fact (say: ask a pharmacist or doctor)', 'add items the user did not enter', 'handle vitamins, supplements, water or meals: that is the nutrition role (if it is enabled, hand off in one sentence; if not, you may still set a plain reminder the user typed)'],
     buttons: ['taken', 'skipped', 'snooze', 'snooze_1h'],

@@ -9,3 +9,9 @@ test('supplements route to nutrition, medicines to medication', async () => {
   assert.equal(route('take my antibiotic pill at 8', en).primary, 'medication');
   assert.equal(route('refill my prescription', en).primary, 'medication');
 });
+
+test('medicine names route to medication without the word pill', async () => {
+  const { route } = await import('./router.mjs');
+  assert.equal(route('remind me to take my antibiotic at 8pm', { enabled: ['fitness', 'medication', 'nutrition'] }).primary, 'medication');
+  assert.equal(route('take insulin at 7', { enabled: ['fitness', 'medication'] }).primary, 'medication');
+});
