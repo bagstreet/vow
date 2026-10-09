@@ -19,7 +19,7 @@ export default function AgentTokens() {
   const live = toks.filter(t => !t.revoked_at)
   return (
     <div className="space-y-3">
-      <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Let an external AI agent (or an MCP client) write <b>verified</b> facts to your memory, only for the roles you tick. It can read back only those roles. Revoke any time.</p>
+      <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Let an external AI agent (or an MCP client) write <b>verified</b> facts to your memory, only for the roles you tick. It can read back only those roles. Revoke any time. <b>Browser extension:</b> create a token here with one role, then paste the token, this site's address and the role into the extension popup (setup in apps/extension).</p>
       {secret && <div className="p-3 rounded-lg text-[11px] break-all font-mono" role="status" style={{ border: '1px solid #0E9C86' }}>Copy now, shown once: {secret}<button className="ml-2 underline cursor-pointer" onClick={() => setSecret(null)}>done</button></div>}
       {live.map(t => (
         <div key={t.id} className="flex items-center justify-between text-xs p-2 rounded-lg" style={{ border: '1px solid var(--border)' }}>
