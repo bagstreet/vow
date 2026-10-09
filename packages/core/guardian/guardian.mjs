@@ -32,7 +32,7 @@ export async function handleGuardian({ store, op, method, body = {}, userId }) {
     if (!Number.isInteger(m) || m < 1 || m > 10) return err(400, 'bad_missed');
     if (!Number.isInteger(h) || h < 1 || h > 720) return err(400, 'bad_silence');
     await store.setGuardianRules(link.id, { missedCheckins: m, silenceHours: h });
-    await store.addNotice(link.watchedUserId, `${name(await store.getProfile(userId))} changed your trusted-contact rules: alert after ${m} missed check-ins or ${h} h of silence.`);
+    await store.addNotice(link.watchedUserId, `${name(await store.getProfile(userId))} changed your trusted-contact rules: alert after ${m} missed check-in${m === 1 ? '' : 's'} or ${h} h of silence.`);
     return ok({});
   }
   if (op === 'guardian-revoke' && method === 'DELETE') {

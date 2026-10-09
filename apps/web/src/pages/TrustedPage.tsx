@@ -37,7 +37,7 @@ export default function TrustedPage() {
         {data?.guardians.map(g => (
           <div key={g.id} className="flex items-center justify-between gap-3 text-xs">
             <div>{g.status === 'active' ? <b>{g.name ?? 'Vow user'}</b> : <>Waiting for acceptance. Share code <b className="font-mono">{g.code}</b> (valid 10 minutes)</>}
-              {g.status === 'active' && <span style={{ color: 'var(--text-muted)' }}> · alerts after {g.missedCheckins} missed check-ins or {g.silenceHours} h silence</span>}</div>
+              {g.status === 'active' && <span style={{ color: 'var(--text-muted)' }}> · alerts after {g.missedCheckins} missed check-in{g.missedCheckins === 1 ? '' : 's'} or {g.silenceHours} h silence</span>}</div>
             <button disabled={busy} onClick={() => void run(() => api('guardian-revoke', 'DELETE', { id: g.id }), g.status === 'active' ? 'Trusted contact removed.' : 'Invite cancelled.')} className={btn} style={{ border: '1px solid var(--border)' }}>{g.status === 'active' ? 'Remove' : 'Cancel'}</button>
           </div>))}
         <button disabled={busy} onClick={() => void run(() => api('guardian-invite', 'POST', {}), 'Invite created. Send the code to your contact; they enter it on this page.')} className={btn} style={{ background: '#0E9C86', color: '#000' }}>Invite a trusted contact</button>
