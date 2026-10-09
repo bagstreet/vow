@@ -111,5 +111,6 @@ Discord Gateway --DM--> relay (Render, free) --POST /api/discord--> Vercel handl
 
 - The relay maps `/link CODE`, `/login`, `/roles`, `/role`, `/status`, `/quiet`, `/priority`, `/help` and any other text to the same handler used by slash commands, so behaviour is identical on every Discord surface.
 - Authentication to the API: header `x-gateway-auth` = SHA-256 of the bot token. No extra secret to manage.
-- Deploy: Render dashboard, New, Blueprint, select the repository (`render.yaml` is at the root). Set `DISCORD_BOT_TOKEN`. Free instances sleep after 15 minutes without traffic, so add a cron-job.org job that requests the service URL every 10 minutes.
+- Deploy: Render, New Web Service (free), build `npm install`, start `node worker.mjs`, root directory `apps/discord-gateway` (or use the `render.yaml` Blueprint). Set `DISCORD_BOT_TOKEN`; `VOW_API_URL` defaults to the production API. Render clones public repositories, or private ones once its GitHub app is authorised. The reference deployment uses the standalone mirror `bagstreet/vow-discord-gateway`.
+- Keepalive: free instances sleep after 15 minutes without traffic, so a cron-job.org job requests the service URL every 10 minutes.
 - Slash commands and buttons keep working through the Vercel endpoint independently of the relay.
