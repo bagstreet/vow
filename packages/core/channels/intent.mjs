@@ -112,6 +112,8 @@ export function mentionsOtherSubject(text, title) {
   return !extra.some((w) => t.includes(w.slice(0, 4)));
 }
 
+const ONE_TIME = /\b(tomorrow|tonight|today|once|one[- ]time|next\s+(mon|tue|wed|thu|fri|sat|sun)[a-z]*)\b/i;
+
 /** Execute an action intent. Returns { text, role? } or null when the text is not an action. */
 export async function runIntent({ text, user, store, memory, settle, channel, enabled = [] }) {
   const it = parseIntent(text);
@@ -151,7 +153,7 @@ export async function runIntent({ text, user, store, memory, settle, channel, en
   if (dup) return { text: `You already have "${dup.title}" at ${dup.time}.`, role };
   await store.addUserReminder(user.id, { title: it.title, time: it.time, days: it.days, role });
   if (memory) await memory.remember(user.id, `[schedule, ${channel}] reminder "${it.title}" at ${it.time} ${fmtDays(it.days)} (${role})`);
-  return { text: `✓ Reminder created: "${it.title}" — ${it.time} ${fmtDays(it.days)}, role ${role}. It shows up in the dashboard under Reminders (edit/delete there or here).`, role };
+  return { text: `✓ Reminder created: "${it.title}" — ${it.time} ${fmtDays(it.days)}, role ${role}. It shows up in the dashboard under Reminders (edit/delete there or here).${ONE_TIME.test(text) ? ' Note: reminders repeat, and one-time reminders are not supported yet. Delete this one after it fires.' : ''}`, role };
 }
 
 /** Context block so the model can answer "what was that reminder?" instead of guessing. */

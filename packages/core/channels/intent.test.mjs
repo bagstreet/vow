@@ -96,3 +96,12 @@ test('parse: spoken and unusual time formats (English)', () => {
     ['remind me to drink water at twenty past six pm', '18:20', 'drink water'], ['remind me to take 2 pills at 8 am', '08:00', 'take 2 pills'], ['remind me to eat at 12:30 pm', '12:30', 'eat']];
   for (const [t, time, title] of cases) { const r = parseIntent(t); assert.equal(r.time, time, t); assert.equal(r.title, title, t); }
 });
+
+test('create: one-time wording gets an honest repeat note', async () => {
+  const store = { listUserReminders: async () => [], addUserReminder: async () => {} };
+  const user = { id: 'u', default_role: 'fitness' };
+  const a = await runIntent({ text: 'remind me to stretch tomorrow at 9:00', user, store, channel: 'telegram', enabled: ['fitness'] });
+  assert.match(a.text, /one-time reminders are not supported/);
+  const b = await runIntent({ text: 'remind me to stretch at 9:00 daily', user, store, channel: 'telegram', enabled: ['fitness'] });
+  assert.doesNotMatch(b.text, /one-time/);
+});
