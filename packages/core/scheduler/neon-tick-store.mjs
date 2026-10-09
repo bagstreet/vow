@@ -10,7 +10,7 @@ export function createNeonTickStore(sql) {
   return {
     ...createNeonGuardianStore(sql),
     async initReminders(now) {
-      const rows = await sql("select r.*, array_to_string(r.days, ',') as days, u.tz from reminders r join users u on u.id = r.user_id where r.enabled and u.blocked_at is null and r.next_fire_at is null limit 100");
+      const rows = await sql("select r.id, r.user_id, r.role, r.title, r.time_local, r.once_date, r.next_fire_at, array_to_string(r.days, ',') as days, u.tz from reminders r join users u on u.id = r.user_id where r.enabled and u.blocked_at is null and r.next_fire_at is null limit 100");
       let n = 0;
       for (const r0 of rows) {
         try {
@@ -23,7 +23,7 @@ export function createNeonTickStore(sql) {
       return rows.slice(0, n);
     },
     async claimDueReminders(now, limit) {
-      const rows = await sql("select r.*, array_to_string(r.days, ',') as days, u.tz from reminders r join users u on u.id = r.user_id where r.enabled and u.blocked_at is null and r.next_fire_at <= $1 order by r.next_fire_at limit $2", [iso(now), limit]);
+      const rows = await sql("select r.id, r.user_id, r.role, r.title, r.time_local, r.once_date, r.next_fire_at, array_to_string(r.days, ',') as days, u.tz from reminders r join users u on u.id = r.user_id where r.enabled and u.blocked_at is null and r.next_fire_at <= $1 order by r.next_fire_at limit $2", [iso(now), limit]);
       const out = [];
       for (const r0 of rows) {
         try {
